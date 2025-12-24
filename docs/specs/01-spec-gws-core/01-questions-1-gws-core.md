@@ -132,6 +132,14 @@ Do you have preferences for the implementation language or technology?
 - [ ] (F) No preference - choose based on requirements
 - [X] (G) Prefer Go or possibliy rust, but if other options are more appropriate, prompt me and describe why
 
+## 13. Security Scan Requirements
+
+What scann thresholds and actions do you need?
+
+- [X] (A) Scan on every build
+- [X] (C) Block on High, Warn on Medium and Low
+
+
 ## 13. Proof Artifacts - How will you demo this working?
 
 What would you want to show to prove this feature works?
@@ -144,3 +152,4 @@ What would you want to show to prove this feature works?
 - [X] (F) Readme with manual steps to verify each expected functionality
 - [X] (G) Action Pipeline with automatic semantic versioning, scanning and published artifiact
 - [X] (H) Every completed step runable in the pipeline with a usable published artifact that can be used to verify the readme manual from step F
+- [X] (I) Always publish built binary. Only publish Docker images if they are needed for the project.
