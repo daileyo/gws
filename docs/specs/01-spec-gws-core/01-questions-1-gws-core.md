@@ -2,7 +2,24 @@
 
 Please answer each question below (select one or more options, or add your own notes). Feel free to add additional context under any question.
 
-## 1. Repository Management - What does "manage" mean?
+## 1. Pipeline Management
+
+What pipeline management tools do you use?
+
+- [X] (A) GitHub Actions
+- [ ] (B) Jenkins   
+- [ ] (C) CircleCI  
+- [ ] (D) GitLab CI
+- [X] (E) Semantic Versioning
+- [X] (F) Docker
+
+## 2. Scanning Tools
+
+What scanning tools do you use? 
+
+- [X] (A) Snyk
+
+## 3. Repository Management - What does "manage" mean?
 
 What specific management capabilities do you need for git repositories?
 
@@ -14,7 +31,7 @@ What specific management capabilities do you need for git repositories?
 - [ ] (F) Clone repositories from remote URLs
 - [X] (G) Other gws will not do any direct interactions with the repositories themselves at this time. This may be a future enhancement. It instead will initialize a location for repositoires to exist, navigate there when a command like gws is ran from the command line. For example: gws alone wil immidately drop into the location that all of the repose on the system are. gws personal (or something like this) will list all repose that have been identified as personal repositories, etc.
 
-## 2. Repository Classification - How should repos be categorized?
+## 4. Repository Classification - How should repos be categorized?
 
 How do you want to classify and distinguish between different types of repositories?
 
@@ -24,7 +41,7 @@ How do you want to classify and distinguish between different types of repositor
 - [X] (D) Both automatic detection AND manual tagging
 - [ ] (E) Other (describe)
 
-## 3. Search and Filter - What search capabilities are needed?
+## 5. Search and Filter - What search capabilities are needed?
 
 What do you want to be able to search and filter by?
 
@@ -37,7 +54,7 @@ What do you want to be able to search and filter by?
 - [X] (G) Branch information
 - [ ] (H) Other (describe)
 
-## 4. Analysis - What kind of analysis do you need?
+## 6. Analysis - What kind of analysis do you need?
 
 What insights or analysis should gws provide about your repositories?
 
@@ -49,7 +66,7 @@ What insights or analysis should gws provide about your repositories?
 - [X] (F) Just basic git status information
 - [ ] (G) Other (describe)
 
-## 5. Data Storage - How should repository information be stored?
+## 7. Data Storage - How should repository information be stored?
 
 Where and how should gws store the repository metadata?
 
@@ -60,7 +77,7 @@ Where and how should gws store the repository metadata?
 - [X] (E) No preference - you decide based on best practices
 - [ ] (F) Other (describe)
 
-## 6. Primary Use Cases - How will you use gws?
+## 8. Primary Use Cases - How will you use gws?
 
 What are your main use cases for this tool?
 
@@ -71,7 +88,7 @@ What are your main use cases for this tool?
 - [ ] (E) Identify repositories that need attention (uncommitted changes, outdated)
 - [X] (F) Quickly filter, find, and analyze repositories based on the metadata 
 
-## 7. Command Line Interface - What CLI style do you prefer?
+## 9. Command Line Interface - What CLI style do you prefer?
 
 How should the CLI commands be structured?
 
@@ -82,7 +99,7 @@ How should the CLI commands be structured?
 - [ ] (E) No preference - you decide
 - [X] (F) Other git-style subcommands with flag-based options (when needed) for the subcommands.
 
-## 8. Cross-Platform Requirements - What platforms are critical?
+## 10. Cross-Platform Requirements - What platforms are critical?
 
 Which operating systems must gws support in the first version?
 
@@ -93,7 +110,7 @@ Which operating systems must gws support in the first version?
 - [ ] (E) Start with one platform, expand later (specify which)
 - [ ] (F) Other (describe)
 
-## 9. Installation and Distribution - How should users install gws?
+## 11. Installation and Distribution - How should users install gws?
 
 What installation methods are important?
 
@@ -103,7 +120,7 @@ What installation methods are important?
 - [ ] (D) All of the above
 - [ ] (E) Other (describe)
 
-## 10. Technology Stack - Any preferences or constraints?
+## 12. Technology Stack - Any preferences or constraints?
 
 Do you have preferences for the implementation language or technology?
 
@@ -115,7 +132,7 @@ Do you have preferences for the implementation language or technology?
 - [ ] (F) No preference - choose based on requirements
 - [X] (G) Prefer Go or possibliy rust, but if other options are more appropriate, prompt me and describe why
 
-## 11. Proof Artifacts - How will you demo this working?
+## 13. Proof Artifacts - How will you demo this working?
 
 What would you want to show to prove this feature works?
 
@@ -125,3 +142,5 @@ What would you want to show to prove this feature works?
 - [ ] (D) Before/after showing repository organization
 - [ ] (E) Performance benchmarks (searching across many repos)
 - [X] (F) Readme with manual steps to verify each expected functionality
+- [X] (G) Action Pipeline with automatic semantic versioning, scanning and published artifiact
+- [X] (H) Every completed step runable in the pipeline with a usable published artifact that can be used to verify the readme manual from step F
