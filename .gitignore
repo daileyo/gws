@@ -23,8 +23,8 @@ vendor/
 build/
 dist/
 
-# Binary output
-gws
+# Binary output (in root directory)
+/gws
 
 # IDE and editor files
 .vscode/

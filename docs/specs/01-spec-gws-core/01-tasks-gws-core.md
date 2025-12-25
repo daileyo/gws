@@ -23,7 +23,7 @@
 - [x] 1.6 Write initial unit tests for version command
 - [x] 1.7 Verify `make build` compiles successfully and `make test` runs tests
 
-### [ ] 2.0 Repository Discovery and Workspace Initialization
+### [~] 2.0 Repository Discovery and Workspace Initialization
 
 #### 2.0 Proof Artifact(s)
 
@@ -36,7 +36,14 @@
 
 #### 2.0 Tasks
 
-TBD
+- [x] 2.1 Create config package to handle workspace configuration (load, save, create)
+- [x] 2.2 Create discovery package with repository scanner (recursive directory traversal, .git detection)
+- [x] 2.3 Implement `gws init` command with directory scanning and config persistence
+- [x] 2.4 Update root command to validate workspace initialization and show helpful errors
+- [x] 2.5 Write unit tests for config package operations
+- [x] 2.6 Write unit tests for repository discovery scanner
+- [x] 2.7 Create README with manual verification steps and usage examples
+- [x] 2.8 Verify end-to-end: init workspace, check config file, test error handling
 
 ### [ ] 3.0 Repository Classification and Metadata Management
 
