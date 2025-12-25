@@ -1,0 +1,48 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# Build directory
+build/
+dist/
+
+# Binary output
+gws
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+
+# Proof artifacts (images, recordings) - we'll commit the markdown refs but not large binaries
+*.asciinema
+*.gif
+*.mp4
+*.webm
+
+# OS specific
+Thumbs.db
