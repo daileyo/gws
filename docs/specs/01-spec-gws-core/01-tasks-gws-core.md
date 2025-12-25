@@ -23,7 +23,7 @@
 - [x] 1.6 Write initial unit tests for version command
 - [x] 1.7 Verify `make build` compiles successfully and `make test` runs tests
 
-### [~] 2.0 Repository Discovery and Workspace Initialization
+### [x] 2.0 Repository Discovery and Workspace Initialization
 
 #### 2.0 Proof Artifact(s)
 
