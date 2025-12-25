@@ -2,7 +2,7 @@
 
 ## Tasks
 
-### [~] 1.0 Project Setup and Basic CLI Framework
+### [x] 1.0 Project Setup and Basic CLI Framework
 
 #### 1.0 Proof Artifact(s)
 
