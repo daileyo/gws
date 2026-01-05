@@ -58,7 +58,17 @@
 
 #### 3.0 Tasks
 
-TBD
+- [ ] 3.1 Update repository model to include type, visibility, and tags fields
+- [ ] 3.2 Create classifier package with URL pattern matching for repository type detection (GitHub, GitLab, ADO, Bitbucket)
+- [ ] 3.3 Implement visibility detection logic based on remote URL protocol (https vs ssh)
+- [ ] 3.4 Update config package to persist and load classification metadata (type, visibility, tags)
+- [ ] 3.5 Implement `gws tag <repo> <tag>` command to add custom tags to repositories
+- [ ] 3.6 Implement `gws untag <repo> <tag>` command to remove tags from repositories
+- [ ] 3.7 Update `gws list` command to display repository type, visibility, and tags
+- [ ] 3.8 Write unit tests for classifier package (URL pattern matching and visibility detection)
+- [ ] 3.9 Write unit tests for tag management operations
+- [ ] 3.10 Update README with classification examples and supported remote URL patterns
+- [ ] 3.11 Verify end-to-end: auto-detection on init/refresh, tag/untag operations, list output
 
 ### [ ] 4.0 Search and Filter Capabilities
 
