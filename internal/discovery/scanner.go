@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/daileyo/gws/internal/classifier"
 	"github.com/daileyo/gws/internal/config"
 	"github.com/go-git/go-git/v5"
 )
@@ -109,12 +110,17 @@ func parseRepository(repoPath string) (*config.Repository, error) {
 		}
 	}
 
-	return &config.Repository{
+	gwsRepo := &config.Repository{
 		Name:      repoName,
 		Path:      repoPath,
 		RemoteURL: remoteURL,
 		Tags:      []string{},
-	}, nil
+	}
+
+	// Automatically classify the repository
+	classifier.Classify(gwsRepo)
+
+	return gwsRepo, nil
 }
 
 // shouldSkipDir determines if a directory should be skipped during scanning

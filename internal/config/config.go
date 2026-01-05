@@ -17,12 +17,34 @@ type Config struct {
 	Repositories []Repository `json:"repositories"`
 }
 
+// RepositoryType represents the type of git hosting provider
+type RepositoryType string
+
+const (
+	TypeGitHub    RepositoryType = "github"
+	TypeGitLab    RepositoryType = "gitlab"
+	TypeADO       RepositoryType = "ado"
+	TypeBitbucket RepositoryType = "bitbucket"
+	TypeUnknown   RepositoryType = "unknown"
+)
+
+// RepositoryVisibility represents whether a repository is public or private
+type RepositoryVisibility string
+
+const (
+	VisibilityPublic  RepositoryVisibility = "public"
+	VisibilityPrivate RepositoryVisibility = "private"
+	VisibilityUnknown RepositoryVisibility = "unknown"
+)
+
 // Repository represents a discovered git repository
 type Repository struct {
-	Name      string   `json:"name"`
-	Path      string   `json:"path"`
-	RemoteURL string   `json:"remote_url,omitempty"`
-	Tags      []string `json:"tags,omitempty"`
+	Name       string               `json:"name"`
+	Path       string               `json:"path"`
+	RemoteURL  string               `json:"remote_url,omitempty"`
+	Type       RepositoryType       `json:"type,omitempty"`
+	Visibility RepositoryVisibility `json:"visibility,omitempty"`
+	Tags       []string             `json:"tags,omitempty"`
 }
 
 // GetConfigPath returns the path to the gws config file

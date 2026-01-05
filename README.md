@@ -5,6 +5,9 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 ## Features
 
 - **Repository Discovery**: Automatically find all git repositories in a directory tree
+- **Automatic Classification**: Detect repository type (GitHub, GitLab, Azure DevOps, Bitbucket) from remote URLs
+- **Custom Tagging**: Organize repositories with custom tags (personal, work, archived, etc.)
+- **Advanced Filtering**: Search and filter repositories by type, tags, or name
 - **Workspace Management**: Track and organize repositories in a centralized configuration
 - **Cross-Platform**: Works on Linux, macOS, and Windows
 - **Lightweight**: Single binary with no external dependencies
@@ -64,7 +67,26 @@ Repositories: 15
 Use 'gws --help' to see available commands
 ```
 
-### 3. Check Version
+### 3. List Repositories
+
+View all tracked repositories with their metadata:
+
+```bash
+gws list
+```
+
+Output:
+```
+Found 15 repositories:
+
+NAME           TYPE      VISIBILITY  TAGS              PATH
+----           ----      ----------  ----              ----
+my-project     github    private     personal, web     /home/user/projects/my-project
+work-api       gitlab    private     work              /home/user/projects/work-api
+client-site    bitbucket unknown     client, archived  /home/user/projects/client-site
+```
+
+### 4. Check Version
 
 ```bash
 gws version
@@ -75,6 +97,80 @@ Output:
 gws version dev
   commit: abc1234
   built:  2025-12-25T21:00:00Z
+```
+
+## Repository Classification and Tagging
+
+### Automatic Classification
+
+When repositories are discovered with `gws init`, they are automatically classified based on their remote URL:
+
+| Repository Type | Detected From |
+|----------------|---------------|
+| **GitHub** | `github.com` |
+| **GitLab** | `gitlab.com`, `gitlab.*` |
+| **Azure DevOps (ADO)** | `dev.azure.com`, `visualstudio.com` |
+| **Bitbucket** | `bitbucket.org` |
+| **Unknown** | Other or no remote URL |
+
+#### Supported Remote URL Patterns
+
+**GitHub:**
+- HTTPS: `https://github.com/user/repo.git`
+- SSH: `git@github.com:user/repo.git`
+
+**GitLab:**
+- HTTPS: `https://gitlab.com/user/repo.git`
+- SSH: `git@gitlab.com:user/repo.git`
+- Self-hosted: `https://gitlab.company.com/user/repo.git`
+
+**Azure DevOps:**
+- HTTPS: `https://dev.azure.com/org/project/_git/repo`
+- HTTPS (legacy): `https://org.visualstudio.com/project/_git/repo`
+- SSH: `git@ssh.dev.azure.com:v3/org/project/repo`
+
+**Bitbucket:**
+- HTTPS: `https://bitbucket.org/user/repo.git`
+- SSH: `git@bitbucket.org:user/repo.git`
+
+### Visibility Detection
+
+Repository visibility is inferred from the remote URL protocol:
+
+- **Private**: SSH URLs (`git@...` or `ssh://...`) typically require authentication
+- **Unknown**: HTTPS URLs could be public or private (requires authentication check)
+
+### Custom Tags
+
+Add custom tags to organize repositories:
+
+```bash
+# Add a tag
+gws tag my-project personal
+gws tag work-api work
+
+# Remove a tag
+gws untag my-project personal
+
+# Tags can be anything: personal, work, client, archived, production, etc.
+```
+
+### Filtering Repositories
+
+Filter repositories by type, tag, or name:
+
+```bash
+# List only GitHub repositories
+gws list --type github
+
+# List repositories tagged as "personal"
+gws list --tag personal
+
+# List repositories matching a name pattern
+gws list --name project
+
+# Combine multiple filters
+gws list --type gitlab --tag work
 ```
 
 ## Manual Verification Steps
@@ -226,7 +322,17 @@ gws stores its configuration in `~/.gws/config.json`. The configuration includes
       "name": "gws",
       "path": "/home/user/projects/gws",
       "remote_url": "https://github.com/daileyo/gws.git",
-      "tags": []
+      "type": "github",
+      "visibility": "unknown",
+      "tags": ["personal", "go"]
+    },
+    {
+      "name": "my-api",
+      "path": "/home/user/projects/my-api",
+      "remote_url": "git@gitlab.com:user/my-api.git",
+      "type": "gitlab",
+      "visibility": "private",
+      "tags": ["work", "backend"]
     }
   ]
 }
@@ -271,8 +377,14 @@ go test -v ./internal/discovery
 ├── cmd/
 │   └── gws/              # Main application entry point
 │       ├── main.go       # Root command and CLI setup
-│       └── init.go       # Init command implementation
+│       ├── init.go       # Init command implementation
+│       ├── list.go       # List command implementation
+│       ├── tag.go        # Tag command implementation
+│       └── untag.go      # Untag command implementation
 ├── internal/
+│   ├── classifier/       # Repository classification
+│   │   ├── detector.go
+│   │   └── detector_test.go
 │   ├── config/           # Configuration management
 │   │   ├── config.go
 │   │   └── config_test.go
@@ -289,9 +401,9 @@ go test -v ./internal/discovery
 ## Roadmap
 
 - [x] Repository discovery and workspace initialization
-- [ ] Repository classification (GitHub, GitLab, Azure DevOps, Bitbucket)
-- [ ] Manual tagging for organization
-- [ ] Search and filter capabilities
+- [x] Repository classification (GitHub, GitLab, Azure DevOps, Bitbucket)
+- [x] Manual tagging for organization
+- [x] Search and filter capabilities
 - [ ] Git status integration
 - [ ] Navigation to repository directories
 - [ ] CI/CD pipeline with automated releases

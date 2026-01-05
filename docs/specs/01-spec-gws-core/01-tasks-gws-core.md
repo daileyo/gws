@@ -45,7 +45,7 @@
 - [x] 2.7 Create README with manual verification steps and usage examples
 - [x] 2.8 Verify end-to-end: init workspace, check config file, test error handling
 
-### [ ] 3.0 Repository Classification and Metadata Management
+### [x] 3.0 Repository Classification and Metadata Management
 
 #### 3.0 Proof Artifact(s)
 
@@ -58,17 +58,17 @@
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Update repository model to include type, visibility, and tags fields
-- [ ] 3.2 Create classifier package with URL pattern matching for repository type detection (GitHub, GitLab, ADO, Bitbucket)
-- [ ] 3.3 Implement visibility detection logic based on remote URL protocol (https vs ssh)
-- [ ] 3.4 Update config package to persist and load classification metadata (type, visibility, tags)
-- [ ] 3.5 Implement `gws tag <repo> <tag>` command to add custom tags to repositories
-- [ ] 3.6 Implement `gws untag <repo> <tag>` command to remove tags from repositories
-- [ ] 3.7 Update `gws list` command to display repository type, visibility, and tags
-- [ ] 3.8 Write unit tests for classifier package (URL pattern matching and visibility detection)
-- [ ] 3.9 Write unit tests for tag management operations
-- [ ] 3.10 Update README with classification examples and supported remote URL patterns
-- [ ] 3.11 Verify end-to-end: auto-detection on init/refresh, tag/untag operations, list output
+- [x] 3.1 Update repository model to include type, visibility, and tags fields
+- [x] 3.2 Create classifier package with URL pattern matching for repository type detection (GitHub, GitLab, ADO, Bitbucket)
+- [x] 3.3 Implement visibility detection logic based on remote URL protocol (https vs ssh)
+- [x] 3.4 Update config package to persist and load classification metadata (type, visibility, tags)
+- [x] 3.5 Implement `gws tag <repo> <tag>` command to add custom tags to repositories
+- [x] 3.6 Implement `gws untag <repo> <tag>` command to remove tags from repositories
+- [x] 3.7 Update `gws list` command to display repository type, visibility, and tags
+- [x] 3.8 Write unit tests for classifier package (URL pattern matching and visibility detection)
+- [x] 3.9 Write unit tests for tag management operations
+- [x] 3.10 Update README with classification examples and supported remote URL patterns
+- [x] 3.11 Verify end-to-end: auto-detection on init/refresh, tag/untag operations, list output
 
 ### [ ] 4.0 Search and Filter Capabilities
 
