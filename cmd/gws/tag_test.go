@@ -6,7 +6,7 @@ import (
 	"github.com/daileyo/gws/internal/config"
 )
 
-func TestFindRepository(t *testing.T) {
+func TestFindRepositories(t *testing.T) {
 	cfg := &config.Config{
 		Version:   "1.0.0",
 		Workspace: "/home/user/projects",
@@ -19,6 +19,13 @@ func TestFindRepository(t *testing.T) {
 				Tags:      []string{"personal"},
 			},
 			{
+				Name:      "my-project-api",
+				Path:      "/home/user/projects/my-project-api",
+				RemoteURL: "git@github.com:user/my-project-api.git",
+				Type:      config.TypeGitHub,
+				Tags:      []string{"personal", "backend"},
+			},
+			{
 				Name:      "work-repo",
 				Path:      "/home/user/projects/work-repo",
 				RemoteURL: "git@gitlab.com:company/work-repo.git",
@@ -26,8 +33,8 @@ func TestFindRepository(t *testing.T) {
 				Tags:      []string{"work"},
 			},
 			{
-				Name:      "Another-Project",
-				Path:      "/home/user/projects/Another-Project",
+				Name:      "Another-API",
+				Path:      "/home/user/projects/Another-API",
 				RemoteURL: "https://bitbucket.org/user/another.git",
 				Type:      config.TypeBitbucket,
 				Tags:      []string{},
@@ -38,60 +45,72 @@ func TestFindRepository(t *testing.T) {
 	tests := []struct {
 		name       string
 		identifier string
-		shouldFind bool
-		expected   string // expected repository name
+		expected   int // number of matching repositories
+		names      []string
 	}{
 		{
-			name:       "Find by exact name match",
+			name:       "Find by partial name - multiple matches",
 			identifier: "my-project",
-			shouldFind: true,
-			expected:   "my-project",
+			expected:   2,
+			names:      []string{"my-project", "my-project-api"},
 		},
 		{
-			name:       "Find by case-insensitive name",
-			identifier: "MY-PROJECT",
-			shouldFind: true,
-			expected:   "my-project",
+			name:       "Find by partial name - single match",
+			identifier: "work",
+			expected:   1,
+			names:      []string{"work-repo"},
 		},
 		{
 			name:       "Find by exact path",
 			identifier: "/home/user/projects/work-repo",
-			shouldFind: true,
-			expected:   "work-repo",
+			expected:   1,
+			names:      []string{"work-repo"},
 		},
 		{
-			name:       "Find by mixed case name",
-			identifier: "another-project",
-			shouldFind: true,
-			expected:   "Another-Project",
+			name:       "Find by partial name - case insensitive",
+			identifier: "API",
+			expected:   2,
+			names:      []string{"my-project-api", "Another-API"},
 		},
 		{
-			name:       "Not found - invalid name",
-			identifier: "nonexistent-repo",
-			shouldFind: false,
+			name:       "Find by exact name match",
+			identifier: "work-repo",
+			expected:   1,
+			names:      []string{"work-repo"},
 		},
 		{
-			name:       "Not found - invalid path",
-			identifier: "/invalid/path",
-			shouldFind: false,
+			name:       "No matches",
+			identifier: "nonexistent",
+			expected:   0,
+			names:      []string{},
+		},
+		{
+			name:       "Case insensitive partial match",
+			identifier: "PROJECT",
+			expected:   2,
+			names:      []string{"my-project", "my-project-api"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo, err := findRepository(cfg, tt.identifier)
+			repos := findRepositories(cfg, tt.identifier)
 
-			if tt.shouldFind {
-				if err != nil {
-					t.Errorf("Expected to find repository, but got error: %v", err)
-					return
+			if len(repos) != tt.expected {
+				t.Errorf("findRepositories(%q) returned %d repos, expected %d", tt.identifier, len(repos), tt.expected)
+			}
+
+			// Verify the names match
+			if len(repos) > 0 {
+				foundNames := make(map[string]bool)
+				for _, repo := range repos {
+					foundNames[repo.Name] = true
 				}
-				if repo.Name != tt.expected {
-					t.Errorf("Expected repository name %q, got %q", tt.expected, repo.Name)
-				}
-			} else {
-				if err == nil {
-					t.Errorf("Expected error for identifier %q, but found repository: %v", tt.identifier, repo.Name)
+
+				for _, expectedName := range tt.names {
+					if !foundNames[expectedName] {
+						t.Errorf("Expected to find repository %q but didn't", expectedName)
+					}
 				}
 			}
 		})
@@ -193,4 +212,73 @@ func TestTagManagement(t *testing.T) {
 			t.Errorf("Expected tags to remain unchanged, got %d tags", len(newTags))
 		}
 	})
+}
+
+func TestTagMultipleRepositories(t *testing.T) {
+	cfg := &config.Config{
+		Repositories: []config.Repository{
+			{Name: "api-service", Path: "/path/api-service", Tags: []string{}},
+			{Name: "api-gateway", Path: "/path/api-gateway", Tags: []string{"production"}},
+			{Name: "web-app", Path: "/path/web-app", Tags: []string{}},
+		},
+	}
+
+	// Find all repos with "api" in name
+	repos := findRepositories(cfg, "api")
+	if len(repos) != 2 {
+		t.Errorf("Expected 2 repos with 'api', got %d", len(repos))
+	}
+
+	// Simulate tagging all matching repos
+	newTag := "backend"
+	for _, repo := range repos {
+		// Check if tag already exists
+		hasTag := false
+		for _, tag := range repo.Tags {
+			if tag == newTag {
+				hasTag = true
+				break
+			}
+		}
+
+		if !hasTag {
+			repo.Tags = append(repo.Tags, newTag)
+		}
+	}
+
+	// Verify both repos now have the backend tag
+	apiServiceHasTag := false
+	apiGatewayHasTag := false
+
+	for _, tag := range cfg.Repositories[0].Tags {
+		if tag == "backend" {
+			apiServiceHasTag = true
+		}
+	}
+
+	for _, tag := range cfg.Repositories[1].Tags {
+		if tag == "backend" {
+			apiGatewayHasTag = true
+		}
+	}
+
+	if !apiServiceHasTag {
+		t.Error("api-service should have backend tag")
+	}
+
+	if !apiGatewayHasTag {
+		t.Error("api-gateway should have backend tag")
+	}
+
+	// Verify web-app doesn't have the tag
+	webAppHasTag := false
+	for _, tag := range cfg.Repositories[2].Tags {
+		if tag == "backend" {
+			webAppHasTag = true
+		}
+	}
+
+	if webAppHasTag {
+		t.Error("web-app should not have backend tag")
+	}
 }

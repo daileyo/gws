@@ -9,15 +9,19 @@ import (
 
 var untagCmd = &cobra.Command{
 	Use:   "untag <repository> <tag>",
-	Short: "Remove a custom tag from a repository",
-	Long: `Remove a custom tag from a repository.
+	Short: "Remove a custom tag from repositories",
+	Long: `Remove a custom tag from all repositories matching the given name or path.
 
-The repository can be identified by name or path.
+The repository identifier can match by:
+- Name (case-insensitive, partial match)
+- Path (exact match)
+
+If multiple repositories match, the tag will be removed from all of them.
 
 Examples:
-  gws untag my-project personal
-  gws untag /path/to/repo work
-  gws untag my-app production`,
+  gws untag my-project personal        # Remove "personal" tag from all repos with "my-project" in name
+  gws untag api work                   # Remove "work" tag from all repos with "api" in name
+  gws untag /path/to/repo production   # Remove tag from specific repo by exact path`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repoIdentifier := args[0]
@@ -29,36 +33,69 @@ Examples:
 			return err
 		}
 
-		// Find repository
-		repo, err := findRepository(cfg, repoIdentifier)
-		if err != nil {
-			return err
+		// Find all matching repositories
+		repos := findRepositories(cfg, repoIdentifier)
+		if len(repos) == 0 {
+			return fmt.Errorf("no repositories found matching: %s", repoIdentifier)
 		}
 
-		// Find and remove tag
-		found := false
-		newTags := []string{}
-		for _, existingTag := range repo.Tags {
-			if existingTag == tag {
-				found = true
-			} else {
-				newTags = append(newTags, existingTag)
+		// Remove tag from all matching repositories
+		untaggedCount := 0
+		skippedCount := 0
+		for _, repo := range repos {
+			// Find and remove tag
+			found := false
+			newTags := []string{}
+			for _, existingTag := range repo.Tags {
+				if existingTag == tag {
+					found = true
+				} else {
+					newTags = append(newTags, existingTag)
+				}
+			}
+
+			if !found {
+				skippedCount++
+				continue
+			}
+
+			// Update tags
+			repo.Tags = newTags
+			untaggedCount++
+		}
+
+		// Save configuration
+		if untaggedCount > 0 {
+			if err := config.Save(cfg); err != nil {
+				return fmt.Errorf("failed to save configuration: %w", err)
 			}
 		}
 
-		if !found {
-			return fmt.Errorf("repository '%s' does not have tag '%s'", repo.Name, tag)
+		// Report results
+		if untaggedCount > 0 {
+			fmt.Printf("Removed tag '%s' from %d %s\n", tag, untaggedCount, pluralize("repository", "repositories", untaggedCount))
+			if untaggedCount <= 5 {
+				for _, repo := range repos {
+					// Check if tag was removed from this repo
+					hadTag := false
+					for _, existingTag := range repo.Tags {
+						if existingTag == tag {
+							hadTag = true
+							break
+						}
+					}
+					if !hadTag && skippedCount < len(repos) {
+						// This repo had the tag removed
+						fmt.Printf("  - %s\n", repo.Name)
+					}
+				}
+			}
 		}
 
-		// Update tags
-		repo.Tags = newTags
-
-		// Save configuration
-		if err := config.Save(cfg); err != nil {
-			return fmt.Errorf("failed to save configuration: %w", err)
+		if skippedCount > 0 {
+			fmt.Printf("%d %s did not have tag '%s'\n", skippedCount, pluralize("repository", "repositories", skippedCount), tag)
 		}
 
-		fmt.Printf("Removed tag '%s' from repository '%s'\n", tag, repo.Name)
 		return nil
 	},
 }

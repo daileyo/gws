@@ -142,35 +142,93 @@ Repository visibility is inferred from the remote URL protocol:
 
 ### Custom Tags
 
-Add custom tags to organize repositories:
+Add custom tags to organize repositories. Tags are applied to **all repositories** matching the given name:
 
 ```bash
-# Add a tag
+# Add a tag to all repos matching "my-project" (partial match)
 gws tag my-project personal
-gws tag work-api work
 
-# Remove a tag
+# Add a tag to all repos with "api" in the name
+gws tag api backend
+
+# Tag specific repo by exact path
+gws tag /path/to/specific/repo production
+
+# Remove a tag from all matching repos
 gws untag my-project personal
 
 # Tags can be anything: personal, work, client, archived, production, etc.
 ```
 
+**How Tag Matching Works:**
+- Matches by **partial name** (case-insensitive): `gws tag api work` tags "my-api", "api-gateway", etc.
+- Matches by **exact path**: `gws tag /home/user/projects/myrepo work` tags only that specific repo
+- Tags are applied to **all matching repositories**
+- You'll see a summary of how many repos were tagged
+
+**Examples:**
+```bash
+# Tag all API services as backend
+gws tag api backend
+# Output: Added tag 'backend' to 3 repositories
+
+# Tag a specific repo by path
+gws tag /home/user/work/api-gateway production
+# Output: Added tag 'production' to 1 repository
+```
+
 ### Filtering Repositories
 
-Filter repositories by type, tag, or name:
+Filter repositories by type, tags, name, or path. All filters can be combined:
 
 ```bash
-# List only GitHub repositories
+# Filter by repository type
 gws list --type github
 
-# List repositories tagged as "personal"
+# Filter by single tag
 gws list --tag personal
 
-# List repositories matching a name pattern
+# Filter by multiple tags (AND logic - repo must have ALL tags)
+gws list --tag work --tag backend
+
+# Filter by repository name (partial match, case-insensitive)
 gws list --name project
 
+# Filter by repository path (partial match)
+gws list --path /home/user/projects
+
 # Combine multiple filters
-gws list --type gitlab --tag work
+gws list --type gitlab --tag work --name api
+```
+
+### Output Formats
+
+Control how repositories are displayed:
+
+```bash
+# Default table format
+gws list
+
+# JSON format for scripting/automation
+gws list --output json
+gws list -o json
+
+# JSON with filters
+gws list --type github -o json
+```
+
+**JSON Output Example:**
+```json
+[
+  {
+    "name": "my-project",
+    "path": "/home/user/projects/my-project",
+    "remote_url": "https://github.com/user/my-project.git",
+    "type": "github",
+    "visibility": "unknown",
+    "tags": ["personal", "web"]
+  }
+]
 ```
 
 ## Manual Verification Steps
@@ -388,9 +446,12 @@ go test -v ./internal/discovery
 │   ├── config/           # Configuration management
 │   │   ├── config.go
 │   │   └── config_test.go
-│   └── discovery/        # Repository discovery
-│       ├── scanner.go
-│       └── scanner_test.go
+│   ├── discovery/        # Repository discovery
+│   │   ├── scanner.go
+│   │   └── scanner_test.go
+│   └── filter/           # Repository filtering logic
+│       ├── filter.go
+│       └── filter_test.go
 ├── docs/
 │   └── specs/            # Specification documents
 ├── Makefile              # Build automation
@@ -403,7 +464,8 @@ go test -v ./internal/discovery
 - [x] Repository discovery and workspace initialization
 - [x] Repository classification (GitHub, GitLab, Azure DevOps, Bitbucket)
 - [x] Manual tagging for organization
-- [x] Search and filter capabilities
+- [x] Advanced search and filter capabilities (type, tags, name, path)
+- [x] Multiple output formats (table, JSON)
 - [ ] Git status integration
 - [ ] Navigation to repository directories
 - [ ] CI/CD pipeline with automated releases

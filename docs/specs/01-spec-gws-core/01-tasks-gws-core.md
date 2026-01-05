@@ -70,7 +70,7 @@
 - [x] 3.10 Update README with classification examples and supported remote URL patterns
 - [x] 3.11 Verify end-to-end: auto-detection on init/refresh, tag/untag operations, list output
 
-### [ ] 4.0 Search and Filter Capabilities
+### [x] 4.0 Search and Filter Capabilities
 
 #### 4.0 Proof Artifact(s)
 
@@ -84,7 +84,14 @@
 
 #### 4.0 Tasks
 
-TBD
+- [x] 4.1 Add JSON output format support (--json flag) to list command
+- [x] 4.2 Add path filtering support (--path flag for absolute or partial path matching)
+- [x] 4.3 Add support for multiple tags filtering (allow multiple --tag flags or comma-separated)
+- [x] 4.4 Create filter package to centralize and test filtering logic
+- [x] 4.5 Write comprehensive unit tests for filter package
+- [x] 4.6 Add output formatting options (table, json, simple)
+- [x] 4.7 Update README with complete filter examples and output format options
+- [x] 4.8 Verify end-to-end: multiple filter combinations, JSON output, path filtering
 
 ### [ ] 5.0 Git Status Integration and Navigation
 

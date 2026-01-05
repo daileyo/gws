@@ -1,17 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/filter"
 	"github.com/spf13/cobra"
 )
 
 var (
-	filterType string
-	filterTag  string
-	filterName string
+	filterType   string
+	filterTags   []string
+	filterName   string
+	filterPath   string
+	outputFormat string
 )
 
 var listCmd = &cobra.Command{
@@ -20,14 +24,18 @@ var listCmd = &cobra.Command{
 	Long: `List all tracked repositories with their classification metadata including
 type (GitHub, GitLab, ADO, Bitbucket), visibility (public/private), and custom tags.
 
-Supports filtering by type, tag, or name.
+Supports filtering by type, tags, name, and path. Multiple filters can be combined.
 
 Examples:
-  gws list                          # List all repositories
-  gws list --type github            # List only GitHub repositories
-  gws list --tag personal           # List repositories tagged as "personal"
-  gws list --name myproject         # List repositories matching "myproject"
-  gws list --type gitlab --tag work # Combine multiple filters`,
+  gws list                                    # List all repositories
+  gws list --type github                      # List only GitHub repositories
+  gws list --tag personal                     # List repositories tagged as "personal"
+  gws list --tag work --tag backend           # List repositories with both "work" AND "backend" tags
+  gws list --name myproject                   # List repositories matching "myproject"
+  gws list --path /home/user/projects         # List repositories in specific path
+  gws list --type gitlab --tag work           # Combine multiple filters
+  gws list --output json                      # Output in JSON format
+  gws list -o json                            # Short form for JSON output`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Load configuration
 		cfg, err := config.Load()
@@ -36,21 +44,41 @@ Examples:
 		}
 
 		if len(cfg.Repositories) == 0 {
-			fmt.Println("No repositories found. Run 'gws init <directory>' to discover repositories.")
+			if outputFormat == "json" {
+				fmt.Println("[]")
+			} else {
+				fmt.Println("No repositories found. Run 'gws init <directory>' to discover repositories.")
+			}
 			return nil
 		}
 
-		// Filter repositories
-		filtered := filterRepositories(cfg.Repositories)
+		// Build filter criteria
+		criteria := filter.Criteria{
+			Type: filterType,
+			Tags: filterTags,
+			Name: filterName,
+			Path: filterPath,
+		}
+
+		// Apply filters
+		filtered := filter.Apply(cfg.Repositories, criteria)
 
 		if len(filtered) == 0 {
-			fmt.Println("No repositories match the specified filters.")
+			if outputFormat == "json" {
+				fmt.Println("[]")
+			} else {
+				fmt.Println("No repositories match the specified filters.")
+			}
 			return nil
 		}
 
-		// Display results
-		fmt.Printf("Found %d %s:\n\n", len(filtered), pluralize("repository", "repositories", len(filtered)))
-		displayRepositories(filtered)
+		// Display results based on format
+		switch outputFormat {
+		case "json":
+			return displayJSON(filtered)
+		default:
+			displayTable(filtered)
+		}
 
 		return nil
 	},
@@ -60,47 +88,16 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 
 	listCmd.Flags().StringVar(&filterType, "type", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
-	listCmd.Flags().StringVar(&filterTag, "tag", "", "Filter by custom tag")
+	listCmd.Flags().StringSliceVar(&filterTags, "tag", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
 	listCmd.Flags().StringVar(&filterName, "name", "", "Filter by repository name (partial match)")
+	listCmd.Flags().StringVar(&filterPath, "path", "", "Filter by repository path (partial match)")
+	listCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 }
 
-// filterRepositories applies the specified filters to the repository list
-func filterRepositories(repos []config.Repository) []config.Repository {
-	filtered := []config.Repository{}
+// displayTable shows repositories in a formatted table
+func displayTable(repos []config.Repository) {
+	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize("repository", "repositories", len(repos)))
 
-	for _, repo := range repos {
-		// Apply type filter
-		if filterType != "" && !strings.EqualFold(string(repo.Type), filterType) {
-			continue
-		}
-
-		// Apply tag filter
-		if filterTag != "" {
-			hasTag := false
-			for _, tag := range repo.Tags {
-				if strings.EqualFold(tag, filterTag) {
-					hasTag = true
-					break
-				}
-			}
-			if !hasTag {
-				continue
-			}
-		}
-
-		// Apply name filter (case-insensitive partial match)
-		if filterName != "" && !strings.Contains(strings.ToLower(repo.Name), strings.ToLower(filterName)) {
-			continue
-		}
-
-		filtered = append(filtered, repo)
-	}
-
-	return filtered
-}
-
-// displayRepositories shows repositories in a formatted table
-func displayRepositories(repos []config.Repository) {
 	// Calculate column widths
 	maxNameLen := 10
 	maxTypeLen := 10
@@ -161,4 +158,14 @@ func displayRepositories(repos []config.Repository) {
 			maxTagsLen, tags,
 			repo.Path)
 	}
+}
+
+// displayJSON outputs repositories in JSON format
+func displayJSON(repos []config.Repository) error {
+	data, err := json.MarshalIndent(repos, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+	fmt.Println(string(data))
+	return nil
 }
