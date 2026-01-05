@@ -4,7 +4,8 @@
       "Bash(make build:*)",
       "Bash(go test:*)",
       "Bash(make test:*)",
-      "Bash(./build/gws:*)"
+      "Bash(./build/gws:*)",
+      "Bash(go build:*)"
     ]
   }
 }

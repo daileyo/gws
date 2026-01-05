@@ -7,6 +7,7 @@ import (
 
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
+	"github.com/daileyo/gws/internal/git"
 	"github.com/spf13/cobra"
 )
 
@@ -16,6 +17,7 @@ var (
 	filterName   string
 	filterPath   string
 	outputFormat string
+	showStatus   bool
 )
 
 var listCmd = &cobra.Command{
@@ -72,12 +74,22 @@ Examples:
 			return nil
 		}
 
+		// Load git status cache if status display is enabled
+		var statusCache *git.Cache
+		if showStatus {
+			statusCache = git.NewCache(git.DefaultTTL)
+			cachePath, err := git.GetCachePath()
+			if err == nil {
+				_ = statusCache.Load(cachePath) // Ignore errors, cache might not exist yet
+			}
+		}
+
 		// Display results based on format
 		switch outputFormat {
 		case "json":
 			return displayJSON(filtered)
 		default:
-			displayTable(filtered)
+			displayTable(filtered, statusCache)
 		}
 
 		return nil
@@ -92,10 +104,11 @@ func init() {
 	listCmd.Flags().StringVar(&filterName, "name", "", "Filter by repository name (partial match)")
 	listCmd.Flags().StringVar(&filterPath, "path", "", "Filter by repository path (partial match)")
 	listCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
+	listCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
 }
 
 // displayTable shows repositories in a formatted table
-func displayTable(repos []config.Repository) {
+func displayTable(repos []config.Repository, statusCache *git.Cache) {
 	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize("repository", "repositories", len(repos)))
 
 	// Calculate column widths
@@ -103,6 +116,7 @@ func displayTable(repos []config.Repository) {
 	maxTypeLen := 10
 	maxVisLen := 10
 	maxTagsLen := 10
+	maxStatusLen := 6 // "STATUS"
 
 	for _, repo := range repos {
 		if len(repo.Name) > maxNameLen {
@@ -118,21 +132,49 @@ func displayTable(repos []config.Repository) {
 		if len(tags) > maxTagsLen {
 			maxTagsLen = len(tags)
 		}
+
+		// Calculate status column width
+		if statusCache != nil {
+			status, _ := statusCache.GetOrFetch(repo.Path)
+			if status != nil {
+				statusStr := formatStatusShort(status)
+				if len(statusStr) > maxStatusLen {
+					maxStatusLen = len(statusStr)
+				}
+			}
+		}
 	}
 
 	// Print header
-	fmt.Printf("%-*s  %-*s  %-*s  %-*s  %s\n",
-		maxNameLen, "NAME",
-		maxTypeLen, "TYPE",
-		maxVisLen, "VISIBILITY",
-		maxTagsLen, "TAGS",
-		"PATH")
-	fmt.Printf("%s  %s  %s  %s  %s\n",
-		strings.Repeat("-", maxNameLen),
-		strings.Repeat("-", maxTypeLen),
-		strings.Repeat("-", maxVisLen),
-		strings.Repeat("-", maxTagsLen),
-		strings.Repeat("-", 4))
+	if statusCache != nil {
+		fmt.Printf("%-*s  %-*s  %-*s  %-*s  %-*s  %s\n",
+			maxNameLen, "NAME",
+			maxStatusLen, "STATUS",
+			maxTypeLen, "TYPE",
+			maxVisLen, "VISIBILITY",
+			maxTagsLen, "TAGS",
+			"PATH")
+		fmt.Printf("%s  %s  %s  %s  %s  %s\n",
+			strings.Repeat("-", maxNameLen),
+			strings.Repeat("-", maxStatusLen),
+			strings.Repeat("-", maxTypeLen),
+			strings.Repeat("-", maxVisLen),
+			strings.Repeat("-", maxTagsLen),
+			strings.Repeat("-", 4))
+	} else {
+		fmt.Printf("%-*s  %-*s  %-*s  %-*s  %s\n",
+			maxNameLen, "NAME",
+			maxTypeLen, "TYPE",
+			maxVisLen, "VISIBILITY",
+			maxTagsLen, "TAGS",
+			"PATH")
+		fmt.Printf("%s  %s  %s  %s  %s\n",
+			strings.Repeat("-", maxNameLen),
+			strings.Repeat("-", maxTypeLen),
+			strings.Repeat("-", maxVisLen),
+			strings.Repeat("-", maxTagsLen),
+			strings.Repeat("-", 4))
+	}
 
 	// Print repositories
 	for _, repo := range repos {
@@ -151,13 +193,64 @@ func displayTable(repos []config.Repository) {
 			visStr = "unknown"
 		}
 
-		fmt.Printf("%-*s  %-*s  %-*s  %-*s  %s\n",
-			maxNameLen, repo.Name,
-			maxTypeLen, typeStr,
-			maxVisLen, visStr,
-			maxTagsLen, tags,
-			repo.Path)
+		if statusCache != nil {
+			status, _ := statusCache.GetOrFetch(repo.Path)
+			statusStr := "-"
+			if status != nil {
+				statusStr = formatStatusShort(status)
+			}
+
+			fmt.Printf("%-*s  %-*s  %-*s  %-*s  %-*s  %s\n",
+				maxNameLen, repo.Name,
+				maxStatusLen, statusStr,
+				maxTypeLen, typeStr,
+				maxVisLen, visStr,
+				maxTagsLen, tags,
+				repo.Path)
+		} else {
+			fmt.Printf("%-*s  %-*s  %-*s  %-*s  %s\n",
+				maxNameLen, repo.Name,
+				maxTypeLen, typeStr,
+				maxVisLen, visStr,
+				maxTagsLen, tags,
+				repo.Path)
+		}
 	}
+
+	// Save cache if we fetched any statuses
+	if statusCache != nil {
+		cachePath, err := git.GetCachePath()
+		if err == nil {
+			_ = statusCache.Save(cachePath) // Ignore save errors
+		}
+	}
+}
+
+// formatStatusShort returns a short status string with visual indicators
+func formatStatusShort(status *git.Status) string {
+	if status.Branch == "" {
+		return "no commits"
+	}
+
+	result := status.Branch
+
+	// Add clean/dirty indicator
+	if status.HasChanges {
+		result += " ✗"
+	} else {
+		result += " ✓"
+	}
+
+	// Add ahead/behind indicators
+	if status.Ahead > 0 && status.Behind > 0 {
+		result += fmt.Sprintf(" ↑%d↓%d", status.Ahead, status.Behind)
+	} else if status.Ahead > 0 {
+		result += fmt.Sprintf(" ↑%d", status.Ahead)
+	} else if status.Behind > 0 {
+		result += fmt.Sprintf(" ↓%d", status.Behind)
+	}
+
+	return result
 }
 
 // displayJSON outputs repositories in JSON format

@@ -42,8 +42,8 @@ func TestVersionCommand(t *testing.T) {
 
 func TestRootCommand(t *testing.T) {
 	// Test that root command is properly configured
-	if rootCmd.Use != "gws" {
-		t.Errorf("Expected root command Use to be 'gws', got '%s'", rootCmd.Use)
+	if rootCmd.Use != "gws [tag]" {
+		t.Errorf("Expected root command Use to be 'gws [tag]', got '%s'", rootCmd.Use)
 	}
 
 	if rootCmd.Short == "" {

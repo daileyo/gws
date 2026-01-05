@@ -93,7 +93,7 @@
 - [x] 4.7 Update README with complete filter examples and output format options
 - [x] 4.8 Verify end-to-end: multiple filter combinations, JSON output, path filtering
 
-### [ ] 5.0 Git Status Integration and Navigation
+### [x] 5.0 Git Status Integration and Navigation
 
 #### 5.0 Proof Artifact(s)
 
@@ -107,7 +107,16 @@
 
 #### 5.0 Tasks
 
-TBD
+- [x] 5.1 Create git package for reading git status information (branch, clean/dirty, ahead/behind)
+- [x] 5.2 Implement status caching with configurable TTL (default 5 minutes)
+- [x] 5.3 Update list command to display git status indicators
+- [x] 5.4 Implement `gws refresh` command to update cached status and rediscover repos
+- [x] 5.5 Add navigation to workspace root when running `gws` with no arguments
+- [x] 5.6 Add filter shorthand support (e.g., `gws personal` lists repos tagged "personal")
+- [x] 5.7 Write unit tests for git status package
+- [x] 5.8 Add visual indicators (symbols/colors) for status display
+- [x] 5.9 Update README with navigation patterns and status indicators documentation
+- [x] 5.10 Verify end-to-end: navigation, status display, refresh, filter shorthand
 
 ### [ ] 6.0 CI/CD Pipeline and Release Automation
 
