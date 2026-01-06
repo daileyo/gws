@@ -8,10 +8,10 @@ import (
 
 // Criteria represents filtering criteria for repositories
 type Criteria struct {
-	Type  string   // Repository type filter (github, gitlab, ado, bitbucket)
-	Tags  []string // Custom tags filter (AND logic - repository must have all tags)
-	Name  string   // Repository name filter (partial, case-insensitive)
-	Path  string   // Repository path filter (partial match)
+	Type string   // Repository type filter (github, gitlab, ado, bitbucket)
+	Tags []string // Custom tags filter (AND logic - repository must have all tags)
+	Name string   // Repository name filter (partial, case-insensitive)
+	Path string   // Repository path filter (partial match)
 }
 
 // Apply filters a list of repositories based on the provided criteria

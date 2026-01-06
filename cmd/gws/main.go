@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
 	"github.com/daileyo/gws/internal/git"
-	"github.com/spf13/cobra"
 )
 
 var (

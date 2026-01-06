@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
 	"github.com/daileyo/gws/internal/git"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -109,7 +110,7 @@ func init() {
 
 // displayTable shows repositories in a formatted table
 func displayTable(repos []config.Repository, statusCache *git.Cache) {
-	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize("repository", "repositories", len(repos)))
+	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize(len(repos), "repository", "repositories"))
 
 	// Calculate column widths
 	maxNameLen := 10

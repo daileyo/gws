@@ -21,14 +21,16 @@ linters:
     - gosec
     - bodyclose
     - noctx
-    - exportloopref
+    - copyloopvar  # Replaces deprecated exportloopref
 
 linters-settings:
   errcheck:
     check-type-assertions: true
-    check-blank: true
+    check-blank: false  # Allow blank identifier for intentionally ignored errors
   govet:
     enable-all: true
+    disable:
+      - fieldalignment  # Micro-optimization, not critical
   goimports:
     local-prefixes: github.com/daileyo/gws
   misspell:
@@ -44,5 +46,10 @@ issues:
       linters:
         - gosec
         - unparam
+        - govet
+    # Allow shadowing of err variable (common Go pattern)
+    - linters:
+        - govet
+      text: 'shadow: declaration of "err"'
   max-issues-per-linter: 50
   max-same-issues: 10

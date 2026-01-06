@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 	"github.com/daileyo/gws/internal/git"
-	"github.com/spf13/cobra"
 )
 
 var refreshCmd = &cobra.Command{

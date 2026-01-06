@@ -314,7 +314,7 @@ func TestApply_MultipleCriteria(t *testing.T) {
 			expected: 1, // my-project
 		},
 		{
-			name: "No criteria (return all)",
+			name:     "No criteria (return all)",
 			criteria: Criteria{},
 			expected: 5,
 		},

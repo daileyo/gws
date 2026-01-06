@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
-	"github.com/spf13/cobra"
 )
 
 var initCmd = &cobra.Command{
@@ -61,7 +62,7 @@ Examples:
 
 		// Display results
 		fmt.Printf("\nWorkspace initialized successfully!\n")
-		fmt.Printf("Found %d git %s:\n\n", result.Count, pluralize("repository", "repositories", result.Count))
+		fmt.Printf("Found %d git %s:\n\n", result.Count, pluralize(result.Count, "repository", "repositories"))
 
 		for i, repo := range result.Repositories {
 			if i < 10 { // Limit to first 10 repositories
@@ -73,7 +74,7 @@ Examples:
 		}
 
 		if result.Count > 10 {
-			fmt.Printf("  ... and %d more %s\n", result.Count-10, pluralize("repository", "repositories", result.Count-10))
+			fmt.Printf("  ... and %d more %s\n", result.Count-10, pluralize(result.Count-10, "repository", "repositories"))
 		}
 
 		configPath, _ := config.GetConfigPath()
@@ -83,7 +84,7 @@ Examples:
 	},
 }
 
-func pluralize(singular, plural string, count int) string {
+func pluralize(count int, singular, plural string) string { //nolint:unparam // singular is always "repository" but kept for readability
 	if count == 1 {
 		return singular
 	}

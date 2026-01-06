@@ -17,9 +17,15 @@ DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Linker flags to embed version information
 LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)"
 
-.PHONY: all build test clean install help lint coverage snapshot ci vet fmt
+.PHONY: all build test clean install help lint coverage snapshot ci vet fmt setup-hooks
 
 all: build
+
+## setup-hooks: Install git hooks for pre-push linting
+setup-hooks:
+	@echo "Setting up git hooks..."
+	git config core.hooksPath .githooks
+	@echo "Git hooks installed! Pre-push hook will run linting before each push."
 
 ## build: Build the binary
 build:

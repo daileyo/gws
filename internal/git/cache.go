@@ -107,8 +107,8 @@ func (c *Cache) Save(cachePath string) error {
 		return fmt.Errorf("failed to marshal cache: %w", err)
 	}
 
-	// Write to file
-	if err := os.WriteFile(cachePath, jsonData, 0644); err != nil {
+	// Write to file with secure permissions (user read/write only)
+	if err := os.WriteFile(cachePath, jsonData, 0600); err != nil {
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
 

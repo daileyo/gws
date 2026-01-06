@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/daileyo/gws/internal/config"
 	"github.com/spf13/cobra"
+
+	"github.com/daileyo/gws/internal/config"
 )
 
 var tagCmd = &cobra.Command{
@@ -72,7 +73,7 @@ Examples:
 
 		// Report results
 		if taggedCount > 0 {
-			fmt.Printf("Added tag '%s' to %d %s\n", tag, taggedCount, pluralize("repository", "repositories", taggedCount))
+			fmt.Printf("Added tag '%s' to %d %s\n", tag, taggedCount, pluralize(taggedCount, "repository", "repositories"))
 			if taggedCount <= 5 {
 				for _, repo := range repos {
 					// Check if this repo was tagged (doesn't already have the tag)
@@ -92,7 +93,7 @@ Examples:
 		}
 
 		if skippedCount > 0 {
-			fmt.Printf("%d %s already had tag '%s'\n", skippedCount, pluralize("repository", "repositories", skippedCount), tag)
+			fmt.Printf("%d %s already had tag '%s'\n", skippedCount, pluralize(skippedCount, "repository", "repositories"), tag)
 		}
 
 		return nil

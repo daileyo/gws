@@ -111,8 +111,8 @@ func Save(cfg *Config) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// Write to file
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	// Write to file with secure permissions (user read/write only)
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

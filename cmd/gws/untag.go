@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/daileyo/gws/internal/config"
 	"github.com/spf13/cobra"
+
+	"github.com/daileyo/gws/internal/config"
 )
 
 var untagCmd = &cobra.Command{
@@ -73,7 +74,7 @@ Examples:
 
 		// Report results
 		if untaggedCount > 0 {
-			fmt.Printf("Removed tag '%s' from %d %s\n", tag, untaggedCount, pluralize("repository", "repositories", untaggedCount))
+			fmt.Printf("Removed tag '%s' from %d %s\n", tag, untaggedCount, pluralize(untaggedCount, "repository", "repositories"))
 			if untaggedCount <= 5 {
 				for _, repo := range repos {
 					// Check if tag was removed from this repo
@@ -93,7 +94,7 @@ Examples:
 		}
 
 		if skippedCount > 0 {
-			fmt.Printf("%d %s did not have tag '%s'\n", skippedCount, pluralize("repository", "repositories", skippedCount), tag)
+			fmt.Printf("%d %s did not have tag '%s'\n", skippedCount, pluralize(skippedCount, "repository", "repositories"), tag)
 		}
 
 		return nil
