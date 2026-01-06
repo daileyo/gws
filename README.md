@@ -1,5 +1,11 @@
 # gws - Git Workspace
 
+[![CI](https://github.com/daileyo/gws/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/gws/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/daileyo/gws)](https://goreportcard.com/report/github.com/daileyo/gws)
+[![Snyk Security](https://snyk.io/test/github/daileyo/gws/badge.svg)](https://snyk.io/test/github/daileyo/gws)
+[![Release](https://img.shields.io/github/v/release/daileyo/gws)](https://github.com/daileyo/gws/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A lightweight, cross-platform CLI tool for discovering, organizing, and navigating git repositories on your local system.
 
 ## Features
@@ -589,8 +595,50 @@ go test -v ./internal/discovery
 - [x] Git status integration with visual indicators
 - [x] Workspace refresh and cache management
 - [x] Filter shortcuts and shell navigation
-- [ ] CI/CD pipeline with automated releases
+- [x] CI/CD pipeline with automated releases
 - [ ] Plugin support for editors (Neovim, VSCode)
+
+## Release Process
+
+This project uses automated releases powered by:
+- **[Release Please](https://github.com/googleapis/release-please)**: Automates versioning and changelog generation based on [Conventional Commits](https://www.conventionalcommits.org/)
+- **[GoReleaser](https://goreleaser.com/)**: Builds cross-platform binaries and publishes to GitHub Releases
+- **[Snyk](https://snyk.io/)**: Security scanning for dependencies
+
+### Versioning
+
+We follow [Semantic Versioning](https://semver.org/) (SemVer):
+- **MAJOR** version for incompatible API changes
+- **MINOR** version for new functionality (backwards compatible)
+- **PATCH** version for bug fixes (backwards compatible)
+
+### How Releases Work
+
+1. **Commits to `main`** trigger Release Please to create/update a Release PR
+2. **Merging the Release PR** creates a new GitHub Release with a version tag
+3. **The version tag** triggers GoReleaser to build and publish binaries
+
+### Downloading Releases
+
+Pre-built binaries are available on the [Releases page](https://github.com/daileyo/gws/releases) for:
+- Linux (amd64, arm64)
+- macOS (amd64, arm64)
+- Windows (amd64)
+
+```bash
+# Example: Download and install on Linux/macOS
+curl -LO https://github.com/daileyo/gws/releases/latest/download/gws_<version>_<os>_<arch>.tar.gz
+tar -xzf gws_*.tar.gz
+sudo mv gws /usr/local/bin/
+```
+
+## Security
+
+Security scanning is performed on every build using Snyk:
+- **High severity** vulnerabilities block the build
+- **Medium/Low severity** vulnerabilities are logged as warnings
+
+To report a security vulnerability, please open an issue or contact the maintainers directly.
 
 ## License
 
@@ -598,4 +646,64 @@ MIT
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please follow these guidelines:
+
+### Commit Message Format
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) for automated versioning:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Types:**
+- `feat:` New feature (triggers MINOR version bump)
+- `fix:` Bug fix (triggers PATCH version bump)
+- `docs:` Documentation only
+- `style:` Code style (formatting, semicolons, etc.)
+- `refactor:` Code refactoring
+- `perf:` Performance improvement
+- `test:` Adding or updating tests
+- `chore:` Maintenance tasks
+- `ci:` CI/CD changes
+
+**Breaking Changes:**
+Add `!` after the type or include `BREAKING CHANGE:` in the footer to trigger a MAJOR version bump:
+```
+feat!: remove deprecated API
+```
+
+### Development Workflow
+
+1. **Fork** the repository
+2. **Create a branch** for your feature: `git checkout -b feat/my-feature`
+3. **Make changes** and commit using conventional commits
+4. **Run tests**: `make test`
+5. **Run linter**: `make lint`
+6. **Push** to your fork and create a Pull Request
+
+### Running CI Locally
+
+```bash
+# Run all CI checks
+make ci
+
+# Individual checks
+make vet      # Run go vet
+make lint     # Run golangci-lint
+make test     # Run tests
+make coverage # Run tests with coverage report
+
+# Build snapshot release (for local testing)
+make snapshot
+```
+
+### Code Style
+
+- Follow standard Go conventions
+- Run `make fmt` before committing
+- Ensure `make lint` passes with no errors

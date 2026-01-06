@@ -1,0 +1,115 @@
+# GoReleaser configuration
+# https://goreleaser.com/customization/
+
+version: 2
+
+project_name: gws
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod verify
+
+builds:
+  - id: gws
+    main: ./cmd/gws
+    binary: gws
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.Date}}
+    flags:
+      - -trimpath
+
+archives:
+  - id: gws-archive
+    builds:
+      - gws
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Performance
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Other
+      order: 999
+
+release:
+  github:
+    owner: daileyo
+    name: gws
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## gws {{ .Tag }}
+    
+    Cross-platform CLI tool for discovering, organizing, and navigating git repositories.
+  footer: |
+    ---
+    
+    **Full Changelog**: https://github.com/daileyo/gws/compare/{{ .PreviousTag }}...{{ .Tag }}
+    
+    ### Installation
+    
+    Download the appropriate binary for your platform and add it to your PATH.
+    
+    ```bash
+    # Linux/macOS
+    tar -xzf gws_{{ .Version }}_<os>_<arch>.tar.gz
+    sudo mv gws /usr/local/bin/
+    
+    # Windows
+    # Extract the zip and add to PATH
+    ```
+
+announce:
+  skip: true
