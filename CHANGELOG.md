@@ -1,0 +1,19 @@
+# Changelog
+
+## 1.0.0 (2026-01-06)
+
+
+### Features
+
+* complete questionare ([9d83e51](https://github.com/daileyo/gws/commit/9d83e51154943a387e89279b1ccde362d82471ca))
+* generate initial spec ([49666c7](https://github.com/daileyo/gws/commit/49666c7ff4874050bcdd9d7807f832f38338fbc7))
+* implement step 6 ([8787dae](https://github.com/daileyo/gws/commit/8787dae2d3bb6153297907cd0316b82e7f38d520))
+* implement task 4 ([1b95999](https://github.com/daileyo/gws/commit/1b95999c99984a2496517342d35dfe389ee58abb))
+* project setup and basic CLI framework ([8eb3ed1](https://github.com/daileyo/gws/commit/8eb3ed15636660a9d5dd6056dbc5e2653a3983d5))
+* repository discovery and workspace initialization ([15cf8b4](https://github.com/daileyo/gws/commit/15cf8b474d9ca1c3beb0e5f5298cd6f8a4723343))
+
+
+### Bug Fixes
+
+* addres linting issues ([05c57bc](https://github.com/daileyo/gws/commit/05c57bcbe9e30ac80295e67ff300fdacb550e652))
+* update target go version ([91636ae](https://github.com/daileyo/gws/commit/91636ae24f3436e2f6ec643947784cb8e6f9efe9))
