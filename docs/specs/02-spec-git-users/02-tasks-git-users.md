@@ -57,7 +57,7 @@
 - [x] 1.8 Write unit tests for Config with Profiles slice serialization
 - [x] 1.9 Verify backward compatibility: loading config without profiles/user fields should work (empty defaults)
 
-### [~] 2.0 Implement Git User Detection from Repositories
+### [x] 2.0 Implement Git User Detection from Repositories
 
 #### 2.0 Proof Artifact(s)
 
