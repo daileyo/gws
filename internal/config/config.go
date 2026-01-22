@@ -8,12 +8,13 @@ import (
 )
 
 // Version of the config format for future migrations
-const ConfigVersion = "1.0.0"
+const ConfigVersion = "1.1.0"
 
 // Config represents the gws workspace configuration
 type Config struct {
 	Version      string       `json:"version"`
 	Workspace    string       `json:"workspace"`
+	Profiles     []Profile    `json:"profiles,omitempty"`
 	Repositories []Repository `json:"repositories"`
 }
 
@@ -37,14 +38,37 @@ const (
 	VisibilityUnknown RepositoryVisibility = "unknown"
 )
 
+// UserSource represents where the git user configuration comes from
+type UserSource string
+
+const (
+	UserSourceGlobal    UserSource = "global"
+	UserSourceLocal     UserSource = "local"
+	UserSourceIncludeIf UserSource = "includeif"
+	UserSourceUnknown   UserSource = "unknown"
+)
+
+// Profile represents a git user profile with identity and signing configuration
+type Profile struct {
+	Name        string `json:"name"`                   // Profile identifier (e.g., "work", "personal")
+	GitName     string `json:"git_name"`               // user.name value
+	Email       string `json:"email"`                  // user.email value
+	SigningKey  string `json:"signing_key,omitempty"`  // user.signingkey value (optional)
+	SignCommits bool   `json:"sign_commits,omitempty"` // commit.gpgsign setting
+}
+
 // Repository represents a discovered git repository
 type Repository struct {
-	Name       string               `json:"name"`
-	Path       string               `json:"path"`
-	RemoteURL  string               `json:"remote_url,omitempty"`
-	Type       RepositoryType       `json:"type,omitempty"`
-	Visibility RepositoryVisibility `json:"visibility,omitempty"`
-	Tags       []string             `json:"tags,omitempty"`
+	Name           string               `json:"name"`
+	Path           string               `json:"path"`
+	RemoteURL      string               `json:"remote_url,omitempty"`
+	Type           RepositoryType       `json:"type,omitempty"`
+	Visibility     RepositoryVisibility `json:"visibility,omitempty"`
+	Tags           []string             `json:"tags,omitempty"`
+	User           string               `json:"user,omitempty"`            // Git user.name for this repo
+	Email          string               `json:"email,omitempty"`           // Git user.email for this repo
+	SigningEnabled bool                 `json:"signing_enabled,omitempty"` // Whether commit signing is configured
+	UserSource     UserSource           `json:"user_source,omitempty"`     // Where the user config comes from
 }
 
 // GetConfigPath returns the path to the gws config file

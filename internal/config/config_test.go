@@ -203,3 +203,304 @@ func TestConfigJSONMarshaling(t *testing.T) {
 		t.Errorf("Repositories count mismatch after marshal/unmarshal")
 	}
 }
+
+func TestProfileJSONMarshaling(t *testing.T) {
+	tests := []struct {
+		name    string
+		profile Profile
+	}{
+		{
+			name: "full profile with signing",
+			profile: Profile{
+				Name:        "work",
+				GitName:     "John Doe",
+				Email:       "john@work.com",
+				SigningKey:  "ABC123",
+				SignCommits: true,
+			},
+		},
+		{
+			name: "profile without signing",
+			profile: Profile{
+				Name:        "personal",
+				GitName:     "John Doe",
+				Email:       "john@personal.com",
+				SigningKey:  "",
+				SignCommits: false,
+			},
+		},
+		{
+			name: "minimal profile",
+			profile: Profile{
+				Name:    "minimal",
+				GitName: "Test User",
+				Email:   "test@example.com",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Marshal to JSON
+			data, err := json.Marshal(tt.profile)
+			if err != nil {
+				t.Fatalf("Failed to marshal profile: %v", err)
+			}
+
+			// Unmarshal back
+			var loaded Profile
+			if err := json.Unmarshal(data, &loaded); err != nil {
+				t.Fatalf("Failed to unmarshal profile: %v", err)
+			}
+
+			// Verify fields
+			if loaded.Name != tt.profile.Name {
+				t.Errorf("Name mismatch: expected %s, got %s", tt.profile.Name, loaded.Name)
+			}
+			if loaded.GitName != tt.profile.GitName {
+				t.Errorf("GitName mismatch: expected %s, got %s", tt.profile.GitName, loaded.GitName)
+			}
+			if loaded.Email != tt.profile.Email {
+				t.Errorf("Email mismatch: expected %s, got %s", tt.profile.Email, loaded.Email)
+			}
+			if loaded.SigningKey != tt.profile.SigningKey {
+				t.Errorf("SigningKey mismatch: expected %s, got %s", tt.profile.SigningKey, loaded.SigningKey)
+			}
+			if loaded.SignCommits != tt.profile.SignCommits {
+				t.Errorf("SignCommits mismatch: expected %v, got %v", tt.profile.SignCommits, loaded.SignCommits)
+			}
+		})
+	}
+}
+
+func TestRepositoryWithUserFieldsMarshaling(t *testing.T) {
+	tests := []struct {
+		name string
+		repo Repository
+	}{
+		{
+			name: "repository with all user fields",
+			repo: Repository{
+				Name:           "test-repo",
+				Path:           "/path/to/repo",
+				RemoteURL:      "https://github.com/test/repo.git",
+				Type:           TypeGitHub,
+				Visibility:     VisibilityPrivate,
+				Tags:           []string{"work"},
+				User:           "John Doe",
+				Email:          "john@work.com",
+				SigningEnabled: true,
+				UserSource:     UserSourceLocal,
+			},
+		},
+		{
+			name: "repository with global user source",
+			repo: Repository{
+				Name:           "another-repo",
+				Path:           "/path/to/another",
+				RemoteURL:      "https://gitlab.com/test/another.git",
+				Type:           TypeGitLab,
+				User:           "Jane Doe",
+				Email:          "jane@example.com",
+				SigningEnabled: false,
+				UserSource:     UserSourceGlobal,
+			},
+		},
+		{
+			name: "repository with includeif user source",
+			repo: Repository{
+				Name:       "work-repo",
+				Path:       "/path/to/work",
+				User:       "Work User",
+				Email:      "work@company.com",
+				UserSource: UserSourceIncludeIf,
+			},
+		},
+		{
+			name: "repository without user fields (legacy)",
+			repo: Repository{
+				Name:      "legacy-repo",
+				Path:      "/path/to/legacy",
+				RemoteURL: "https://github.com/test/legacy.git",
+				Tags:      []string{"old"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Marshal to JSON
+			data, err := json.Marshal(tt.repo)
+			if err != nil {
+				t.Fatalf("Failed to marshal repository: %v", err)
+			}
+
+			// Unmarshal back
+			var loaded Repository
+			if err := json.Unmarshal(data, &loaded); err != nil {
+				t.Fatalf("Failed to unmarshal repository: %v", err)
+			}
+
+			// Verify user fields
+			if loaded.User != tt.repo.User {
+				t.Errorf("User mismatch: expected %s, got %s", tt.repo.User, loaded.User)
+			}
+			if loaded.Email != tt.repo.Email {
+				t.Errorf("Email mismatch: expected %s, got %s", tt.repo.Email, loaded.Email)
+			}
+			if loaded.SigningEnabled != tt.repo.SigningEnabled {
+				t.Errorf("SigningEnabled mismatch: expected %v, got %v", tt.repo.SigningEnabled, loaded.SigningEnabled)
+			}
+			if loaded.UserSource != tt.repo.UserSource {
+				t.Errorf("UserSource mismatch: expected %s, got %s", tt.repo.UserSource, loaded.UserSource)
+			}
+		})
+	}
+}
+
+func TestConfigWithProfilesMarshaling(t *testing.T) {
+	cfg := &Config{
+		Version:   ConfigVersion,
+		Workspace: "/test/workspace",
+		Profiles: []Profile{
+			{
+				Name:        "work",
+				GitName:     "John Doe",
+				Email:       "john@work.com",
+				SigningKey:  "WORK123",
+				SignCommits: true,
+			},
+			{
+				Name:    "personal",
+				GitName: "John Doe",
+				Email:   "john@personal.com",
+			},
+		},
+		Repositories: []Repository{
+			{
+				Name:           "work-repo",
+				Path:           "/test/workspace/work-repo",
+				User:           "John Doe",
+				Email:          "john@work.com",
+				SigningEnabled: true,
+				UserSource:     UserSourceIncludeIf,
+			},
+		},
+	}
+
+	// Marshal to JSON
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("Failed to marshal config: %v", err)
+	}
+
+	// Unmarshal back
+	var loaded Config
+	if err := json.Unmarshal(data, &loaded); err != nil {
+		t.Fatalf("Failed to unmarshal config: %v", err)
+	}
+
+	// Verify profiles
+	if len(loaded.Profiles) != 2 {
+		t.Errorf("Expected 2 profiles, got %d", len(loaded.Profiles))
+	}
+
+	if len(loaded.Profiles) > 0 {
+		if loaded.Profiles[0].Name != "work" {
+			t.Errorf("Expected first profile name 'work', got '%s'", loaded.Profiles[0].Name)
+		}
+		if loaded.Profiles[0].Email != "john@work.com" {
+			t.Errorf("Expected first profile email 'john@work.com', got '%s'", loaded.Profiles[0].Email)
+		}
+		if !loaded.Profiles[0].SignCommits {
+			t.Error("Expected first profile to have SignCommits enabled")
+		}
+	}
+
+	// Verify repository user fields
+	if len(loaded.Repositories) > 0 {
+		repo := loaded.Repositories[0]
+		if repo.User != "John Doe" {
+			t.Errorf("Expected repo user 'John Doe', got '%s'", repo.User)
+		}
+		if repo.UserSource != UserSourceIncludeIf {
+			t.Errorf("Expected repo user source 'includeif', got '%s'", repo.UserSource)
+		}
+	}
+}
+
+func TestBackwardCompatibility(t *testing.T) {
+	// Simulate loading a config file from older version (without profiles or user fields)
+	oldConfigJSON := `{
+		"version": "1.0.0",
+		"workspace": "/test/workspace",
+		"repositories": [
+			{
+				"name": "old-repo",
+				"path": "/test/workspace/old-repo",
+				"remote_url": "https://github.com/test/old.git",
+				"type": "github",
+				"visibility": "private",
+				"tags": ["legacy"]
+			}
+		]
+	}`
+
+	var cfg Config
+	if err := json.Unmarshal([]byte(oldConfigJSON), &cfg); err != nil {
+		t.Fatalf("Failed to unmarshal old config format: %v", err)
+	}
+
+	// Verify old fields are loaded correctly
+	if cfg.Version != "1.0.0" {
+		t.Errorf("Expected version '1.0.0', got '%s'", cfg.Version)
+	}
+	if cfg.Workspace != "/test/workspace" {
+		t.Errorf("Expected workspace '/test/workspace', got '%s'", cfg.Workspace)
+	}
+	if len(cfg.Repositories) != 1 {
+		t.Errorf("Expected 1 repository, got %d", len(cfg.Repositories))
+	}
+
+	// Verify profiles defaults to nil/empty
+	if cfg.Profiles != nil && len(cfg.Profiles) != 0 {
+		t.Errorf("Expected profiles to be nil/empty for old config, got %v", cfg.Profiles)
+	}
+
+	// Verify user fields default to zero values
+	if len(cfg.Repositories) > 0 {
+		repo := cfg.Repositories[0]
+		if repo.User != "" {
+			t.Errorf("Expected User to be empty for old config, got '%s'", repo.User)
+		}
+		if repo.Email != "" {
+			t.Errorf("Expected Email to be empty for old config, got '%s'", repo.Email)
+		}
+		if repo.SigningEnabled {
+			t.Error("Expected SigningEnabled to be false for old config")
+		}
+		if repo.UserSource != "" {
+			t.Errorf("Expected UserSource to be empty for old config, got '%s'", repo.UserSource)
+		}
+	}
+}
+
+func TestUserSourceConstants(t *testing.T) {
+	tests := []struct {
+		source   UserSource
+		expected string
+	}{
+		{UserSourceGlobal, "global"},
+		{UserSourceLocal, "local"},
+		{UserSourceIncludeIf, "includeif"},
+		{UserSourceUnknown, "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.source), func(t *testing.T) {
+			if string(tt.source) != tt.expected {
+				t.Errorf("Expected %s, got %s", tt.expected, string(tt.source))
+			}
+		})
+	}
+}
