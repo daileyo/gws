@@ -37,7 +37,7 @@
 
 ## Tasks
 
-### [ ] 1.0 Extend Config Model for User Profiles and Repository User Data
+### [~] 1.0 Extend Config Model for User Profiles and Repository User Data
 
 #### 1.0 Proof Artifact(s)
 
@@ -47,15 +47,15 @@
 
 #### 1.0 Tasks
 
-- [ ] 1.1 Add Profile struct to `internal/config/config.go` with fields: Name (string), GitName (string), Email (string), SigningKey (string), SignCommits (bool)
-- [ ] 1.2 Add Profiles slice field to Config struct: `Profiles []Profile`
-- [ ] 1.3 Add user fields to Repository struct: User (string), Email (string), SigningEnabled (bool), UserSource (string)
-- [ ] 1.4 Add UserSource constants: UserSourceGlobal, UserSourceLocal, UserSourceIncludeIf, UserSourceUnknown
-- [ ] 1.5 Update ConfigVersion constant to "1.1.0" to indicate schema change
-- [ ] 1.6 Write unit tests in `internal/config/config_test.go` for Profile serialization (JSON marshal/unmarshal)
-- [ ] 1.7 Write unit tests for Repository with user fields serialization
-- [ ] 1.8 Write unit tests for Config with Profiles slice serialization
-- [ ] 1.9 Verify backward compatibility: loading config without profiles/user fields should work (empty defaults)
+- [x] 1.1 Add Profile struct to `internal/config/config.go` with fields: Name (string), GitName (string), Email (string), SigningKey (string), SignCommits (bool)
+- [x] 1.2 Add Profiles slice field to Config struct: `Profiles []Profile`
+- [x] 1.3 Add user fields to Repository struct: User (string), Email (string), SigningEnabled (bool), UserSource (string)
+- [x] 1.4 Add UserSource constants: UserSourceGlobal, UserSourceLocal, UserSourceIncludeIf, UserSourceUnknown
+- [x] 1.5 Update ConfigVersion constant to "1.1.0" to indicate schema change
+- [x] 1.6 Write unit tests in `internal/config/config_test.go` for Profile serialization (JSON marshal/unmarshal)
+- [x] 1.7 Write unit tests for Repository with user fields serialization
+- [x] 1.8 Write unit tests for Config with Profiles slice serialization
+- [x] 1.9 Verify backward compatibility: loading config without profiles/user fields should work (empty defaults)
 
 ### [ ] 2.0 Implement Git User Detection from Repositories
 
