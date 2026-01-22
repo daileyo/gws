@@ -37,7 +37,7 @@
 
 ## Tasks
 
-### [~] 1.0 Extend Config Model for User Profiles and Repository User Data
+### [x] 1.0 Extend Config Model for User Profiles and Repository User Data
 
 #### 1.0 Proof Artifact(s)
 
