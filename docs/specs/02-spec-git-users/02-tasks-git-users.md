@@ -57,7 +57,7 @@
 - [x] 1.8 Write unit tests for Config with Profiles slice serialization
 - [x] 1.9 Verify backward compatibility: loading config without profiles/user fields should work (empty defaults)
 
-### [ ] 2.0 Implement Git User Detection from Repositories
+### [~] 2.0 Implement Git User Detection from Repositories
 
 #### 2.0 Proof Artifact(s)
 
@@ -67,17 +67,17 @@
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Create `internal/git/user.go` with UserConfig struct containing Name, Email, SigningKey, SignCommits, Source fields
-- [ ] 2.2 Implement `GetUserConfig(repoPath string) (*UserConfig, error)` function using go-git to read effective config
-- [ ] 2.3 Implement config cascade detection: determine if user config comes from global, local .git/config, or includeIf
-- [ ] 2.4 Handle edge cases: repo with no user configured (returns global default), repo with no commits yet
-- [ ] 2.5 Create `internal/git/user_test.go` with test helper to create git repos with specific user configs
-- [ ] 2.6 Write unit tests for GetUserConfig with global-only user config
-- [ ] 2.7 Write unit tests for GetUserConfig with local .git/config override
-- [ ] 2.8 Write unit tests for GetUserConfig with signing configuration
-- [ ] 2.9 Update `cmd/gws/refresh.go` to call GetUserConfig for each repository during refresh
-- [ ] 2.10 Store detected user info in Repository struct fields (User, Email, SigningEnabled, UserSource)
-- [ ] 2.11 Save updated config after refresh completes
+- [x] 2.1 Create `internal/git/user.go` with UserConfig struct containing Name, Email, SigningKey, SignCommits, Source fields
+- [x] 2.2 Implement `GetUserConfig(repoPath string) (*UserConfig, error)` function using go-git to read effective config
+- [x] 2.3 Implement config cascade detection: determine if user config comes from global, local .git/config, or includeIf
+- [x] 2.4 Handle edge cases: repo with no user configured (returns global default), repo with no commits yet
+- [x] 2.5 Create `internal/git/user_test.go` with test helper to create git repos with specific user configs
+- [x] 2.6 Write unit tests for GetUserConfig with global-only user config
+- [x] 2.7 Write unit tests for GetUserConfig with local .git/config override
+- [x] 2.8 Write unit tests for GetUserConfig with signing configuration
+- [x] 2.9 Update `cmd/gws/refresh.go` to call GetUserConfig for each repository during refresh
+- [x] 2.10 Store detected user info in Repository struct fields (User, Email, SigningEnabled, UserSource)
+- [x] 2.11 Save updated config after refresh completes
 
 ### [ ] 3.0 Auto-Detect Profiles from Existing Gitconfig
 
