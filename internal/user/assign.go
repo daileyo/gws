@@ -42,7 +42,7 @@ func AssignLocal(repoPath string, profile config.Profile) error {
 	}
 
 	// Write updated config
-	if err := os.WriteFile(gitConfigPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(gitConfigPath, []byte(content), 0600); err != nil {
 		return fmt.Errorf("failed to write git config: %w", err)
 	}
 
@@ -210,7 +210,7 @@ func CreateProfileGitconfig(path string, profile config.Profile) error {
 		content.WriteString("\tgpgsign = true\n")
 	}
 
-	if err := os.WriteFile(path, []byte(content.String()), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content.String()), 0600); err != nil {
 		return fmt.Errorf("failed to write profile gitconfig: %w", err)
 	}
 
@@ -260,7 +260,7 @@ func AddIncludeIf(gitconfigPath, subdirPath, profileGitconfigPath string) error 
 	newContent.WriteString(fmt.Sprintf("\n[includeIf \"gitdir:%s/\"]\n", displaySubdir))
 	newContent.WriteString(fmt.Sprintf("\tpath = %s\n", displayPath))
 
-	if err := os.WriteFile(gitconfigPath, []byte(newContent.String()), 0644); err != nil {
+	if err := os.WriteFile(gitconfigPath, []byte(newContent.String()), 0600); err != nil {
 		return fmt.Errorf("failed to write gitconfig: %w", err)
 	}
 
