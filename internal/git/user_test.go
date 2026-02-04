@@ -144,14 +144,20 @@ func TestGetUserConfig_GlobalFallback(t *testing.T) {
 	// Create a commit (required for valid repo)
 	worktree, _ := repo.Worktree()
 	testFile := filepath.Join(repoPath, "README.md")
-	os.WriteFile(testFile, []byte("# Test"), 0644)
-	worktree.Add("README.md")
-	worktree.Commit("Initial commit", &git.CommitOptions{
+	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+	if _, err := worktree.Add("README.md"); err != nil {
+		t.Fatalf("Failed to add file: %v", err)
+	}
+	if _, err := worktree.Commit("Initial commit", &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "Test User",
 			Email: "test@example.com",
 		},
-	})
+	}); err != nil {
+		t.Fatalf("Failed to commit: %v", err)
+	}
 
 	// Get user config
 	userCfg, err := GetUserConfig(repoPath)
@@ -283,10 +289,7 @@ func TestParseGitConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := parseGitConfig(tt.content)
-			if err != nil {
-				t.Fatalf("Failed to parse config: %v", err)
-			}
+			cfg := parseGitConfig(tt.content)
 
 			if cfg.Name != tt.wantName {
 				t.Errorf("Name: expected '%s', got '%s'", tt.wantName, cfg.Name)

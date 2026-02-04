@@ -240,7 +240,9 @@ func TestSyncUserInfo(t *testing.T) {
 	gitConfigPath := filepath.Join(repoPath, ".git", "config")
 	data, _ := os.ReadFile(gitConfigPath)
 	content := string(data) + "\n[user]\n\tname = Local User\n\temail = local@test.com\n"
-	os.WriteFile(gitConfigPath, []byte(content), 0644)
+	if err := os.WriteFile(gitConfigPath, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write git config: %v", err)
+	}
 
 	// Create config with outdated info
 	cfg := &config.Config{
@@ -275,43 +277,43 @@ func TestSyncUserInfo(t *testing.T) {
 
 func TestSetGitConfigValue(t *testing.T) {
 	tests := []struct {
-		name          string
-		content       string
-		section       string
-		key           string
-		value         string
-		mustContain   []string
+		name        string
+		content     string
+		section     string
+		key         string
+		value       string
+		mustContain []string
 	}{
 		{
-			name:    "add to empty config",
-			content: "",
-			section: "user",
-			key:     "name",
-			value:   "Test User",
+			name:        "add to empty config",
+			content:     "",
+			section:     "user",
+			key:         "name",
+			value:       "Test User",
 			mustContain: []string{"[user]", "name = Test User"},
 		},
 		{
-			name:    "add to existing section",
-			content: "[user]\n\temail = test@test.com\n",
-			section: "user",
-			key:     "name",
-			value:   "Test User",
+			name:        "add to existing section",
+			content:     "[user]\n\temail = test@test.com\n",
+			section:     "user",
+			key:         "name",
+			value:       "Test User",
 			mustContain: []string{"[user]", "email = test@test.com", "name = Test User"},
 		},
 		{
-			name:    "update existing key",
-			content: "[user]\n\tname = Old Name\n",
-			section: "user",
-			key:     "name",
-			value:   "New Name",
+			name:        "update existing key",
+			content:     "[user]\n\tname = Old Name\n",
+			section:     "user",
+			key:         "name",
+			value:       "New Name",
 			mustContain: []string{"[user]", "name = New Name"},
 		},
 		{
-			name:    "add new section",
-			content: "[core]\n\teditor = vim\n",
-			section: "user",
-			key:     "name",
-			value:   "Test User",
+			name:        "add new section",
+			content:     "[core]\n\teditor = vim\n",
+			section:     "user",
+			key:         "name",
+			value:       "Test User",
 			mustContain: []string{"[core]", "editor = vim", "[user]", "name = Test User"},
 		},
 	}

@@ -229,7 +229,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match)")
 	rootCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 	rootCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
-	rootCmd.Flags().BoolVarP(&showUser, "user", "u", false, "Show git user info (USER, EMAIL, SIGN columns)")
+	rootCmd.Flags().BoolVar(&showUser, "user", false, "Show git user info (USER, EMAIL, SIGN columns)")
 
 	// Register template helpers for grouped flag display
 	flagGroup := func(names []string) func(*cobra.Command) string {

@@ -11,7 +11,7 @@ import (
 
 // GitConfig represents a parsed gitconfig file
 type GitConfig struct {
-	Path       string            // Path to the gitconfig file
+	Path       string // Path to the gitconfig file
 	Sections   map[string]Section
 	IncludeIfs []IncludeIf
 }

@@ -13,11 +13,11 @@ import (
 
 // UserConfig represents the git user configuration for a repository
 type UserConfig struct {
-	Name        string                // user.name value
-	Email       string                // user.email value
-	SigningKey  string                // user.signingkey value
-	SignCommits bool                  // commit.gpgsign setting
-	Source      config.UserSource  // Where the config comes from
+	Name        string            // user.name value
+	Email       string            // user.email value
+	SigningKey  string            // user.signingkey value
+	SignCommits bool              // commit.gpgsign setting
+	Source      config.UserSource // Where the config comes from
 }
 
 // GetUserConfig reads the effective git user configuration for a repository.
@@ -200,9 +200,9 @@ func parseGitConfigAndIncludes(content string) (*GlobalUserConfig, []string) {
 }
 
 // parseGitConfig parses a gitconfig file content and extracts user info (for backward compatibility)
-func parseGitConfig(content string) (*GlobalUserConfig, error) {
+func parseGitConfig(content string) *GlobalUserConfig {
 	cfg, _ := parseGitConfigAndIncludes(content)
-	return cfg, nil
+	return cfg
 }
 
 // extractValue extracts the value from a "key = value" line
@@ -225,11 +225,7 @@ func getSigningFromRawConfig(repoPath string) (signingKey string, signCommits bo
 		return "", false
 	}
 
-	cfg, err := parseGitConfig(string(data))
-	if err != nil {
-		return "", false
-	}
-
+	cfg := parseGitConfig(string(data))
 	return cfg.SigningKey, cfg.SignCommits
 }
 

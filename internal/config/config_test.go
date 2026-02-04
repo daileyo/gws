@@ -463,7 +463,7 @@ func TestBackwardCompatibility(t *testing.T) {
 	}
 
 	// Verify profiles defaults to nil/empty
-	if cfg.Profiles != nil && len(cfg.Profiles) != 0 {
+	if len(cfg.Profiles) != 0 {
 		t.Errorf("Expected profiles to be nil/empty for old config, got %v", cfg.Profiles)
 	}
 
