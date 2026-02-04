@@ -79,7 +79,7 @@
 - [x] 2.10 Store detected user info in Repository struct fields (User, Email, SigningEnabled, UserSource)
 - [x] 2.11 Save updated config after refresh completes
 
-### [ ] 3.0 Auto-Detect Profiles from Existing Gitconfig
+### [x] 3.0 Auto-Detect Profiles from Existing Gitconfig
 
 #### 3.0 Proof Artifact(s)
 
@@ -89,18 +89,18 @@
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Create `internal/user/` package directory
-- [ ] 3.2 Create `internal/user/gitconfig.go` with types for representing gitconfig sections
-- [ ] 3.3 Implement `ParseGitconfig(path string) (*GitConfig, error)` to parse gitconfig file format
-- [ ] 3.4 Implement `ExtractIncludeIfs(cfg *GitConfig) []IncludeIf` to find all includeIf directives
-- [ ] 3.5 Implement `ParseIncludedConfig(includeIf IncludeIf) (*Profile, error)` to read referenced .gitconfig file and extract user info
-- [ ] 3.6 Implement `DetectProfiles() ([]Profile, error)` to orchestrate: parse ~/.gitconfig, find includeIfs, parse each, return profiles
-- [ ] 3.7 Derive profile name from includeIf path or gitconfig filename (e.g., `.gitconfig-work` → "work")
-- [ ] 3.8 Create `internal/user/gitconfig_test.go` with test fixtures for various gitconfig formats
-- [ ] 3.9 Write unit tests for ParseGitconfig with basic key-value pairs
-- [ ] 3.10 Write unit tests for ExtractIncludeIfs with gitdir patterns
-- [ ] 3.11 Write unit tests for ParseIncludedConfig extracting user.name, user.email, user.signingkey
-- [ ] 3.12 Write integration test for DetectProfiles with temporary gitconfig files
+- [x] 3.1 Create `internal/user/` package directory
+- [x] 3.2 Create `internal/user/gitconfig.go` with types for representing gitconfig sections
+- [x] 3.3 Implement `ParseGitconfig(path string) (*GitConfig, error)` to parse gitconfig file format
+- [x] 3.4 Implement `ExtractIncludeIfs(cfg *GitConfig) []IncludeIf` to find all includeIf directives
+- [x] 3.5 Implement `ParseIncludedConfig(includeIf IncludeIf) (*Profile, error)` to read referenced .gitconfig file and extract user info
+- [x] 3.6 Implement `DetectProfiles() ([]Profile, error)` to orchestrate: parse ~/.gitconfig, find includeIfs, parse each, return profiles
+- [x] 3.7 Derive profile name from includeIf path or gitconfig filename (e.g., `.gitconfig-work` → "work")
+- [x] 3.8 Create `internal/user/gitconfig_test.go` with test fixtures for various gitconfig formats
+- [x] 3.9 Write unit tests for ParseGitconfig with basic key-value pairs
+- [x] 3.10 Write unit tests for ExtractIncludeIfs with gitdir patterns
+- [x] 3.11 Write unit tests for ParseIncludedConfig extracting user.name, user.email, user.signingkey
+- [x] 3.12 Write integration test for DetectProfiles with temporary gitconfig files
 
 ### [ ] 4.0 Display User Information in List Command
 
