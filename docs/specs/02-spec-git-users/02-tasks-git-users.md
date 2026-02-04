@@ -102,7 +102,7 @@
 - [x] 3.11 Write unit tests for ParseIncludedConfig extracting user.name, user.email, user.signingkey
 - [x] 3.12 Write integration test for DetectProfiles with temporary gitconfig files
 
-### [ ] 4.0 Display User Information in List Command
+### [x] 4.0 Display User Information in List Command
 
 #### 4.0 Proof Artifact(s)
 
@@ -113,18 +113,18 @@
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Add `showUser` flag variable and `--user` flag to list command in `cmd/gws/list.go`
-- [ ] 4.2 Update `displayTable` function to accept showUser parameter
-- [ ] 4.3 Add USER, EMAIL, SIGN column headers when showUser is true
-- [ ] 4.4 Display user.name in USER column, append "(local)" if UserSource is "local"
-- [ ] 4.5 Display user.email in EMAIL column
-- [ ] 4.6 Display "✓" in SIGN column if SigningEnabled is true, empty otherwise
-- [ ] 4.7 Implement drift detection: compare stored User/Email with current effective config
-- [ ] 4.8 Display "⚠" indicator in STATUS column when drift is detected
-- [ ] 4.9 Update column width calculations to account for new columns
-- [ ] 4.10 Update `displayJSON` function to include User, Email, SigningEnabled, UserSource fields in output
-- [ ] 4.11 Update list command help text with --user flag documentation
-- [ ] 4.12 Test display with various repository configurations (global, local, signed, unsigned, drift)
+- [x] 4.1 Add `showUser` flag variable and `--user` flag to list command in `cmd/gws/list.go`
+- [x] 4.2 Update `displayTable` function to accept showUser parameter
+- [x] 4.3 Add USER, EMAIL, SIGN column headers when showUser is true
+- [x] 4.4 Display user.name in USER column, append "(local)" if UserSource is "local"
+- [x] 4.5 Display user.email in EMAIL column
+- [x] 4.6 Display "✓" in SIGN column if SigningEnabled is true, empty otherwise
+- [x] 4.7 Implement drift detection: compare stored User/Email with current effective config
+- [x] 4.8 Display "⚠" indicator in STATUS column when drift is detected
+- [x] 4.9 Update column width calculations to account for new columns
+- [x] 4.10 Update `displayJSON` function to include User, Email, SigningEnabled, UserSource fields in output
+- [x] 4.11 Update list command help text with --user flag documentation
+- [x] 4.12 Test display with various repository configurations (global, local, signed, unsigned, drift)
 
 ### [ ] 5.0 Implement User Profile Management Commands
 

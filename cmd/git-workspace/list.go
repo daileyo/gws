@@ -75,11 +75,22 @@ func displayTable(repos []config.Repository, statusCache *git.Cache) {
 	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize(len(repos), "repository", "repositories"))
 
 	// Calculate column widths
-	maxNameLen := 10
-	maxTypeLen := 10
-	maxVisLen := 10
-	maxTagsLen := 10
+	maxNameLen := 4   // "NAME"
+	maxTypeLen := 4   // "TYPE"
+	maxVisLen := 10   // "VISIBILITY"
+	maxTagsLen := 4   // "TAGS"
 	maxStatusLen := 6 // "STATUS"
+	maxUserLen := 4   // "USER"
+	maxEmailLen := 5  // "EMAIL"
+
+	// Pre-compute user info and drift status for width calculation and display
+	type repoUserInfo struct {
+		userDisplay string
+		email       string
+		signStr     string
+		hasDrift    bool
+	}
+	userInfoMap := make(map[string]repoUserInfo)
 
 	for _, repo := range repos {
 		if len(repo.Name) > maxNameLen {
@@ -106,78 +117,139 @@ func displayTable(repos []config.Repository, statusCache *git.Cache) {
 				}
 			}
 		}
+
+		// Calculate user column widths and pre-compute display values
+		if showUser {
+			info := repoUserInfo{}
+
+			// Format user display with source marker
+			info.userDisplay = repo.User
+			if info.userDisplay == "" {
+				info.userDisplay = "-"
+			} else if repo.UserSource == config.UserSourceLocal {
+				info.userDisplay += " (local)"
+			}
+
+			info.email = repo.Email
+			if info.email == "" {
+				info.email = "-"
+			}
+
+			if repo.SigningEnabled {
+				info.signStr = "✓"
+			} else {
+				info.signStr = ""
+			}
+
+			// Check for drift - compare stored config with current effective config
+			currentCfg, err := git.GetUserConfig(repo.Path)
+			if err == nil && currentCfg != nil {
+				if (repo.User != "" && repo.User != currentCfg.Name) ||
+					(repo.Email != "" && repo.Email != currentCfg.Email) {
+					info.hasDrift = true
+				}
+			}
+
+			userInfoMap[repo.Path] = info
+
+			if len(info.userDisplay) > maxUserLen {
+				maxUserLen = len(info.userDisplay)
+			}
+			if len(info.email) > maxEmailLen {
+				maxEmailLen = len(info.email)
+			}
+		}
 	}
 
-	// Print header
+	// Build and print header
+	var headerParts []string
+	var separatorParts []string
+
+	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxNameLen, "NAME"))
+	separatorParts = append(separatorParts, strings.Repeat("-", maxNameLen))
+
 	if statusCache != nil {
-		fmt.Printf("%-*s  %-*s  %-*s  %-*s  %-*s  %s\n",
-			maxNameLen, "NAME",
-			maxStatusLen, "STATUS",
-			maxTypeLen, "TYPE",
-			maxVisLen, "VISIBILITY",
-			maxTagsLen, "TAGS",
-			"PATH")
-		fmt.Printf("%s  %s  %s  %s  %s  %s\n",
-			strings.Repeat("-", maxNameLen),
-			strings.Repeat("-", maxStatusLen),
-			strings.Repeat("-", maxTypeLen),
-			strings.Repeat("-", maxVisLen),
-			strings.Repeat("-", maxTagsLen),
-			strings.Repeat("-", 4))
-	} else {
-		fmt.Printf("%-*s  %-*s  %-*s  %-*s  %s\n",
-			maxNameLen, "NAME",
-			maxTypeLen, "TYPE",
-			maxVisLen, "VISIBILITY",
-			maxTagsLen, "TAGS",
-			"PATH")
-		fmt.Printf("%s  %s  %s  %s  %s\n",
-			strings.Repeat("-", maxNameLen),
-			strings.Repeat("-", maxTypeLen),
-			strings.Repeat("-", maxVisLen),
-			strings.Repeat("-", maxTagsLen),
-			strings.Repeat("-", 4))
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxStatusLen, "STATUS"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxStatusLen))
 	}
+
+	if showUser {
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxUserLen, "USER"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxUserLen))
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxEmailLen, "EMAIL"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxEmailLen))
+		headerParts = append(headerParts, fmt.Sprintf("%-4s", "SIGN"))
+		separatorParts = append(separatorParts, strings.Repeat("-", 4))
+	}
+
+	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxTypeLen, "TYPE"))
+	separatorParts = append(separatorParts, strings.Repeat("-", maxTypeLen))
+	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxVisLen, "VISIBILITY"))
+	separatorParts = append(separatorParts, strings.Repeat("-", maxVisLen))
+	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxTagsLen, "TAGS"))
+	separatorParts = append(separatorParts, strings.Repeat("-", maxTagsLen))
+	headerParts = append(headerParts, "PATH")
+	separatorParts = append(separatorParts, strings.Repeat("-", 4))
+
+	fmt.Println(strings.Join(headerParts, "  "))
+	fmt.Println(strings.Join(separatorParts, "  "))
 
 	// Print repositories
 	for _, repo := range repos {
-		tags := strings.Join(repo.Tags, ", ")
-		if tags == "" {
-			tags = "-"
-		}
+		var rowParts []string
 
-		typeStr := string(repo.Type)
-		if typeStr == "" {
-			typeStr = "unknown"
+		// Name column - add drift indicator if applicable
+		nameDisplay := repo.Name
+		if showUser {
+			if info, ok := userInfoMap[repo.Path]; ok && info.hasDrift {
+				nameDisplay += " ⚠"
+			}
 		}
+		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxNameLen, nameDisplay))
 
-		visStr := string(repo.Visibility)
-		if visStr == "" {
-			visStr = "unknown"
-		}
-
+		// Status column (optional)
 		if statusCache != nil {
 			status, _ := statusCache.GetOrFetch(repo.Path)
 			statusStr := "-"
 			if status != nil {
 				statusStr = formatStatusShort(status)
 			}
-
-			fmt.Printf("%-*s  %-*s  %-*s  %-*s  %-*s  %s\n",
-				maxNameLen, repo.Name,
-				maxStatusLen, statusStr,
-				maxTypeLen, typeStr,
-				maxVisLen, visStr,
-				maxTagsLen, tags,
-				repo.Path)
-		} else {
-			fmt.Printf("%-*s  %-*s  %-*s  %-*s  %s\n",
-				maxNameLen, repo.Name,
-				maxTypeLen, typeStr,
-				maxVisLen, visStr,
-				maxTagsLen, tags,
-				repo.Path)
+			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxStatusLen, statusStr))
 		}
+
+		// User columns (optional)
+		if showUser {
+			info := userInfoMap[repo.Path]
+			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxUserLen, info.userDisplay))
+			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxEmailLen, info.email))
+			rowParts = append(rowParts, fmt.Sprintf("%-4s", info.signStr))
+		}
+
+		// Type column
+		typeStr := string(repo.Type)
+		if typeStr == "" {
+			typeStr = "unknown"
+		}
+		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxTypeLen, typeStr))
+
+		// Visibility column
+		visStr := string(repo.Visibility)
+		if visStr == "" {
+			visStr = "unknown"
+		}
+		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxVisLen, visStr))
+
+		// Tags column
+		tags := strings.Join(repo.Tags, ", ")
+		if tags == "" {
+			tags = "-"
+		}
+		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxTagsLen, tags))
+
+		// Path column
+		rowParts = append(rowParts, repo.Path)
+
+		fmt.Println(strings.Join(rowParts, "  "))
 	}
 
 	// Save cache if we fetched any statuses
