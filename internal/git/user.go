@@ -96,8 +96,13 @@ func loadGlobalConfig() (*GlobalUserConfig, error) {
 
 	gitconfigPath := filepath.Join(home, ".gitconfig")
 
-	// Read and parse the gitconfig file
-	data, err := os.ReadFile(gitconfigPath)
+	// Read and parse the gitconfig file, following includes
+	return parseGitConfigWithIncludes(gitconfigPath, home)
+}
+
+// parseGitConfigWithIncludes parses a gitconfig file and follows [include] directives
+func parseGitConfigWithIncludes(configPath, home string) (*GlobalUserConfig, error) {
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil // No global config
@@ -105,16 +110,49 @@ func loadGlobalConfig() (*GlobalUserConfig, error) {
 		return nil, fmt.Errorf("failed to read gitconfig: %w", err)
 	}
 
-	return parseGitConfig(string(data))
+	cfg, includes := parseGitConfigAndIncludes(string(data))
+
+	// Follow include directives to find user info
+	for _, includePath := range includes {
+		// Expand ~ to home directory
+		if strings.HasPrefix(includePath, "~/") {
+			includePath = filepath.Join(home, includePath[2:])
+		}
+
+		includeData, err := os.ReadFile(includePath)
+		if err != nil {
+			continue // Skip includes that can't be read
+		}
+
+		includeCfg, _ := parseGitConfigAndIncludes(string(includeData))
+
+		// Merge: included config values take precedence if not already set
+		if cfg.Name == "" && includeCfg.Name != "" {
+			cfg.Name = includeCfg.Name
+		}
+		if cfg.Email == "" && includeCfg.Email != "" {
+			cfg.Email = includeCfg.Email
+		}
+		if cfg.SigningKey == "" && includeCfg.SigningKey != "" {
+			cfg.SigningKey = includeCfg.SigningKey
+		}
+		if !cfg.SignCommits && includeCfg.SignCommits {
+			cfg.SignCommits = includeCfg.SignCommits
+		}
+	}
+
+	return cfg, nil
 }
 
-// parseGitConfig parses a gitconfig file content and extracts user info
-func parseGitConfig(content string) (*GlobalUserConfig, error) {
+// parseGitConfigAndIncludes parses a gitconfig file content and extracts user info and include paths
+func parseGitConfigAndIncludes(content string) (*GlobalUserConfig, []string) {
 	cfg := &GlobalUserConfig{}
+	var includes []string
 
 	lines := strings.Split(content, "\n")
 	inUserSection := false
 	inCommitSection := false
+	inIncludeSection := false
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -129,6 +167,7 @@ func parseGitConfig(content string) (*GlobalUserConfig, error) {
 			section := strings.ToLower(strings.Trim(line, "[]"))
 			inUserSection = section == "user"
 			inCommitSection = section == "commit"
+			inIncludeSection = section == "include"
 			continue
 		}
 
@@ -149,8 +188,20 @@ func parseGitConfig(content string) (*GlobalUserConfig, error) {
 				cfg.SignCommits = value == "true" || value == "1" || value == "yes"
 			}
 		}
+
+		if inIncludeSection {
+			if strings.HasPrefix(strings.ToLower(line), "path") {
+				includes = append(includes, extractValue(line))
+			}
+		}
 	}
 
+	return cfg, includes
+}
+
+// parseGitConfig parses a gitconfig file content and extracts user info (for backward compatibility)
+func parseGitConfig(content string) (*GlobalUserConfig, error) {
+	cfg, _ := parseGitConfigAndIncludes(content)
 	return cfg, nil
 }
 

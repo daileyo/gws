@@ -40,6 +40,7 @@ var (
 	filterPath   string
 	outputFormat string
 	showStatus   bool
+	showUser     bool
 )
 
 var rootCmd = &cobra.Command{
@@ -228,6 +229,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match)")
 	rootCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 	rootCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
+	rootCmd.Flags().BoolVarP(&showUser, "user", "u", false, "Show git user info (USER, EMAIL, SIGN columns)")
 
 	// Register template helpers for grouped flag display
 	flagGroup := func(names []string) func(*cobra.Command) string {
@@ -242,7 +244,7 @@ func init() {
 		}
 	}
 	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add", "add-tag", "remove-tag", "refresh", "print-workspace"}))
-	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status"}))
+	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "user"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
 
 	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
@@ -295,7 +297,7 @@ Other:
 
 // hasFilterFlags checks if any filter flag has been explicitly set by the user
 func hasFilterFlags(cmd *cobra.Command) bool {
-	filterFlagNames := []string{"type", "tag", "name", "path", "status"}
+	filterFlagNames := []string{"type", "tag", "name", "path", "status", "user"}
 	for _, name := range filterFlagNames {
 		if cmd.Flags().Changed(name) {
 			return true
