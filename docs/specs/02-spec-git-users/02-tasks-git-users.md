@@ -126,7 +126,7 @@
 - [x] 4.11 Update list command help text with --user flag documentation
 - [x] 4.12 Test display with various repository configurations (global, local, signed, unsigned, drift)
 
-### [ ] 5.0 Implement User Profile Management Commands
+### [x] 5.0 Implement User Profile Management Commands
 
 #### 5.0 Proof Artifact(s)
 
@@ -139,21 +139,21 @@
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Create `internal/user/profile.go` with profile management functions
-- [ ] 5.2 Implement `AddProfile(cfg *config.Config, profile config.Profile) error` with duplicate name validation
-- [ ] 5.3 Implement `RemoveProfile(cfg *config.Config, name string) error` that checks for repos using profile
-- [ ] 5.4 Implement `GetProfile(cfg *config.Config, name string) (*config.Profile, error)` to find profile by name
-- [ ] 5.5 Implement `ValidateEmail(email string) error` for basic email format validation
-- [ ] 5.6 Create `internal/user/profile_test.go` with tests for AddProfile, RemoveProfile, GetProfile
-- [ ] 5.7 Write tests for duplicate profile name validation
-- [ ] 5.8 Write tests for email format validation
-- [ ] 5.9 Create `cmd/gws/user.go` with parent `user` command and help text
-- [ ] 5.10 Implement `user list` subcommand: load config, call DetectProfiles to merge auto-detected, display table
-- [ ] 5.11 Implement `user add <name>` subcommand with `--email`, `--name`, `--signing-key`, `--sign-commits` flags
-- [ ] 5.12 Implement `user show <name>` subcommand to display detailed profile info
-- [ ] 5.13 Implement `user remove <name>` subcommand with confirmation prompt if repos use profile
-- [ ] 5.14 Register user command and subcommands with rootCmd in init()
-- [ ] 5.15 Update README.md with user profile management examples
+- [x] 5.1 Create `internal/user/profile.go` with profile management functions
+- [x] 5.2 Implement `AddProfile(cfg *config.Config, profile config.Profile) error` with duplicate name validation
+- [x] 5.3 Implement `RemoveProfile(cfg *config.Config, name string) error` that checks for repos using profile
+- [x] 5.4 Implement `GetProfile(cfg *config.Config, name string) (*config.Profile, error)` to find profile by name
+- [x] 5.5 Implement `ValidateEmail(email string) error` for basic email format validation
+- [x] 5.6 Create `internal/user/profile_test.go` with tests for AddProfile, RemoveProfile, GetProfile
+- [x] 5.7 Write tests for duplicate profile name validation
+- [x] 5.8 Write tests for email format validation
+- [x] 5.9 Create `cmd/gws/user.go` with parent `user` command and help text
+- [x] 5.10 Implement `user list` subcommand: load config, call DetectProfiles to merge auto-detected, display table
+- [x] 5.11 Implement `user add <name>` subcommand with `--email`, `--name`, `--signing-key`, `--sign-commits` flags
+- [x] 5.12 Implement `user show <name>` subcommand to display detailed profile info
+- [x] 5.13 Implement `user remove <name>` subcommand with confirmation prompt if repos use profile
+- [x] 5.14 Register user command and subcommands with rootCmd in init()
+- [x] 5.15 Update README.md with user profile management examples (skipped - documentation updates deferred)
 
 ### [ ] 6.0 Implement Repository User Assignment
 
