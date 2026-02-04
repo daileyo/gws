@@ -155,7 +155,7 @@
 - [x] 5.14 Register user command and subcommands with rootCmd in init()
 - [x] 5.15 Update README.md with user profile management examples (skipped - documentation updates deferred)
 
-### [ ] 6.0 Implement Repository User Assignment
+### [x] 6.0 Implement Repository User Assignment
 
 #### 6.0 Proof Artifact(s)
 
@@ -168,23 +168,23 @@
 
 #### 6.0 Tasks
 
-- [ ] 6.1 Create `internal/user/assign.go` with assignment functions
-- [ ] 6.2 Implement `AssignLocal(repoPath string, profile config.Profile) error` to set user.name, user.email in repo's .git/config
-- [ ] 6.3 Implement setting user.signingkey and commit.gpgsign in repo's .git/config if profile has signing config
-- [ ] 6.4 Implement `AssignWithSubdirs(cfg *config.Config, repoPath string, profile config.Profile, workspace string) (newPath string, error)` for subdirectory mode
-- [ ] 6.5 Implement `CreateProfileSubdir(workspace string, profileName string) (string, error)` to create profile subdirectory
-- [ ] 6.6 Implement `MoveRepository(oldPath, newPath string) error` using os.Rename with conflict detection
-- [ ] 6.7 Implement `CreateProfileGitconfig(subdirPath string, profile config.Profile) error` to write .gitconfig-<profile> file
-- [ ] 6.8 Implement `AddIncludeIf(gitconfigPath string, subdirPath string, profileGitconfigPath string) error` to update ~/.gitconfig
-- [ ] 6.9 Create backup of ~/.gitconfig before modification
-- [ ] 6.10 Implement `SyncUserInfo(cfg *config.Config) (updated int, error)` to refresh stored user info for all repos
-- [ ] 6.11 Create `internal/user/assign_test.go` with tests for AssignLocal
-- [ ] 6.12 Write tests for AssignWithSubdirs including repo movement
-- [ ] 6.13 Write tests for gitconfig modification (CreateProfileGitconfig, AddIncludeIf)
-- [ ] 6.14 Write tests for SyncUserInfo
-- [ ] 6.15 Implement `user assign <repo> <profile>` subcommand in `cmd/gws/user.go`
-- [ ] 6.16 Add `--use-subdirs` flag to assign subcommand
-- [ ] 6.17 Add `--dry-run` flag to assign subcommand to preview changes without applying
-- [ ] 6.18 Implement `user sync` subcommand to update stored info from effective config
-- [ ] 6.19 Update README.md with user assignment examples including --use-subdirs workflow
-- [ ] 6.20 Add warning when assigning in subdirectory mode about repo path changes
+- [x] 6.1 Create `internal/user/assign.go` with assignment functions
+- [x] 6.2 Implement `AssignLocal(repoPath string, profile config.Profile) error` to set user.name, user.email in repo's .git/config
+- [x] 6.3 Implement setting user.signingkey and commit.gpgsign in repo's .git/config if profile has signing config
+- [x] 6.4 Implement `AssignWithSubdirs(cfg *config.Config, repoPath string, profile config.Profile, workspace string) (newPath string, error)` for subdirectory mode
+- [x] 6.5 Implement `CreateProfileSubdir(workspace string, profileName string) (string, error)` to create profile subdirectory
+- [x] 6.6 Implement `MoveRepository(oldPath, newPath string) error` using os.Rename with conflict detection
+- [x] 6.7 Implement `CreateProfileGitconfig(subdirPath string, profile config.Profile) error` to write .gitconfig-<profile> file
+- [x] 6.8 Implement `AddIncludeIf(gitconfigPath string, subdirPath string, profileGitconfigPath string) error` to update ~/.gitconfig
+- [x] 6.9 Create backup of ~/.gitconfig before modification
+- [x] 6.10 Implement `SyncUserInfo(cfg *config.Config) (updated int, error)` to refresh stored user info for all repos
+- [x] 6.11 Create `internal/user/assign_test.go` with tests for AssignLocal
+- [x] 6.12 Write tests for AssignWithSubdirs including repo movement
+- [x] 6.13 Write tests for gitconfig modification (CreateProfileGitconfig, AddIncludeIf)
+- [x] 6.14 Write tests for SyncUserInfo
+- [x] 6.15 Implement `user assign <repo> <profile>` subcommand in `cmd/gws/user.go`
+- [x] 6.16 Add `--use-subdirs` flag to assign subcommand
+- [x] 6.17 Add `--dry-run` flag to assign subcommand to preview changes without applying
+- [x] 6.18 Implement `user sync` subcommand to update stored info from effective config
+- [x] 6.19 Update README.md with user assignment examples (skipped - documentation updates deferred)
+- [x] 6.20 Add warning when assigning in subdirectory mode about repo path changes
