@@ -37,7 +37,7 @@ dist/
 # Environment files
 .env
 .env.local
-
+.claude/
 # Proof artifacts (images, recordings) - we'll commit the markdown refs but not large binaries
 *.asciinema
 *.gif
