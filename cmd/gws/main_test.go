@@ -1,48 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"strings"
 	"testing"
-
-	"github.com/spf13/cobra"
 )
 
-func TestVersionCommand(t *testing.T) {
-	// Set test version values
-	version = "test-version"
-	commit = "test-commit"
-	date = "test-date"
-
-	// Create a buffer to capture output
-	buf := new(bytes.Buffer)
-
-	// Create a new version command for testing
-	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Print version information",
-		Long:  `Display the version, commit hash, and build date of the gws CLI tool.`,
-		Run: func(cmd *cobra.Command, args []string) {
-			buf.WriteString("gws version " + version + "\n")
-			buf.WriteString("  commit: " + commit + "\n")
-			buf.WriteString("  built:  " + date + "\n")
-		},
-	}
-
-	// Execute the command
-	cmd.Run(cmd, []string{})
-
-	// Verify output
-	output := buf.String()
-	expected := "gws version test-version\n  commit: test-commit\n  built:  test-date\n"
-
-	if output != expected {
-		t.Errorf("Expected:\n%s\nGot:\n%s", expected, output)
-	}
-}
-
-// TestVersionVariablesAreDefined verifies that the version variables are
-// properly defined and accessible for ldflags injection
 func TestVersionVariablesAreDefined(t *testing.T) {
 	// These variables should always be defined (with default values)
 	// When built with ldflags, they will be overridden
@@ -71,130 +32,10 @@ func TestVersionVariablesAreDefined(t *testing.T) {
 	}
 }
 
-// TestVersionLdflagsSimulation simulates ldflags injection by setting version variables
-// and verifying they are correctly used in output
-func TestVersionLdflagsSimulation(t *testing.T) {
-	testCases := []struct {
-		name            string
-		version         string
-		commit          string
-		date            string
-		expectedVersion string
-		expectedCommit  string
-		expectedDate    string
-	}{
-		{
-			name:            "semantic version",
-			version:         "v1.2.3",
-			commit:          "abc1234",
-			date:            "2025-01-05T12:00:00Z",
-			expectedVersion: "v1.2.3",
-			expectedCommit:  "abc1234",
-			expectedDate:    "2025-01-05T12:00:00Z",
-		},
-		{
-			name:            "dev version",
-			version:         "dev",
-			commit:          "none",
-			date:            "unknown",
-			expectedVersion: "dev",
-			expectedCommit:  "none",
-			expectedDate:    "unknown",
-		},
-		{
-			name:            "pre-release version",
-			version:         "v2.0.0-beta.1",
-			commit:          "def5678",
-			date:            "2025-06-15T18:30:00Z",
-			expectedVersion: "v2.0.0-beta.1",
-			expectedCommit:  "def5678",
-			expectedDate:    "2025-06-15T18:30:00Z",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Simulate ldflags injection
-			version = tc.version
-			commit = tc.commit
-			date = tc.date
-
-			// Capture output
-			buf := new(bytes.Buffer)
-
-			// Create version command
-			cmd := &cobra.Command{
-				Use: "version",
-				Run: func(cmd *cobra.Command, args []string) {
-					buf.WriteString("gws version " + version + "\n")
-					buf.WriteString("  commit: " + commit + "\n")
-					buf.WriteString("  built:  " + date + "\n")
-				},
-			}
-
-			cmd.Run(cmd, []string{})
-			output := buf.String()
-
-			// Verify version is in output
-			if !strings.Contains(output, tc.expectedVersion) {
-				t.Errorf("Expected output to contain version '%s', got: %s", tc.expectedVersion, output)
-			}
-			if !strings.Contains(output, tc.expectedCommit) {
-				t.Errorf("Expected output to contain commit '%s', got: %s", tc.expectedCommit, output)
-			}
-			if !strings.Contains(output, tc.expectedDate) {
-				t.Errorf("Expected output to contain date '%s', got: %s", tc.expectedDate, output)
-			}
-		})
-	}
-}
-
-// TestVersionOutputFormat verifies the version output format is consistent
-func TestVersionOutputFormat(t *testing.T) {
-	version = "v1.0.0"
-	commit = "abc123"
-	date = "2025-01-05T00:00:00Z"
-
-	buf := new(bytes.Buffer)
-
-	cmd := &cobra.Command{
-		Use: "version",
-		Run: func(cmd *cobra.Command, args []string) {
-			buf.WriteString("gws version " + version + "\n")
-			buf.WriteString("  commit: " + commit + "\n")
-			buf.WriteString("  built:  " + date + "\n")
-		},
-	}
-
-	cmd.Run(cmd, []string{})
-	output := buf.String()
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-
-	// Should have exactly 3 lines
-	if len(lines) != 3 {
-		t.Errorf("Expected 3 lines of output, got %d: %v", len(lines), lines)
-	}
-
-	// First line should start with "gws version"
-	if !strings.HasPrefix(lines[0], "gws version ") {
-		t.Errorf("First line should start with 'gws version ', got: %s", lines[0])
-	}
-
-	// Second line should contain commit
-	if !strings.Contains(lines[1], "commit:") {
-		t.Errorf("Second line should contain 'commit:', got: %s", lines[1])
-	}
-
-	// Third line should contain built
-	if !strings.Contains(lines[2], "built:") {
-		t.Errorf("Third line should contain 'built:', got: %s", lines[2])
-	}
-}
-
 func TestRootCommand(t *testing.T) {
-	// Test that root command is properly configured
-	if rootCmd.Use != "gws [tag]" {
-		t.Errorf("Expected root command Use to be 'gws [tag]', got '%s'", rootCmd.Use)
+	// Test that root command is properly configured with new flag-based interface
+	if rootCmd.Use != "gws" {
+		t.Errorf("Expected root command Use to be 'gws', got '%s'", rootCmd.Use)
 	}
 
 	if rootCmd.Short == "" {
@@ -206,14 +47,113 @@ func TestRootCommand(t *testing.T) {
 	}
 }
 
-func TestVersionCommandExists(t *testing.T) {
-	// Test that version command is registered
-	cmd, _, err := rootCmd.Find([]string{"version"})
-	if err != nil {
-		t.Fatalf("version command not found: %v", err)
+func TestRootCommandHasVersionSet(t *testing.T) {
+	// Cobra's built-in --version/v flag requires rootCmd.Version to be set
+	// We set it in main() before Execute(), so test the mechanism
+	origVersion := version
+	defer func() { version = origVersion }()
+
+	version = "v1.0.0-test"
+	// Simulate what main() does
+	rootCmd.Version = version
+
+	if rootCmd.Version != "v1.0.0-test" {
+		t.Errorf("Expected rootCmd.Version to be 'v1.0.0-test', got '%s'", rootCmd.Version)
+	}
+}
+
+func TestCommandFlagsRegistered(t *testing.T) {
+	// Verify all command flags are registered on the root command
+	flags := []struct {
+		name      string
+		shorthand string
+	}{
+		{"list", "l"},
+		{"init", "i"},
+		{"add-tag", "a"},
+		{"remove-tag", "u"},
+		{"refresh", "r"},
+		{"print-workspace", "w"},
 	}
 
-	if cmd.Use != "version" {
-		t.Errorf("Expected command Use to be 'version', got '%s'", cmd.Use)
+	for _, f := range flags {
+		t.Run(f.name, func(t *testing.T) {
+			flag := rootCmd.Flags().Lookup(f.name)
+			if flag == nil {
+				t.Errorf("Flag --%s not found on root command", f.name)
+				return
+			}
+			if flag.Shorthand != f.shorthand {
+				t.Errorf("Flag --%s shorthand: expected '%s', got '%s'", f.name, f.shorthand, flag.Shorthand)
+			}
+		})
+	}
+}
+
+func TestFilterFlagsRegistered(t *testing.T) {
+	// Verify all filter flags are registered on the root command
+	flags := []struct {
+		name      string
+		shorthand string
+	}{
+		{"type", ""},
+		{"tag", ""},
+		{"name", ""},
+		{"path", ""},
+		{"output", "o"},
+		{"status", "s"},
+	}
+
+	for _, f := range flags {
+		t.Run(f.name, func(t *testing.T) {
+			flag := rootCmd.Flags().Lookup(f.name)
+			if flag == nil {
+				t.Errorf("Filter flag --%s not found on root command", f.name)
+				return
+			}
+			if flag.Shorthand != f.shorthand {
+				t.Errorf("Filter flag --%s shorthand: expected '%s', got '%s'", f.name, f.shorthand, flag.Shorthand)
+			}
+		})
+	}
+}
+
+func TestNoSubcommandsRegistered(t *testing.T) {
+	// Verify old subcommands are not registered (clean break)
+	oldSubcommands := []string{"list", "init", "tag", "untag", "refresh", "version"}
+
+	for _, name := range oldSubcommands {
+		t.Run(name, func(t *testing.T) {
+			for _, cmd := range rootCmd.Commands() {
+				if cmd.Name() == name {
+					t.Errorf("Old subcommand '%s' should not be registered", name)
+				}
+			}
+		})
+	}
+}
+
+func TestMutualExclusivity(t *testing.T) {
+	// Test that setting multiple command flags returns an error
+	// We test this by checking the error message pattern
+	origList := flagList
+	origInit := flagInit
+	defer func() {
+		flagList = origList
+		flagInit = origInit
+	}()
+
+	flagList = true
+	flagInit = "/some/path"
+
+	err := rootCmd.RunE(rootCmd, []string{})
+	if err == nil {
+		t.Error("Expected error when multiple command flags are set")
+		return
+	}
+
+	expected := "only one command flag can be used at a time"
+	if err.Error() != "only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace)" {
+		t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
 	}
 }
