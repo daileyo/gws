@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/daileyo/gws/internal/config"
@@ -27,10 +28,29 @@ func Apply(repos []config.Repository, criteria Criteria) []config.Repository {
 	return filtered
 }
 
+// matchesPattern checks if a value matches a pattern. If the pattern contains
+// wildcard characters (* or ?), it uses glob-style matching. Otherwise, it
+// falls back to partial, case-insensitive substring matching.
+func matchesPattern(value, pattern string) bool {
+	valueLower := strings.ToLower(value)
+	patternLower := strings.ToLower(pattern)
+
+	if strings.ContainsAny(pattern, "*?") {
+		matched, err := filepath.Match(patternLower, valueLower)
+		if err != nil {
+			return false
+		}
+		return matched
+	}
+
+	// Non-wildcard: partial, case-insensitive match
+	return strings.Contains(valueLower, patternLower)
+}
+
 // matchesCriteria checks if a repository matches all filter criteria
 func matchesCriteria(repo config.Repository, criteria Criteria) bool {
 	// Apply type filter
-	if criteria.Type != "" && !strings.EqualFold(string(repo.Type), criteria.Type) {
+	if criteria.Type != "" && !matchesPattern(string(repo.Type), criteria.Type) {
 		return false
 	}
 
@@ -39,7 +59,7 @@ func matchesCriteria(repo config.Repository, criteria Criteria) bool {
 		for _, filterTag := range criteria.Tags {
 			hasTag := false
 			for _, repoTag := range repo.Tags {
-				if strings.EqualFold(repoTag, filterTag) {
+				if matchesPattern(repoTag, filterTag) {
 					hasTag = true
 					break
 				}
@@ -50,16 +70,16 @@ func matchesCriteria(repo config.Repository, criteria Criteria) bool {
 		}
 	}
 
-	// Apply name filter (partial match, case-insensitive)
+	// Apply name filter
 	if criteria.Name != "" {
-		if !strings.Contains(strings.ToLower(repo.Name), strings.ToLower(criteria.Name)) {
+		if !matchesPattern(repo.Name, criteria.Name) {
 			return false
 		}
 	}
 
-	// Apply path filter (partial match, case-insensitive)
+	// Apply path filter
 	if criteria.Path != "" {
-		if !strings.Contains(strings.ToLower(repo.Path), strings.ToLower(criteria.Path)) {
+		if !matchesPattern(repo.Path, criteria.Path) {
 			return false
 		}
 	}

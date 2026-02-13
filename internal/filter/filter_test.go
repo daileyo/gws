@@ -348,6 +348,157 @@ func TestApply_MultipleCriteria(t *testing.T) {
 	}
 }
 
+func TestMatchesPattern(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		pattern  string
+		expected bool
+	}{
+		// Non-wildcard (partial, case-insensitive)
+		{"partial match", "my-project", "project", true},
+		{"case insensitive partial", "My-Project", "PROJECT", true},
+		{"no partial match", "my-project", "other", false},
+
+		// Star wildcard
+		{"star prefix", "my-project", "my*", true},
+		{"star suffix", "my-project", "*project", true},
+		{"star both", "my-project", "*-*", true},
+		{"star middle", "my-project", "my*ject", true},
+		{"star no match", "my-project", "foo*", false},
+		{"star match all", "anything", "*", true},
+		{"star case insensitive", "GitHub", "git*", true},
+
+		// Question mark wildcard
+		{"question mark single char", "web", "w?b", true},
+		{"question mark no match", "web", "w??b", false},
+		{"question mark in name", "my-project", "m?-project", true},
+		{"question mark case insensitive", "GitHub", "?ithub", true},
+
+		// Combined wildcards
+		{"star and question", "github", "g?t*", true},
+		{"star and question match gitlab", "gitlab", "g?t*b", true},
+		{"star and question no match", "github", "g?t*z", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := matchesPattern(tt.value, tt.pattern)
+			if result != tt.expected {
+				t.Errorf("matchesPattern(%q, %q) = %v, expected %v", tt.value, tt.pattern, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestByType_Wildcard(t *testing.T) {
+	tests := []struct {
+		name     string
+		filter   string
+		expected int
+	}{
+		{"Wildcard git* matches github and gitlab", "git*", 2},
+		{"Wildcard ?ithub matches github", "?ithub", 1},
+		{"Wildcard *bucket matches bitbucket", "*bucket", 1},
+		{"Wildcard * matches all", "*", 5},
+		{"Wildcard no match", "x*", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ByType(testRepos, tt.filter)
+			if len(result) != tt.expected {
+				t.Errorf("ByType(%q) returned %d repos, expected %d", tt.filter, len(result), tt.expected)
+				for _, r := range result {
+					t.Logf("  - %s (type: %s)", r.Name, r.Type)
+				}
+			}
+		})
+	}
+}
+
+func TestByName_Wildcard(t *testing.T) {
+	tests := []struct {
+		name     string
+		filter   string
+		expected int
+	}{
+		{"Wildcard my* matches my-project", "my*", 1},
+		{"Wildcard *api matches work-api", "*api", 1},
+		{"Wildcard *-* matches all with hyphen", "*-*", 5},
+		{"Wildcard m?-project matches my-project", "m?-project", 1},
+		{"Wildcard *tool matches internal-tool", "*tool", 1},
+		{"Wildcard case insensitive", "MY*", 1},
+		{"Wildcard no match", "z*", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ByName(testRepos, tt.filter)
+			if len(result) != tt.expected {
+				t.Errorf("ByName(%q) returned %d repos, expected %d", tt.filter, len(result), tt.expected)
+				for _, r := range result {
+					t.Logf("  - %s", r.Name)
+				}
+			}
+		})
+	}
+}
+
+func TestByTags_Wildcard(t *testing.T) {
+	tests := []struct {
+		name     string
+		tags     []string
+		expected int
+	}{
+		{"Wildcard wo* matches work", []string{"wo*"}, 2},
+		{"Wildcard per* matches personal", []string{"per*"}, 2},
+		{"Wildcard w?b matches web", []string{"w?b"}, 2},
+		{"Wildcard * matches all tagged repos", []string{"*"}, 5},
+		{"Wildcard with AND logic", []string{"wo*", "back*"}, 1},
+		{"Wildcard no match", []string{"z*"}, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ByTags(testRepos, tt.tags)
+			if len(result) != tt.expected {
+				t.Errorf("ByTags(%v) returned %d repos, expected %d", tt.tags, len(result), tt.expected)
+				for _, r := range result {
+					t.Logf("  - %s (tags: %v)", r.Name, r.Tags)
+				}
+			}
+		})
+	}
+}
+
+func TestByPath_Wildcard(t *testing.T) {
+	tests := []struct {
+		name     string
+		filter   string
+		expected int
+	}{
+		{"Wildcard full path pattern", "/home/user/projects/*", 2},
+		{"Wildcard work directory", "/home/user/work/*", 2},
+		{"Wildcard clients directory", "/home/user/clients/*", 1},
+		{"Wildcard all paths", "/home/user/*", 0}, // filepath.Match doesn't match /
+		{"Wildcard with question mark", "/home/user/projects/my-projec?", 1},
+		{"Wildcard no match", "/nonexistent/*", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ByPath(testRepos, tt.filter)
+			if len(result) != tt.expected {
+				t.Errorf("ByPath(%q) returned %d repos, expected %d", tt.filter, len(result), tt.expected)
+				for _, r := range result {
+					t.Logf("  - %s", r.Path)
+				}
+			}
+		})
+	}
+}
+
 func TestMatchesCriteria(t *testing.T) {
 	repo := config.Repository{
 		Name:       "test-repo",

@@ -58,7 +58,7 @@ Add shorthand flags to all list filter options: `--type`/`-y`, `--name`/`-n`, `-
 - [x] 2.2 Add validation in `rootCmd.RunE` that checks if any filter flag (`--type`, `--tag`, `--name`, `--path`, `--output`, `--status`) is set when `--list` is not active. If so, return an error message like `"filter flags (--type, --tag, etc.) require --list/-l to be set"`.
 - [x] 2.3 Add tests in `main_test.go` verifying: (a) filter flags with shorthands resolve correctly (e.g., `-y github` sets `filterType` to `"github"`), and (b) setting a filter flag without `--list` produces the expected error.
 
-### [ ] 3.0 Add wildcard pattern matching to filters
+### [x] 3.0 Add wildcard pattern matching to filters
 
 Implement wildcard pattern matching (`*` for zero or more characters, `?` for single character) in `internal/filter/filter.go`. When a filter value contains `*` or `?`, use glob-style matching (case-insensitive). When no wildcard characters are present, preserve existing behavior (partial, case-insensitive match). Apply wildcard support to all four filter types: `--type`, `--name`, `--path`, and `--tag`.
 
@@ -69,11 +69,11 @@ Implement wildcard pattern matching (`*` for zero or more characters, `?` for si
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Create a helper function `matchesPattern(value, pattern string) bool` in `internal/filter/filter.go` that: (a) checks if the pattern contains `*` or `?`; (b) if yes, lowercases both value and pattern and uses `filepath.Match` for glob matching; (c) if no, falls back to the existing partial case-insensitive `strings.Contains` match.
-- [ ] 3.2 Update `matchesCriteria` in `internal/filter/filter.go` to use `matchesPattern` for the Type, Name, and Path filters instead of the current inline matching logic. For the Type filter, replace `strings.EqualFold` with `matchesPattern` (note: non-wildcard behavior changes from exact-case-insensitive to partial-case-insensitive — this is acceptable per spec).
-- [ ] 3.3 Update the Tags filter loop in `matchesCriteria` to use `matchesPattern` when comparing each `filterTag` against each `repoTag`, so wildcard patterns like `wo*` match tags like `work` and `workflows`.
-- [ ] 3.4 Add wildcard-specific test cases to `filter_test.go`: (a) `TestByName` with patterns like `my*`, `*api`, `*project*`, `m?-project`; (b) `TestByType` with patterns like `git*`, `?ithub`; (c) `TestByPath` with patterns like `*/work/*`, `/home/*/projects/*`; (d) `TestByTags` with patterns like `wo*`, `per?onal`.
-- [ ] 3.5 Verify all existing `filter_test.go` tests still pass unchanged to confirm backward compatibility.
+- [x] 3.1 Create a helper function `matchesPattern(value, pattern string) bool` in `internal/filter/filter.go` that: (a) checks if the pattern contains `*` or `?`; (b) if yes, lowercases both value and pattern and uses `filepath.Match` for glob matching; (c) if no, falls back to the existing partial case-insensitive `strings.Contains` match.
+- [x] 3.2 Update `matchesCriteria` in `internal/filter/filter.go` to use `matchesPattern` for the Type, Name, and Path filters instead of the current inline matching logic. For the Type filter, replace `strings.EqualFold` with `matchesPattern` (note: non-wildcard behavior changes from exact-case-insensitive to partial-case-insensitive — this is acceptable per spec).
+- [x] 3.3 Update the Tags filter loop in `matchesCriteria` to use `matchesPattern` when comparing each `filterTag` against each `repoTag`, so wildcard patterns like `wo*` match tags like `work` and `workflows`.
+- [x] 3.4 Add wildcard-specific test cases to `filter_test.go`: (a) `TestByName` with patterns like `my*`, `*api`, `*project*`, `m?-project`; (b) `TestByType` with patterns like `git*`, `?ithub`; (c) `TestByPath` with patterns like `*/work/*`, `/home/*/projects/*`; (d) `TestByTags` with patterns like `wo*`, `per?onal`.
+- [x] 3.5 Verify all existing `filter_test.go` tests still pass unchanged to confirm backward compatibility.
 
 ### [ ] 4.0 End-to-end validation and CI pass
 
