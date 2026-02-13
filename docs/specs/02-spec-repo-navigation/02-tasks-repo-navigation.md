@@ -45,7 +45,7 @@ Implement core navigation: `--go`/`-g` flag and positional argument support, cas
 - [x] 1.7 Update `TestCommandFlagsRegistered` in `cmd/gws/main_test.go` to include `{"go", "g"}` and `{"quiet", "q"}`. Update `TestMutualExclusivity` error message assertion to include `--go`.
 - [x] 1.8 Run `make test` and `make lint` to verify all tests pass and no lint errors.
 
-### [ ] 2.0 Multiple Match Interactive Selection
+### [x] 2.0 Multiple Match Interactive Selection
 
 When a navigation query matches multiple repositories, display a numbered list and prompt the user to select one. Includes TTY detection — when stdin is not a TTY, print all matching paths and exit with non-zero status. Add wildcard pattern support (`*`, `?`) to navigation queries by reusing the exported `MatchesPattern()` from the filter package.
 
@@ -58,13 +58,13 @@ When a navigation query matches multiple repositories, display a numbered list a
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Add TTY detection helper in `cmd/gws/navigate.go`: `func isTerminal(r io.Reader) bool` using `os.File` type assertion and `r.(*os.File).Stat()` to check `ModeCharDevice`, avoiding a new dependency on `golang.org/x/term`.
-- [ ] 2.2 Extend `runNavigate()` to accept an `stdin io.Reader` parameter. When multiple repos match and stdin is a TTY, display the numbered list to stderr (format: `  1) name (type) path`) and prompt `Select repository [1-N]:` on stderr. Read the user's selection from stdin, validate it, and print the selected repo's path (respecting verbose/quiet mode).
-- [ ] 2.3 Handle invalid selection input: if the user enters a non-numeric value or out-of-range number, print an error to stderr and re-prompt (up to 3 attempts, then exit with error).
-- [ ] 2.4 Handle non-TTY stdin: when multiple repos match and stdin is not a TTY, print all matching paths (one per line) to stdout and return an error (non-zero exit) to indicate ambiguity.
-- [ ] 2.5 Verify wildcard support works end-to-end: `MatchesPattern()` already supports `*` and `?`, so navigation queries like `"my-*"` should match correctly. Add test cases for wildcard queries with single and multiple results.
-- [ ] 2.6 Write tests in `cmd/gws/navigate_test.go`: multiple matches with simulated stdin selection, invalid selection re-prompt, non-TTY prints all paths, wildcard single match, wildcard multiple matches. Use `strings.NewReader` to simulate stdin input in tests.
-- [ ] 2.7 Run `make test` and `make lint`.
+- [x] 2.1 Add TTY detection helper in `cmd/gws/navigate.go`: `func isTerminal(r io.Reader) bool` using `os.File` type assertion and `r.(*os.File).Stat()` to check `ModeCharDevice`, avoiding a new dependency on `golang.org/x/term`.
+- [x] 2.2 Extend `runNavigate()` to accept an `stdin io.Reader` parameter. When multiple repos match and stdin is a TTY, display the numbered list to stderr (format: `  1) name (type) path`) and prompt `Select repository [1-N]:` on stderr. Read the user's selection from stdin, validate it, and print the selected repo's path (respecting verbose/quiet mode).
+- [x] 2.3 Handle invalid selection input: if the user enters a non-numeric value or out-of-range number, print an error to stderr and re-prompt (up to 3 attempts, then exit with error).
+- [x] 2.4 Handle non-TTY stdin: when multiple repos match and stdin is not a TTY, print all matching paths (one per line) to stdout and return an error (non-zero exit) to indicate ambiguity.
+- [x] 2.5 Verify wildcard support works end-to-end: `MatchesPattern()` already supports `*` and `?`, so navigation queries like `"my-*"` should match correctly. Add test cases for wildcard queries with single and multiple results.
+- [x] 2.6 Write tests in `cmd/gws/navigate_test.go`: multiple matches with simulated stdin selection, invalid selection re-prompt, non-TTY prints all paths, wildcard single match, wildcard multiple matches. Use `strings.NewReader` to simulate stdin input in tests.
+- [x] 2.7 Run `make test` and `make lint`.
 
 ### [ ] 3.0 No Match with Suggestions
 
