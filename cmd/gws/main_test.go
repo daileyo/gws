@@ -91,15 +91,15 @@ func TestCommandFlagsRegistered(t *testing.T) {
 }
 
 func TestFilterFlagsRegistered(t *testing.T) {
-	// Verify all filter flags are registered on the root command
+	// Verify all filter flags are registered on the root command with shorthands
 	flags := []struct {
 		name      string
 		shorthand string
 	}{
-		{"type", ""},
-		{"tag", ""},
-		{"name", ""},
-		{"path", ""},
+		{"type", "y"},
+		{"tag", "t"},
+		{"name", "n"},
+		{"path", "p"},
 		{"output", "o"},
 		{"status", "s"},
 	}
@@ -155,5 +155,34 @@ func TestMutualExclusivity(t *testing.T) {
 	expected := "only one command flag can be used at a time"
 	if err.Error() != "only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace)" {
 		t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
+	}
+}
+
+func TestFilterFlagsRequireList(t *testing.T) {
+	// Test that filter flags without --list produce an error
+	origList := flagList
+	defer func() {
+		flagList = origList
+		// Reset changed flags
+		rootCmd.Flags().Lookup("type").Changed = false
+	}()
+
+	flagList = false
+	// Simulate the user explicitly setting --type
+	rootCmd.Flags().Lookup("type").Changed = true
+
+	err := rootCmd.RunE(rootCmd, []string{})
+
+	// Reset for other tests
+	rootCmd.Flags().Lookup("type").Changed = false
+
+	if err == nil {
+		t.Error("Expected error when filter flag used without --list")
+		return
+	}
+
+	expected := "filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set"
+	if err.Error() != expected {
+		t.Errorf("Expected error '%s', got: %s", expected, err.Error())
 	}
 }

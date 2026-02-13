@@ -43,7 +43,7 @@ Remove all Cobra subcommands (`list`, `init`, `tag`, `untag`, `refresh`, `versio
 - [x] 1.7 Update `main_test.go`: replace `TestVersionCommandExists` (which uses `rootCmd.Find`) with a test verifying `rootCmd.Version` is set. Update `TestRootCommand` to check the new `Use` string. Remove or update any tests that reference subcommands.
 - [x] 1.8 Verify `tag_test.go` still passes — the `findRepositories` helper and tag management tests should be unaffected since they test business logic, not CLI structure.
 
-### [ ] 2.0 Add shorthands to list filter flags
+### [x] 2.0 Add shorthands to list filter flags
 
 Add shorthand flags to all list filter options: `--type`/`-y`, `--name`/`-n`, `--path`/`-p`, `--tag`/`-t`. Keep existing `--output`/`-o` and `--status`/`-s` shorthands. Since all flags are now on the root command, add validation that filter flags are only meaningful when `--list`/`-l` is active (warn or error if filter flags used without `--list`).
 
@@ -54,9 +54,9 @@ Add shorthand flags to all list filter options: `--type`/`-y`, `--name`/`-n`, `-
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Update the filter flag registrations in `main.go` to use `StringVarP`/`BoolVarP` variants with shorthands: `--type`/`-y`, `--name`/`-n`, `--path`/`-p`. Update `--tag` from `StringSliceVar` to `StringSliceVarP` with shorthand `-t`.
-- [ ] 2.2 Add validation in `rootCmd.RunE` that checks if any filter flag (`--type`, `--tag`, `--name`, `--path`, `--output`, `--status`) is set when `--list` is not active. If so, return an error message like `"filter flags (--type, --tag, etc.) require --list/-l to be set"`.
-- [ ] 2.3 Add tests in `main_test.go` verifying: (a) filter flags with shorthands resolve correctly (e.g., `-y github` sets `filterType` to `"github"`), and (b) setting a filter flag without `--list` produces the expected error.
+- [x] 2.1 Update the filter flag registrations in `main.go` to use `StringVarP`/`BoolVarP` variants with shorthands: `--type`/`-y`, `--name`/`-n`, `--path`/`-p`. Update `--tag` from `StringSliceVar` to `StringSliceVarP` with shorthand `-t`.
+- [x] 2.2 Add validation in `rootCmd.RunE` that checks if any filter flag (`--type`, `--tag`, `--name`, `--path`, `--output`, `--status`) is set when `--list` is not active. If so, return an error message like `"filter flags (--type, --tag, etc.) require --list/-l to be set"`.
+- [x] 2.3 Add tests in `main_test.go` verifying: (a) filter flags with shorthands resolve correctly (e.g., `-y github` sets `filterType` to `"github"`), and (b) setting a filter flag without `--list` produces the expected error.
 
 ### [ ] 3.0 Add wildcard pattern matching to filters
 

@@ -83,6 +83,11 @@ For navigation support, add this to your shell config:
 			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace)")
 		}
 
+		// Validate filter flags require --list
+		if !flagList && hasFilterFlags(cmd) {
+			return fmt.Errorf("filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set")
+		}
+
 		// Dispatch to command handlers
 		if flagInit != "" {
 			return runInit(cmd, args)
@@ -157,12 +162,27 @@ func init() {
 	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Print workspace path (for shell integration)")
 
 	// Filter flags (apply when --list is active)
-	rootCmd.Flags().StringVar(&filterType, "type", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
-	rootCmd.Flags().StringSliceVar(&filterTags, "tag", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
-	rootCmd.Flags().StringVar(&filterName, "name", "", "Filter by repository name (partial match)")
-	rootCmd.Flags().StringVar(&filterPath, "path", "", "Filter by repository path (partial match)")
+	rootCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
+	rootCmd.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
+	rootCmd.Flags().StringVarP(&filterName, "name", "n", "", "Filter by repository name (partial match)")
+	rootCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match)")
 	rootCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 	rootCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
+}
+
+// hasFilterFlags checks if any filter flag has been explicitly set by the user
+func hasFilterFlags(cmd *cobra.Command) bool {
+	filterFlagNames := []string{"type", "tag", "name", "path", "status"}
+	for _, name := range filterFlagNames {
+		if cmd.Flags().Changed(name) {
+			return true
+		}
+	}
+	// Check output only if it was explicitly changed from default
+	if cmd.Flags().Changed("output") {
+		return true
+	}
+	return false
 }
 
 func main() {
