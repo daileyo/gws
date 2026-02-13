@@ -12,100 +12,62 @@ import (
 	"github.com/daileyo/gws/internal/git"
 )
 
-var (
-	filterType   string
-	filterTags   []string
-	filterName   string
-	filterPath   string
-	outputFormat string
-	showStatus   bool
-)
+// runList handles the --list flag logic
+func runList(_ *cobra.Command, _ []string) error {
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
 
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all tracked repositories with their metadata",
-	Long: `List all tracked repositories with their classification metadata including
-type (GitHub, GitLab, ADO, Bitbucket), visibility (public/private), and custom tags.
-
-Supports filtering by type, tags, name, and path. Multiple filters can be combined.
-
-Examples:
-  gws list                                    # List all repositories
-  gws list --type github                      # List only GitHub repositories
-  gws list --tag personal                     # List repositories tagged as "personal"
-  gws list --tag work --tag backend           # List repositories with both "work" AND "backend" tags
-  gws list --name myproject                   # List repositories matching "myproject"
-  gws list --path /home/user/projects         # List repositories in specific path
-  gws list --type gitlab --tag work           # Combine multiple filters
-  gws list --output json                      # Output in JSON format
-  gws list -o json                            # Short form for JSON output`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Load configuration
-		cfg, err := config.Load()
-		if err != nil {
-			return err
+	if len(cfg.Repositories) == 0 {
+		if outputFormat == "json" {
+			fmt.Println("[]")
+		} else {
+			fmt.Println("No repositories found. Run 'gws --init <directory>' to discover repositories.")
 		}
-
-		if len(cfg.Repositories) == 0 {
-			if outputFormat == "json" {
-				fmt.Println("[]")
-			} else {
-				fmt.Println("No repositories found. Run 'gws init <directory>' to discover repositories.")
-			}
-			return nil
-		}
-
-		// Build filter criteria
-		criteria := filter.Criteria{
-			Type: filterType,
-			Tags: filterTags,
-			Name: filterName,
-			Path: filterPath,
-		}
-
-		// Apply filters
-		filtered := filter.Apply(cfg.Repositories, criteria)
-
-		if len(filtered) == 0 {
-			if outputFormat == "json" {
-				fmt.Println("[]")
-			} else {
-				fmt.Println("No repositories match the specified filters.")
-			}
-			return nil
-		}
-
-		// Load git status cache if status display is enabled
-		var statusCache *git.Cache
-		if showStatus {
-			statusCache = git.NewCache(git.DefaultTTL)
-			cachePath, err := git.GetCachePath()
-			if err == nil {
-				_ = statusCache.Load(cachePath) // Ignore errors, cache might not exist yet
-			}
-		}
-
-		// Display results based on format
-		switch outputFormat {
-		case "json":
-			return displayJSON(filtered)
-		default:
-			displayTable(filtered, statusCache)
-		}
-
 		return nil
-	},
-}
+	}
 
-func init() {
-	rootCmd.AddCommand(listCmd)
+	// Build filter criteria
+	criteria := filter.Criteria{
+		Type: filterType,
+		Tags: filterTags,
+		Name: filterName,
+		Path: filterPath,
+	}
 
-	listCmd.Flags().StringVar(&filterType, "type", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
-	listCmd.Flags().StringSliceVar(&filterTags, "tag", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
-	listCmd.Flags().StringVar(&filterName, "name", "", "Filter by repository name (partial match)")
-	listCmd.Flags().StringVar(&filterPath, "path", "", "Filter by repository path (partial match)")
-	listCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
-	listCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
+	// Apply filters
+	filtered := filter.Apply(cfg.Repositories, criteria)
+
+	if len(filtered) == 0 {
+		if outputFormat == "json" {
+			fmt.Println("[]")
+		} else {
+			fmt.Println("No repositories match the specified filters.")
+		}
+		return nil
+	}
+
+	// Load git status cache if status display is enabled
+	var statusCache *git.Cache
+	if showStatus {
+		statusCache = git.NewCache(git.DefaultTTL)
+		cachePath, err := git.GetCachePath()
+		if err == nil {
+			_ = statusCache.Load(cachePath) // Ignore errors, cache might not exist yet
+		}
+	}
+
+	// Display results based on format
+	switch outputFormat {
+	case "json":
+		return displayJSON(filtered)
+	default:
+		displayTable(filtered, statusCache)
+	}
+
+	return nil
 }
 
 // displayTable shows repositories in a formatted table
