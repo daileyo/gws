@@ -450,7 +450,7 @@ func TestFindSuggestions_MaxLimit(t *testing.T) {
 		repos[i] = config.Repository{Name: fmt.Sprintf("test-repo-%d", i), Path: fmt.Sprintf("/path/%d", i)}
 	}
 
-	suggestions := findSuggestions("test", repos, 5)
+	suggestions := findSuggestions("test", repos)
 	if len(suggestions) > 5 {
 		t.Errorf("expected at most 5 suggestions, got %d", len(suggestions))
 	}
@@ -468,7 +468,7 @@ func TestFindSuggestions_SubstringMatching(t *testing.T) {
 	}
 
 	// "pi" is a substring of "my-api"
-	suggestions := findSuggestions("pi", repos, 5)
+	suggestions := findSuggestions("pi", repos)
 	found := false
 	for _, s := range suggestions {
 		if s == "my-api" {
@@ -486,7 +486,7 @@ func TestFindSuggestions_ShortQuery(t *testing.T) {
 	}
 
 	// Single char query — no 2-char substrings possible
-	suggestions := findSuggestions("x", repos, 5)
+	suggestions := findSuggestions("x", repos)
 	if len(suggestions) != 0 {
 		t.Errorf("expected no suggestions for single-char query, got %v", suggestions)
 	}

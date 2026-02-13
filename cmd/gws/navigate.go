@@ -59,7 +59,7 @@ const maxSuggestions = 5
 func handleNoMatch(query string, repos []config.Repository, stderr io.Writer) error {
 	fmt.Fprintf(stderr, "No repositories found matching '%s'\n", query)
 
-	suggestions := findSuggestions(query, repos, maxSuggestions)
+	suggestions := findSuggestions(query, repos)
 	if len(suggestions) > 0 {
 		fmt.Fprintln(stderr, "\nDid you mean:")
 		for _, s := range suggestions {
@@ -70,15 +70,15 @@ func handleNoMatch(query string, repos []config.Repository, stderr io.Writer) er
 	return fmt.Errorf("no repositories found matching '%s'", query)
 }
 
-// findSuggestions returns up to max repository names that are similar to the query.
+// findSuggestions returns up to maxSuggestions repository names that are similar to the query.
 // It checks if any substring of the query (min 2 chars) appears in a repo name,
 // or if any substring of the repo name appears in the query.
-func findSuggestions(query string, repos []config.Repository, max int) []string {
+func findSuggestions(query string, repos []config.Repository) []string {
 	queryLower := strings.ToLower(query)
 	var suggestions []string
 
 	for _, repo := range repos {
-		if len(suggestions) >= max {
+		if len(suggestions) >= maxSuggestions {
 			break
 		}
 		nameLower := strings.ToLower(repo.Name)
