@@ -75,7 +75,7 @@ Implement wildcard pattern matching (`*` for zero or more characters, `?` for si
 - [x] 3.4 Add wildcard-specific test cases to `filter_test.go`: (a) `TestByName` with patterns like `my*`, `*api`, `*project*`, `m?-project`; (b) `TestByType` with patterns like `git*`, `?ithub`; (c) `TestByPath` with patterns like `*/work/*`, `/home/*/projects/*`; (d) `TestByTags` with patterns like `wo*`, `per?onal`.
 - [x] 3.5 Verify all existing `filter_test.go` tests still pass unchanged to confirm backward compatibility.
 
-### [ ] 4.0 End-to-end validation and CI pass
+### [x] 4.0 End-to-end validation and CI pass
 
 Run `make ci` (vet, lint, test-race) and verify all tests pass with no regressions. Fix any linting issues or test failures introduced by the rework. Verify the complete flag mapping matches the spec.
 
@@ -86,9 +86,9 @@ Run `make ci` (vet, lint, test-race) and verify all tests pass with no regressio
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Run `make fmt` to ensure all modified files are properly formatted.
-- [ ] 4.2 Run `make vet` and fix any issues reported by `go vet`.
-- [ ] 4.3 Run `make lint` and fix any `golangci-lint` issues (unused variables, missing error checks, etc.).
-- [ ] 4.4 Run `make test-race` and fix any race conditions or test failures.
-- [ ] 4.5 Run `make ci` to confirm all quality gates pass in sequence.
-- [ ] 4.6 Manually verify the complete flag mapping by running `gws -h` and confirming it shows: `--list`/`-l`, `--init`/`-i`, `--add-tag`/`-a`, `--remove-tag`/`-u`, `--refresh`/`-r`, `--print-workspace`/`-w`, `--version`/`-v`, plus filter flags with shorthands.
+- [x] 4.1 Run `make fmt` to ensure all modified files are properly formatted.
+- [x] 4.2 Run `make vet` and fix any issues reported by `go vet`.
+- [x] 4.3 Run `make lint` and fix any `golangci-lint` issues (unused variables, missing error checks, etc.).
+- [x] 4.4 Run `make test-race` and fix any race conditions or test failures.
+- [x] 4.5 Run `make ci` to confirm all quality gates pass in sequence.
+- [x] 4.6 Manually verify the complete flag mapping by running `gws -h` and confirming it shows: `--list`/`-l`, `--init`/`-i`, `--add-tag`/`-a`, `--remove-tag`/`-u`, `--refresh`/`-r`, `--print-workspace`/`-w`, `--version`/`-v`, plus filter flags with shorthands.
