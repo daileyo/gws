@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/daileyo/gws/compare/v1.0.0...v1.1.0) (2026-02-13)
+
+
+### Features
+
+* rework CLI to flag-based command pattern ([#2](https://github.com/daileyo/gws/issues/2)) ([7256c97](https://github.com/daileyo/gws/commit/7256c97df4a19d18317dad84f2b40ff59b1d2a32))
+
 ## 1.0.0 (2026-01-06)
 
 
