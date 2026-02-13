@@ -54,11 +54,20 @@ Commands (flags):
   gws --remove-tag api work          # Remove tag from matching repos
   gws --refresh                      # Refresh repository metadata
 
-For navigation support, add this to your shell config:
+Navigation:
+  gws my-repo                        # Navigate to repository by name
+  gws --go my-repo                   # Navigate using flag (same as above)
+  gws -g my-repo -q                  # Quiet mode: print only the path
+  gws "api-*"                        # Wildcard match with interactive selection
 
-  # Bash/Zsh
+Shell integration (add to ~/.bashrc or ~/.zshrc):
+
+  # Navigate to workspace root
   function cdgws() { cd "$(gws --print-workspace)"; }
-  alias gcd=cdgws`,
+  alias gcd=cdgws
+
+  # Navigate to a repository by name
+  function cdg() { cd "$(gws -g "$1" -q)"; }`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Count active command flags for mutual exclusivity
 		activeCount := 0

@@ -352,6 +352,97 @@ gws --print-workspace
 # Output: /home/user/projects
 ```
 
+### Repository Navigation
+
+Quickly find and navigate to any tracked repository by name:
+
+**Basic usage:**
+
+```bash
+# Navigate by name (positional argument)
+gws my-repo
+
+# Navigate using the --go flag
+gws --go my-repo
+gws -g my-repo
+
+# Quiet mode: print only the path (for scripting)
+gws -g my-repo -q
+```
+
+**Output:**
+
+```
+# Verbose (default):
+my-repo (github) → /home/user/projects/my-repo
+/home/user/projects/my-repo
+
+# Quiet (-q):
+/home/user/projects/my-repo
+```
+
+**Wildcard matching:**
+
+```bash
+# Match with wildcards (* = zero or more, ? = single character)
+gws "api-*"
+gws "?rontend"
+```
+
+**Multiple matches:**
+
+When multiple repositories match, gws displays a numbered list for selection:
+
+```
+Multiple repositories match 'api':
+
+  1) my-api (github) /home/user/projects/my-api
+  2) my-api-v2 (github) /home/user/projects/my-api-v2
+  3) work-api (gitlab) /home/user/projects/work-api
+
+Select repository [1-3]:
+```
+
+When piped (non-TTY), all matching paths are printed without prompting.
+
+**No match suggestions:**
+
+When no repositories match, gws suggests similar names:
+
+```
+No repositories found matching 'aip'
+
+Did you mean:
+  my-api
+  work-api
+```
+
+**Shell wrapper for directory navigation (add to ~/.bashrc or ~/.zshrc):**
+
+```bash
+# Navigate to a repository by name
+function cdg() {
+  cd "$(gws -g "$1" -q)"
+}
+```
+
+**Usage:**
+
+```bash
+# Navigate to a repo directory
+cdg my-repo
+
+# You'll be in the repository directory
+pwd
+# Output: /home/user/projects/my-repo
+```
+
+**Eval-based alternative:**
+
+```bash
+eval "$(gws -g my-repo -q | xargs -I{} echo cd {})"
+```
+
 ## Manual Verification Steps
 
 ### Verify Repository Discovery

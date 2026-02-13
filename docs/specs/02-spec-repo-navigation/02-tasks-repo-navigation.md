@@ -83,7 +83,7 @@ When no repositories match the navigation query, display an error with up to 5 s
 - [x] 3.3 Write tests in `cmd/gws/navigate_test.go`: no match with suggestions found (verify up to 5 shown), no match with zero suggestions (verify only error message), suggestion relevance (verify substring matching logic).
 - [x] 3.4 Run `make test` and `make lint`.
 
-### [ ] 4.0 Shell Integration and Documentation
+### [x] 4.0 Shell Integration and Documentation
 
 Update README with repository navigation documentation including shell wrapper functions (`cdg`), eval-based alternative, and usage examples. Update the root command `--help` long description to include navigation examples. Ensure existing `cdgws`/`gcd` documentation remains unchanged.
 
@@ -95,8 +95,8 @@ Update README with repository navigation documentation including shell wrapper f
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Update the `Long` description in `rootCmd` (`cmd/gws/main.go`) to include navigation examples: `gws my-repo` (positional), `gws --go my-repo` (flag), `gws -g my-repo -q` (quiet). Update the shell integration section to show both `cdgws` (workspace) and `cdg` (repo navigation).
-- [ ] 4.2 Add a "Repository Navigation" section to `README.md` after the existing "Shell Navigation" section. Include: basic usage (`gws <name>`), flag usage (`gws --go <name>`), quiet mode (`gws -g <name> -q`), wildcard examples, multiple match behavior, and shell wrapper setup.
-- [ ] 4.3 Document the `cdg` shell wrapper function in README: `function cdg() { cd "$(gws -g "$1" -q)"; }` with alias `alias cdr=cdg`. Document the eval alternative: `eval "$(gws -g my-repo -q | xargs -I{} echo cd {})"`.
-- [ ] 4.4 Verify existing `cdgws`/`gcd` documentation in README is unchanged and still references `--print-workspace`.
-- [ ] 4.5 Run `make test` and `make lint` to verify no regressions from help text changes.
+- [x] 4.1 Update the `Long` description in `rootCmd` (`cmd/gws/main.go`) to include navigation examples: `gws my-repo` (positional), `gws --go my-repo` (flag), `gws -g my-repo -q` (quiet). Update the shell integration section to show both `cdgws` (workspace) and `cdg` (repo navigation).
+- [x] 4.2 Add a "Repository Navigation" section to `README.md` after the existing "Shell Navigation" section. Include: basic usage (`gws <name>`), flag usage (`gws --go <name>`), quiet mode (`gws -g <name> -q`), wildcard examples, multiple match behavior, and shell wrapper setup.
+- [x] 4.3 Document the `cdg` shell wrapper function in README: `function cdg() { cd "$(gws -g "$1" -q)"; }` with alias `alias cdr=cdg`. Document the eval alternative: `eval "$(gws -g my-repo -q | xargs -I{} echo cd {})"`.
+- [x] 4.4 Verify existing `cdgws`/`gcd` documentation in README is unchanged and still references `--print-workspace`.
+- [x] 4.5 Run `make test` and `make lint` to verify no regressions from help text changes.
