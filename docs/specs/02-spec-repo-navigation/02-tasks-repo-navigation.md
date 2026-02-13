@@ -66,7 +66,7 @@ When a navigation query matches multiple repositories, display a numbered list a
 - [x] 2.6 Write tests in `cmd/gws/navigate_test.go`: multiple matches with simulated stdin selection, invalid selection re-prompt, non-TTY prints all paths, wildcard single match, wildcard multiple matches. Use `strings.NewReader` to simulate stdin input in tests.
 - [x] 2.7 Run `make test` and `make lint`.
 
-### [ ] 3.0 No Match with Suggestions
+### [x] 3.0 No Match with Suggestions
 
 When no repositories match the navigation query, display an error with up to 5 substring-based suggestions of similar repository names. Exit with non-zero status.
 
@@ -78,10 +78,10 @@ When no repositories match the navigation query, display an error with up to 5 s
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Add `findSuggestions(query string, repos []config.Repository, max int) []string` in `cmd/gws/navigate.go`. For each repository, check if any substring of the query (minimum 2 characters) appears in the repo name, or if any substring of the repo name appears in the query, using case-insensitive comparison. Return up to `max` matching names.
-- [ ] 3.2 Extend the no-match path in `runNavigate()`: after printing the error message `No repositories found matching '<query>'` to stderr, call `findSuggestions()` and if results are non-empty, print `Did you mean:` followed by each suggestion indented with `  ` to stderr. Return an error for non-zero exit.
-- [ ] 3.3 Write tests in `cmd/gws/navigate_test.go`: no match with suggestions found (verify up to 5 shown), no match with zero suggestions (verify only error message), suggestion relevance (verify substring matching logic).
-- [ ] 3.4 Run `make test` and `make lint`.
+- [x] 3.1 Add `findSuggestions(query string, repos []config.Repository, max int) []string` in `cmd/gws/navigate.go`. For each repository, check if any substring of the query (minimum 2 characters) appears in the repo name, or if any substring of the repo name appears in the query, using case-insensitive comparison. Return up to `max` matching names.
+- [x] 3.2 Extend the no-match path in `runNavigate()`: after printing the error message `No repositories found matching '<query>'` to stderr, call `findSuggestions()` and if results are non-empty, print `Did you mean:` followed by each suggestion indented with `  ` to stderr. Return an error for non-zero exit.
+- [x] 3.3 Write tests in `cmd/gws/navigate_test.go`: no match with suggestions found (verify up to 5 shown), no match with zero suggestions (verify only error message), suggestion relevance (verify substring matching logic).
+- [x] 3.4 Run `make test` and `make lint`.
 
 ### [ ] 4.0 Shell Integration and Documentation
 

@@ -53,10 +53,55 @@ func printMatch(repo config.Repository, quiet bool, stderr io.Writer, stdout io.
 	return nil
 }
 
-// handleNoMatch displays an error when no repositories match (placeholder for task 3.0)
+const maxSuggestions = 5
+
+// handleNoMatch displays an error when no repositories match and suggests similar names.
 func handleNoMatch(query string, repos []config.Repository, stderr io.Writer) error {
 	fmt.Fprintf(stderr, "No repositories found matching '%s'\n", query)
+
+	suggestions := findSuggestions(query, repos, maxSuggestions)
+	if len(suggestions) > 0 {
+		fmt.Fprintln(stderr, "\nDid you mean:")
+		for _, s := range suggestions {
+			fmt.Fprintf(stderr, "  %s\n", s)
+		}
+	}
+
 	return fmt.Errorf("no repositories found matching '%s'", query)
+}
+
+// findSuggestions returns up to max repository names that are similar to the query.
+// It checks if any substring of the query (min 2 chars) appears in a repo name,
+// or if any substring of the repo name appears in the query.
+func findSuggestions(query string, repos []config.Repository, max int) []string {
+	queryLower := strings.ToLower(query)
+	var suggestions []string
+
+	for _, repo := range repos {
+		if len(suggestions) >= max {
+			break
+		}
+		nameLower := strings.ToLower(repo.Name)
+
+		if isSimilar(queryLower, nameLower) {
+			suggestions = append(suggestions, repo.Name)
+		}
+	}
+
+	return suggestions
+}
+
+// isSimilar checks if two strings share a common substring of at least 2 characters
+func isSimilar(a, b string) bool {
+	// Check if any substring of a (min 2 chars) appears in b
+	for i := 0; i <= len(a)-2; i++ {
+		for j := i + 2; j <= len(a); j++ {
+			if strings.Contains(b, a[i:j]) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // isTerminal checks if the given reader is connected to a terminal (TTY)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -376,5 +377,117 @@ func TestRunNavigate_WildcardInteractiveSelection(t *testing.T) {
 	gotStdout := strings.TrimSpace(stdout.String())
 	if gotStdout != "/home/user/projects/my-api" {
 		t.Errorf("stdout: expected '/home/user/projects/my-api', got '%s'", gotStdout)
+	}
+}
+
+func TestRunNavigate_NoMatch_WithSuggestions(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	// "aip" does not partial-match any repo name, but shares "ai" with nothing
+	// and shares no substring. Use "frx" — "fr" appears in "frontend"
+	err := runNavigate("frx", false, testRepos, &stderr, &stdout, stdin)
+	if err == nil {
+		t.Fatal("expected error for no match")
+	}
+
+	gotStderr := stderr.String()
+	if !strings.Contains(gotStderr, "No repositories found matching 'frx'") {
+		t.Errorf("stderr should contain no-match message, got '%s'", gotStderr)
+	}
+	if !strings.Contains(gotStderr, "Did you mean:") {
+		t.Errorf("stderr should contain suggestions, got '%s'", gotStderr)
+	}
+	if !strings.Contains(gotStderr, "frontend") {
+		t.Errorf("stderr should suggest 'frontend', got '%s'", gotStderr)
+	}
+}
+
+func TestRunNavigate_NoMatch_SuggestsPartialOverlap(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	// "fron" shares substring with "frontend" but won't match exactly via wildcard
+	// Actually "fron" will partial-match "frontend" via MatchesPattern. Need truly no match.
+	// Use "frx" — shares "fr" with "frontend"
+	err := runNavigate("frx", false, testRepos, &stderr, &stdout, stdin)
+	if err == nil {
+		t.Fatal("expected error for no match")
+	}
+
+	gotStderr := stderr.String()
+	if !strings.Contains(gotStderr, "Did you mean:") {
+		t.Errorf("stderr should contain suggestions, got '%s'", gotStderr)
+	}
+	if !strings.Contains(gotStderr, "frontend") {
+		t.Errorf("stderr should suggest 'frontend', got '%s'", gotStderr)
+	}
+}
+
+func TestRunNavigate_NoMatch_NoSuggestions(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	// "zq" has no 2-char substring overlap with any repo name
+	err := runNavigate("zq", false, testRepos, &stderr, &stdout, stdin)
+	if err == nil {
+		t.Fatal("expected error for no match")
+	}
+
+	gotStderr := stderr.String()
+	if !strings.Contains(gotStderr, "No repositories found matching 'zq'") {
+		t.Errorf("stderr should contain no-match message, got '%s'", gotStderr)
+	}
+	if strings.Contains(gotStderr, "Did you mean:") {
+		t.Errorf("stderr should NOT contain suggestions for completely unrelated query, got '%s'", gotStderr)
+	}
+}
+
+func TestFindSuggestions_MaxLimit(t *testing.T) {
+	// Create many repos that would all match
+	repos := make([]config.Repository, 10)
+	for i := range repos {
+		repos[i] = config.Repository{Name: fmt.Sprintf("test-repo-%d", i), Path: fmt.Sprintf("/path/%d", i)}
+	}
+
+	suggestions := findSuggestions("test", repos, 5)
+	if len(suggestions) > 5 {
+		t.Errorf("expected at most 5 suggestions, got %d", len(suggestions))
+	}
+	if len(suggestions) != 5 {
+		t.Errorf("expected exactly 5 suggestions (max), got %d", len(suggestions))
+	}
+}
+
+func TestFindSuggestions_SubstringMatching(t *testing.T) {
+	repos := []config.Repository{
+		{Name: "my-api"},
+		{Name: "frontend"},
+		{Name: "backend"},
+		{Name: "zzz-unrelated"},
+	}
+
+	// "pi" is a substring of "my-api"
+	suggestions := findSuggestions("pi", repos, 5)
+	found := false
+	for _, s := range suggestions {
+		if s == "my-api" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'my-api' in suggestions for 'pi', got %v", suggestions)
+	}
+}
+
+func TestFindSuggestions_ShortQuery(t *testing.T) {
+	repos := []config.Repository{
+		{Name: "a-repo"},
+	}
+
+	// Single char query — no 2-char substrings possible
+	suggestions := findSuggestions("x", repos, 5)
+	if len(suggestions) != 0 {
+		t.Errorf("expected no suggestions for single-char query, got %v", suggestions)
 	}
 }
