@@ -24,6 +24,8 @@ var (
 	flagRemoveTag      bool
 	flagRefresh        bool
 	flagPrintWorkspace bool
+	flagGo             string
+	flagQuiet          bool
 )
 
 // Filter flags (for --list)
@@ -78,14 +80,27 @@ For navigation support, add this to your shell config:
 		if flagPrintWorkspace {
 			activeCount++
 		}
+		if flagGo != "" {
+			activeCount++
+		}
 
 		if activeCount > 1 {
-			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace)")
+			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace, --go)")
 		}
 
 		// Validate filter flags require --list
 		if !flagList && hasFilterFlags(cmd) {
 			return fmt.Errorf("filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set")
+		}
+
+		// Validate --quiet only applies to navigation
+		if flagQuiet && flagGo == "" && len(args) == 0 {
+			return fmt.Errorf("--quiet/-q can only be used with navigation (--go or positional argument)")
+		}
+
+		// Validate --go and positional args are not both provided
+		if flagGo != "" && len(args) > 0 {
+			return fmt.Errorf("cannot use both --go flag and positional argument for navigation")
 		}
 
 		// Dispatch to command handlers
@@ -94,22 +109,20 @@ For navigation support, add this to your shell config:
 		}
 
 		// All other commands require workspace to be initialized
-		if activeCount > 0 || len(args) == 0 {
-			exists, err := config.Exists()
-			if err != nil {
-				return fmt.Errorf("failed to check workspace status: %w", err)
-			}
+		exists, err := config.Exists()
+		if err != nil {
+			return fmt.Errorf("failed to check workspace status: %w", err)
+		}
 
-			if !exists {
-				fmt.Fprintln(os.Stderr, "Error: workspace not initialized")
-				fmt.Fprintln(os.Stderr, "")
-				fmt.Fprintln(os.Stderr, "To get started, initialize a workspace:")
-				fmt.Fprintln(os.Stderr, "  gws --init <directory>")
-				fmt.Fprintln(os.Stderr, "")
-				fmt.Fprintln(os.Stderr, "Example:")
-				fmt.Fprintln(os.Stderr, "  gws --init ~/projects")
-				return fmt.Errorf("workspace not initialized")
-			}
+		if !exists {
+			fmt.Fprintln(os.Stderr, "Error: workspace not initialized")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "To get started, initialize a workspace:")
+			fmt.Fprintln(os.Stderr, "  gws --init <directory>")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "Example:")
+			fmt.Fprintln(os.Stderr, "  gws --init ~/projects")
+			return fmt.Errorf("workspace not initialized")
 		}
 
 		if flagPrintWorkspace {
@@ -137,6 +150,24 @@ For navigation support, add this to your shell config:
 			return runRefresh(cmd, args)
 		}
 
+		// Navigation via --go flag
+		if flagGo != "" {
+			cfg, err := config.Load()
+			if err != nil {
+				return fmt.Errorf("failed to load workspace configuration: %w", err)
+			}
+			return runNavigate(flagGo, flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
+		}
+
+		// Navigation via positional argument
+		if len(args) > 0 {
+			cfg, err := config.Load()
+			if err != nil {
+				return fmt.Errorf("failed to load workspace configuration: %w", err)
+			}
+			return runNavigate(args[0], flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
+		}
+
 		// Default behavior: display workspace information
 		cfg, err := config.Load()
 		if err != nil {
@@ -160,6 +191,8 @@ func init() {
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "u", false, "Remove a tag from repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")
 	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Print workspace path (for shell integration)")
+	rootCmd.Flags().StringVarP(&flagGo, "go", "g", "", "Navigate to a repository by name (prints path)")
+	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
 
 	// Filter flags (apply when --list is active)
 	rootCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
