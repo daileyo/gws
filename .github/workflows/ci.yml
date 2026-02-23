@@ -84,10 +84,10 @@ jobs:
           cache: true
 
       - name: Build binary
-        run: go build -v -o gws${{ matrix.os == 'windows-latest' && '.exe' || '' }} ./cmd/gws
+        run: go build -v -o git-workspace${{ matrix.os == 'windows-latest' && '.exe' || '' }} ./cmd/git-workspace
 
       - name: Verify binary runs
-        run: ./gws${{ matrix.os == 'windows-latest' && '.exe' || '' }} --help
+        run: ./git-workspace${{ matrix.os == 'windows-latest' && '.exe' || '' }} --help
 
   security:
     name: Security Scan

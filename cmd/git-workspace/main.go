@@ -39,35 +39,35 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "gws",
+	Use:   "git-workspace",
 	Short: "Git Workspace - Discover, organize, and navigate git repositories",
-	Long: `gws is a lightweight, cross-platform CLI tool for discovering, organizing,
+	Long: `git-workspace is a lightweight, cross-platform CLI tool for discovering, organizing,
 and navigating git repositories on your local system. It provides an intelligent
 repository index and navigation layer with powerful search and filtering capabilities.
 
 Commands (flags):
-  gws --list                         # List all repositories
-  gws -l --type github               # List only GitHub repositories
-  gws -l --tag personal --status     # List repos tagged "personal" with git status
-  gws --init ~/projects              # Initialize workspace
-  gws --add-tag my-project personal  # Add tag to matching repos
-  gws --remove-tag api work          # Remove tag from matching repos
-  gws --refresh                      # Refresh repository metadata
+  git-workspace --list                         # List all repositories
+  git-workspace -l --type github               # List only GitHub repositories
+  git-workspace -l --tag personal --status     # List repos tagged "personal" with git status
+  git-workspace --init ~/projects              # Initialize workspace
+  git-workspace --add-tag my-project personal  # Add tag to matching repos
+  git-workspace --remove-tag api work          # Remove tag from matching repos
+  git-workspace --refresh                      # Refresh repository metadata
 
 Navigation:
-  gws my-repo                        # Navigate to repository by name
-  gws --go my-repo                   # Navigate using flag (same as above)
-  gws -g my-repo -q                  # Quiet mode: print only the path
-  gws "api-*"                        # Wildcard match with interactive selection
+  git-workspace my-repo                        # Navigate to repository by name
+  git-workspace --go my-repo                   # Navigate using flag (same as above)
+  git-workspace -g my-repo -q                  # Quiet mode: print only the path
+  git-workspace "api-*"                        # Wildcard match with interactive selection
 
 Shell integration (add to ~/.bashrc or ~/.zshrc):
 
-  # Navigate to workspace root
-  function cdgws() { cd "$(gws --print-workspace)"; }
-  alias gcd=cdgws
+  # 'gws' shorthand: navigate to a repo by name (changes directory)
+  function gws() { cd "$(git-workspace -g "$1" -q)"; }
 
-  # Navigate to a repository by name
-  function cdg() { cd "$(gws -g "$1" -q)"; }`,
+  # Navigate to workspace root
+  function cdgws() { cd "$(git-workspace --print-workspace)"; }
+  alias gcd=cdgws`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Count active command flags for mutual exclusivity
 		activeCount := 0

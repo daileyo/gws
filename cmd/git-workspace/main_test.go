@@ -34,8 +34,8 @@ func TestVersionVariablesAreDefined(t *testing.T) {
 
 func TestRootCommand(t *testing.T) {
 	// Test that root command is properly configured with new flag-based interface
-	if rootCmd.Use != "gws" {
-		t.Errorf("Expected root command Use to be 'gws', got '%s'", rootCmd.Use)
+	if rootCmd.Use != "git-workspace" {
+		t.Errorf("Expected root command Use to be 'git-workspace', got '%s'", rootCmd.Use)
 	}
 
 	if rootCmd.Short == "" {

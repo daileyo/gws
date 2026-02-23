@@ -3,7 +3,7 @@
 
 version: 2
 
-project_name: gws
+project_name: git-workspace
 
 before:
   hooks:
@@ -11,9 +11,9 @@ before:
     - go mod verify
 
 builds:
-  - id: gws
-    main: ./cmd/gws
-    binary: gws
+  - id: git-workspace
+    main: ./cmd/git-workspace
+    binary: git-workspace
     env:
       - CGO_ENABLED=0
     goos:
@@ -35,9 +35,9 @@ builds:
       - -trimpath
 
 archives:
-  - id: gws-archive
+  - id: git-workspace-archive
     builds:
-      - gws
+      - git-workspace
     format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
@@ -90,23 +90,23 @@ release:
   prerelease: auto
   mode: replace
   header: |
-    ## gws {{ .Tag }}
-    
+    ## git-workspace {{ .Tag }}
+
     Cross-platform CLI tool for discovering, organizing, and navigating git repositories.
   footer: |
     ---
-    
+
     **Full Changelog**: https://github.com/daileyo/gws/compare/{{ .PreviousTag }}...{{ .Tag }}
-    
+
     ### Installation
-    
+
     Download the appropriate binary for your platform and add it to your PATH.
-    
+
     ```bash
     # Linux/macOS
-    tar -xzf gws_{{ .Version }}_<os>_<arch>.tar.gz
-    sudo mv gws /usr/local/bin/
-    
+    tar -xzf git-workspace_{{ .Version }}_<os>_<arch>.tar.gz
+    sudo mv git-workspace /usr/local/bin/
+
     # Windows
     # Extract the zip and add to PATH
     ```
