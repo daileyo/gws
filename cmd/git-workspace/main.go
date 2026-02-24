@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/daileyo/gws/internal/config"
 )
@@ -62,8 +63,11 @@ Navigation:
 
 Shell integration (add to ~/.bashrc or ~/.zshrc):
 
-  # 'gws' shorthand: navigate to a repo by name (changes directory)
-  function gws() { cd "$(git-workspace -g "$1" -q)"; }
+  # 'gws' shorthand: navigate to a repo, or pass flags through to git-workspace
+  function gws() {
+    if [[ "$1" == -* ]]; then git-workspace "$@"
+    else cd "$(git-workspace -g "$1" -q)"; fi
+  }
 
   # Navigate to workspace root
   function cdgws() { cd "$(git-workspace --print-workspace)"; }
@@ -210,6 +214,39 @@ func init() {
 	rootCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match)")
 	rootCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 	rootCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
+
+	// Register template helpers for grouped flag display
+	flagGroup := func(names []string) func(*cobra.Command) string {
+		return func(cmd *cobra.Command) string {
+			fs := pflag.NewFlagSet("", pflag.ContinueOnError)
+			for _, name := range names {
+				if f := cmd.Flags().Lookup(name); f != nil {
+					fs.AddFlag(f)
+				}
+			}
+			return fs.FlagUsages()
+		}
+	}
+	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add-tag", "remove-tag", "refresh", "print-workspace"}))
+	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status"}))
+	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
+
+	rootCmd.SetUsageTemplate(`Usage:
+  {{.UseLine}}
+
+Commands:
+{{commandFlagUsages . | trimRightSpace}}
+
+List Filters (require --list / -l):
+{{filterFlagUsages . | trimRightSpace}}
+
+Navigation:
+{{navigationFlagUsages . | trimRightSpace}}
+
+Other:
+  -h, --help      help for {{.Name}}
+      --version   version for {{.Name}}
+`)
 }
 
 // hasFilterFlags checks if any filter flag has been explicitly set by the user

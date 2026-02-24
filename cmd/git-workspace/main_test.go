@@ -165,18 +165,13 @@ func TestFilterFlagsRequireList(t *testing.T) {
 	origList := flagList
 	defer func() {
 		flagList = origList
-		// Reset changed flags
 		rootCmd.Flags().Lookup("type").Changed = false
 	}()
 
 	flagList = false
-	// Simulate the user explicitly setting --type
 	rootCmd.Flags().Lookup("type").Changed = true
 
 	err := rootCmd.RunE(rootCmd, []string{})
-
-	// Reset for other tests
-	rootCmd.Flags().Lookup("type").Changed = false
 
 	if err == nil {
 		t.Error("Expected error when filter flag used without --list")

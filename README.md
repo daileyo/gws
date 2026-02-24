@@ -331,21 +331,26 @@ Jump to any tracked repository by name using the `gws` shell function.
 **Setup (add to ~/.bashrc or ~/.zshrc):**
 
 ```bash
-# 'gws' navigates to a repository by name (changes your directory)
+# 'gws': navigate to a repo by name, or pass flags through to git-workspace
 function gws() {
-  cd "$(git-workspace -g "$1" -q)"
+  if [[ "$1" == -* ]]; then
+    git-workspace "$@"
+  else
+    cd "$(git-workspace -g "$1" -q)"
+  fi
 }
 ```
 
 **Usage:**
 
 ```bash
-# Navigate to a repository by name — this is the main workflow
+# Navigate to a repository by name — changes your directory
 gws my-repo
 
-# You'll be in the repository directory
-pwd
-# Output: /home/user/projects/my-repo
+# Pass any flag through to git-workspace as normal
+gws --list
+gws -l --tag personal --status
+gws --refresh
 ```
 
 **Wildcard matching:**
