@@ -21,6 +21,7 @@ var (
 var (
 	flagList           bool
 	flagInit           bool
+	flagAdd            string
 	flagAddTag         bool
 	flagRemoveTag      bool
 	flagRefresh        bool
@@ -51,6 +52,8 @@ Commands (flags):
   git-workspace -l --type github               # List only GitHub repositories
   git-workspace -l --tag personal --status     # List repos tagged "personal" with git status
   git-workspace --init                         # Initialize workspace in current directory
+  git-workspace --add                          # Add current directory to workspace
+  git-workspace --add ~/elsewhere/my-repo     # Add a specific repo to workspace
   git-workspace --add-tag my-project personal  # Add tag to matching repos
   git-workspace --remove-tag api work          # Remove tag from matching repos
   git-workspace --refresh                      # Refresh repository metadata
@@ -81,6 +84,9 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if flagInit {
 			activeCount++
 		}
+		if flagAdd != "" {
+			activeCount++
+		}
 		if flagAddTag {
 			activeCount++
 		}
@@ -98,7 +104,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		}
 
 		if activeCount > 1 {
-			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace, --go)")
+			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go)")
 		}
 
 		// Validate filter flags require --list
@@ -119,6 +125,9 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		// Dispatch to command handlers
 		if flagInit {
 			return runInit(cmd, args)
+		}
+		if flagAdd != "" {
+			return runAdd(cmd, args)
 		}
 
 		// All other commands require workspace to be initialized
@@ -197,6 +206,8 @@ func init() {
 	// Command flags
 	rootCmd.Flags().BoolVarP(&flagList, "list", "l", false, "List all tracked repositories")
 	rootCmd.Flags().BoolVarP(&flagInit, "init", "i", false, "Initialize a gws workspace in the current directory")
+	rootCmd.Flags().StringVarP(&flagAdd, "add", "a", "", "Add a git repository to the workspace (defaults to current directory)")
+	rootCmd.Flags().Lookup("add").NoOptDefVal = "."
 	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "u", false, "Remove a tag from repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")
@@ -224,7 +235,7 @@ func init() {
 			return fs.FlagUsages()
 		}
 	}
-	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add-tag", "remove-tag", "refresh", "print-workspace"}))
+	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add", "add-tag", "remove-tag", "refresh", "print-workspace"}))
 	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
 

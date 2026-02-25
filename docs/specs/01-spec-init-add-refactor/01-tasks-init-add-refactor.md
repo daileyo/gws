@@ -51,7 +51,7 @@ Refactor the `--init` flag from a string flag (requiring a path argument) to a b
 
 ---
 
-### [ ] 2.0 Implement `--add` Command — Single Repository with Symlink Support
+### [x] 2.0 Implement `--add` Command — Single Repository with Symlink Support
 
 Create `add.go` with the `runAdd` handler. Register `--add` / `-a` in `main.go` using Cobra's `NoOptDefVal` so the flag works both with and without a path argument. Implement git repo validation, config update, and symlink creation for repositories located outside the workspace root. Wire `--add` into the mutual exclusivity check and dispatch in `main.go`.
 
