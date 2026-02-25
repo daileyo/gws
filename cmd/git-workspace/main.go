@@ -22,6 +22,7 @@ var (
 	flagList           bool
 	flagInit           bool
 	flagAdd            string
+	flagRecursive      bool
 	flagAddTag         bool
 	flagRemoveTag      bool
 	flagRefresh        bool
@@ -110,6 +111,11 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		// Validate filter flags require --list
 		if !flagList && hasFilterFlags(cmd) {
 			return fmt.Errorf("filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set")
+		}
+
+		// Validate --recursive requires --add
+		if flagRecursive && flagAdd == "" {
+			return fmt.Errorf("--recursive/-v requires --add/-a to be set")
 		}
 
 		// Validate --quiet only applies to navigation
@@ -208,6 +214,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&flagInit, "init", "i", false, "Initialize a gws workspace in the current directory")
 	rootCmd.Flags().StringVarP(&flagAdd, "add", "a", "", "Add a git repository to the workspace (defaults to current directory)")
 	rootCmd.Flags().Lookup("add").NoOptDefVal = "."
+	rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories found in the current directory (use with --add)")
 	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "u", false, "Remove a tag from repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")

@@ -85,7 +85,7 @@ Create `add.go` with the `runAdd` handler. Register `--add` / `-a` in `main.go` 
 
 ---
 
-### [ ] 3.0 Implement `--add --recursive` / `-v` — Batch Repository Add
+### [x] 3.0 Implement `--add --recursive` / `-v` — Batch Repository Add
 
 Register `--recursive` / `-v` as a boolean modifier flag in `main.go`. Add validation that `--recursive` requires `--add`. Extend `runAdd` in `add.go` to handle recursive scanning using the existing `discovery.Scan()` function, batch config updates, symlink creation for external repos, and count + names reporting.
 
@@ -99,18 +99,18 @@ Register `--recursive` / `-v` as a boolean modifier flag in `main.go`. Add valid
 
 #### 3.0 Tasks
 
-- [ ] 3.1 In `main.go`, add a new `flagRecursive bool` variable to the command flags `var` block.
-- [ ] 3.2 In `main.go init()`, register the flag: `rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories found in the current directory (use with --add)")`.
-- [ ] 3.3 In `main.go` `RunE`, add a validation block for `--recursive` after the filter flags validation block: `if flagRecursive && flagAdd == "" { return fmt.Errorf("--recursive/-v requires --add/-a to be set") }`. This mirrors the pattern used to gate filter flags on `--list`.
-- [ ] 3.4 In `add.go` `runAdd`, add a branch at the top of the function: `if flagRecursive { return runAddRecursive() }`. Implement `runAddRecursive` as a separate function in the same file.
-- [ ] 3.5 In `runAddRecursive`, resolve the scan root: use `os.Getwd()` as the directory to scan (recursive always operates on the current directory).
-- [ ] 3.6 In `runAddRecursive`, call `discovery.Scan(scanRoot)` to find all git repositories in the current directory (same scanner used by `--init`).
-- [ ] 3.7 In `runAddRecursive`, load the existing config with `config.Load()`. For each discovered repository, check if it is already tracked (compare `repo.Path` against existing entries). Collect a list of already-tracked repo names to warn about.
-- [ ] 3.8 In `runAddRecursive`, for each newly discovered repository (not already tracked): append it to `cfg.Repositories`, and if its path is outside the workspace directory, create a symlink using the same `os.Symlink` logic from Task 2 (extract this into a shared helper function `createSymlinkIfExternal(cfg, repo)` in `add.go`).
-- [ ] 3.9 In `runAddRecursive`, after processing all repos: if already-tracked repos were encountered, print a warning for each one (`"[name] is already tracked, skipping."`). If new repos were added, call `config.Save(cfg)` and print `"Added N repositories: repo-a, repo-b, repo-c."`. If no new repos were added, print `"No new repositories found."`.
-- [ ] 3.10 Refactor Task 2's symlink creation logic in `runAdd` into the shared `createSymlinkIfExternal(cfg *config.Config, repoPath, repoName string) (created bool, err error)` helper so both single and recursive paths use the same code.
-- [ ] 3.11 Update `add_test.go` with recursive-specific tests: (a) recursive add in a directory with 3 git repos — verify all 3 are added and output includes count + names, (b) recursive add when all repos already tracked — verify `"No new repositories found."` output, (c) recursive add in a directory with no git repos — verify `"No new repositories found."` output, (d) `gws --recursive` without `--add` — verify error returned from `main.go` validation.
-- [ ] 3.12 Run `make ci` and confirm all tests pass before marking this task complete.
+- [x] 3.1 In `main.go`, add a new `flagRecursive bool` variable to the command flags `var` block.
+- [x] 3.2 In `main.go init()`, register the flag: `rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories found in the current directory (use with --add)")`.
+- [x] 3.3 In `main.go` `RunE`, add a validation block for `--recursive` after the filter flags validation block: `if flagRecursive && flagAdd == "" { return fmt.Errorf("--recursive/-v requires --add/-a to be set") }`. This mirrors the pattern used to gate filter flags on `--list`.
+- [x] 3.4 In `add.go` `runAdd`, add a branch at the top of the function: `if flagRecursive { return runAddRecursive() }`. Implement `runAddRecursive` as a separate function in the same file.
+- [x] 3.5 In `runAddRecursive`, resolve the scan root: use `os.Getwd()` as the directory to scan (recursive always operates on the current directory).
+- [x] 3.6 In `runAddRecursive`, call `discovery.Scan(scanRoot)` to find all git repositories in the current directory (same scanner used by `--init`).
+- [x] 3.7 In `runAddRecursive`, load the existing config with `config.Load()`. For each discovered repository, check if it is already tracked (compare `repo.Path` against existing entries). Collect a list of already-tracked repo names to warn about.
+- [x] 3.8 In `runAddRecursive`, for each newly discovered repository (not already tracked): append it to `cfg.Repositories`, and if its path is outside the workspace directory, create a symlink using the same `os.Symlink` logic from Task 2 (extract this into a shared helper function `createSymlinkIfExternal(cfg, repo)` in `add.go`).
+- [x] 3.9 In `runAddRecursive`, after processing all repos: if already-tracked repos were encountered, print a warning for each one (`"[name] is already tracked, skipping."`). If new repos were added, call `config.Save(cfg)` and print `"Added N repositories: repo-a, repo-b, repo-c."`. If no new repos were added, print `"No new repositories found."`.
+- [x] 3.10 Refactor Task 2's symlink creation logic in `runAdd` into the shared `createSymlinkIfExternal(cfg *config.Config, repoPath, repoName string) (created bool, err error)` helper so both single and recursive paths use the same code.
+- [x] 3.11 Update `add_test.go` with recursive-specific tests: (a) recursive add in a directory with 3 git repos — verify all 3 are added and output includes count + names, (b) recursive add when all repos already tracked — verify `"No new repositories found."` output, (c) recursive add in a directory with no git repos — verify `"No new repositories found."` output, (d) `gws --recursive` without `--add` — verify error returned from `main.go` validation.
+- [x] 3.12 Run `make ci` and confirm all tests pass before marking this task complete.
 
 ---
 

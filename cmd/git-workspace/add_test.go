@@ -268,3 +268,126 @@ func TestRunAdd_ConfigMetadata(t *testing.T) {
 		t.Errorf("Type: expected 'github', got %q", repo.Type)
 	}
 }
+
+func TestRunAddRecursive_MultipleRepos(t *testing.T) {
+	workspaceDir := setupWorkspace(t)
+
+	// Create 3 git repos inside the workspace directory
+	repoNames := []string{"repo-a", "repo-b", "repo-c"}
+	for _, name := range repoNames {
+		createInitTestRepo(t, filepath.Join(workspaceDir, name))
+	}
+
+	origFlag := flagAdd
+	origRecursive := flagRecursive
+	flagAdd = "."
+	flagRecursive = true
+	defer func() {
+		flagAdd = origFlag
+		flagRecursive = origRecursive
+	}()
+	withTempWorkdir(t, workspaceDir)
+
+	if err := runAdd(nil, nil); err != nil {
+		t.Fatalf("runAdd returned unexpected error: %v", err)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	if len(cfg.Repositories) != 3 {
+		t.Errorf("Expected 3 repositories, got %d", len(cfg.Repositories))
+	}
+}
+
+func TestRunAddRecursive_AllAlreadyTracked(t *testing.T) {
+	workspaceDir := setupWorkspace(t)
+
+	// Create and individually add 2 repos first
+	for _, name := range []string{"repo-a", "repo-b"} {
+		repoDir := filepath.Join(workspaceDir, name)
+		createInitTestRepo(t, repoDir)
+
+		origFlag := flagAdd
+		flagAdd = repoDir
+		if err := runAdd(nil, nil); err != nil {
+			t.Fatalf("Initial add of %s failed: %v", name, err)
+		}
+		flagAdd = origFlag
+	}
+
+	// Now run recursive — all repos already tracked
+	origFlag := flagAdd
+	origRecursive := flagRecursive
+	flagAdd = "."
+	flagRecursive = true
+	defer func() {
+		flagAdd = origFlag
+		flagRecursive = origRecursive
+	}()
+	withTempWorkdir(t, workspaceDir)
+
+	if err := runAdd(nil, nil); err != nil {
+		t.Fatalf("runAdd returned unexpected error: %v", err)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	if len(cfg.Repositories) != 2 {
+		t.Errorf("Expected 2 repositories (no duplicates), got %d", len(cfg.Repositories))
+	}
+}
+
+func TestRunAddRecursive_NoRepos(t *testing.T) {
+	setupWorkspace(t)
+
+	// CWD is an empty directory with no git repos
+	scanDir := t.TempDir()
+
+	origFlag := flagAdd
+	origRecursive := flagRecursive
+	flagAdd = "."
+	flagRecursive = true
+	defer func() {
+		flagAdd = origFlag
+		flagRecursive = origRecursive
+	}()
+	withTempWorkdir(t, scanDir)
+
+	if err := runAdd(nil, nil); err != nil {
+		t.Fatalf("runAdd returned unexpected error: %v", err)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	if len(cfg.Repositories) != 0 {
+		t.Errorf("Expected 0 repositories, got %d", len(cfg.Repositories))
+	}
+}
+
+func TestRunAddRecursive_RequiresAdd(t *testing.T) {
+	origRecursive := flagRecursive
+	origAdd := flagAdd
+	defer func() {
+		flagRecursive = origRecursive
+		flagAdd = origAdd
+	}()
+
+	flagRecursive = true
+	flagAdd = ""
+
+	err := rootCmd.RunE(rootCmd, []string{})
+	if err == nil {
+		t.Error("Expected error when --recursive is used without --add, got nil")
+		return
+	}
+	expected := "--recursive/-v requires --add/-a to be set"
+	if err.Error() != expected {
+		t.Errorf("Expected error %q, got %q", expected, err.Error())
+	}
+}
