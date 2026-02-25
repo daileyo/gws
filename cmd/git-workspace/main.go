@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/daileyo/gws/internal/config"
 )
@@ -24,6 +25,8 @@ var (
 	flagRemoveTag      bool
 	flagRefresh        bool
 	flagPrintWorkspace bool
+	flagGo             string
+	flagQuiet          bool
 )
 
 // Filter flags (for --list)
@@ -37,25 +40,37 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "gws",
+	Use:   "git-workspace",
 	Short: "Git Workspace - Discover, organize, and navigate git repositories",
-	Long: `gws is a lightweight, cross-platform CLI tool for discovering, organizing,
+	Long: `git-workspace is a lightweight, cross-platform CLI tool for discovering, organizing,
 and navigating git repositories on your local system. It provides an intelligent
 repository index and navigation layer with powerful search and filtering capabilities.
 
 Commands (flags):
-  gws --list                         # List all repositories
-  gws -l --type github               # List only GitHub repositories
-  gws -l --tag personal --status     # List repos tagged "personal" with git status
-  gws --init ~/projects              # Initialize workspace
-  gws --add-tag my-project personal  # Add tag to matching repos
-  gws --remove-tag api work          # Remove tag from matching repos
-  gws --refresh                      # Refresh repository metadata
+  git-workspace --list                         # List all repositories
+  git-workspace -l --type github               # List only GitHub repositories
+  git-workspace -l --tag personal --status     # List repos tagged "personal" with git status
+  git-workspace --init ~/projects              # Initialize workspace
+  git-workspace --add-tag my-project personal  # Add tag to matching repos
+  git-workspace --remove-tag api work          # Remove tag from matching repos
+  git-workspace --refresh                      # Refresh repository metadata
 
-For navigation support, add this to your shell config:
+Navigation:
+  git-workspace my-repo                        # Navigate to repository by name
+  git-workspace --go my-repo                   # Navigate using flag (same as above)
+  git-workspace -g my-repo -q                  # Quiet mode: print only the path
+  git-workspace "api-*"                        # Wildcard match with interactive selection
 
-  # Bash/Zsh
-  function cdgws() { cd "$(gws --print-workspace)"; }
+Shell integration (add to ~/.bashrc or ~/.zshrc):
+
+  # 'gws' shorthand: navigate to a repo, or pass flags through to git-workspace
+  function gws() {
+    if [[ "$1" == -* ]]; then git-workspace "$@"
+    else cd "$(git-workspace -g "$1" -q)"; fi
+  }
+
+  # Navigate to workspace root
+  function cdgws() { cd "$(git-workspace --print-workspace)"; }
   alias gcd=cdgws`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Count active command flags for mutual exclusivity
@@ -78,14 +93,27 @@ For navigation support, add this to your shell config:
 		if flagPrintWorkspace {
 			activeCount++
 		}
+		if flagGo != "" {
+			activeCount++
+		}
 
 		if activeCount > 1 {
-			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace)")
+			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace, --go)")
 		}
 
 		// Validate filter flags require --list
 		if !flagList && hasFilterFlags(cmd) {
 			return fmt.Errorf("filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set")
+		}
+
+		// Validate --quiet only applies to navigation
+		if flagQuiet && flagGo == "" && len(args) == 0 {
+			return fmt.Errorf("--quiet/-q can only be used with navigation (--go or positional argument)")
+		}
+
+		// Validate --go and positional args are not both provided
+		if flagGo != "" && len(args) > 0 {
+			return fmt.Errorf("cannot use both --go flag and positional argument for navigation")
 		}
 
 		// Dispatch to command handlers
@@ -94,22 +122,20 @@ For navigation support, add this to your shell config:
 		}
 
 		// All other commands require workspace to be initialized
-		if activeCount > 0 || len(args) == 0 {
-			exists, err := config.Exists()
-			if err != nil {
-				return fmt.Errorf("failed to check workspace status: %w", err)
-			}
+		exists, err := config.Exists()
+		if err != nil {
+			return fmt.Errorf("failed to check workspace status: %w", err)
+		}
 
-			if !exists {
-				fmt.Fprintln(os.Stderr, "Error: workspace not initialized")
-				fmt.Fprintln(os.Stderr, "")
-				fmt.Fprintln(os.Stderr, "To get started, initialize a workspace:")
-				fmt.Fprintln(os.Stderr, "  gws --init <directory>")
-				fmt.Fprintln(os.Stderr, "")
-				fmt.Fprintln(os.Stderr, "Example:")
-				fmt.Fprintln(os.Stderr, "  gws --init ~/projects")
-				return fmt.Errorf("workspace not initialized")
-			}
+		if !exists {
+			fmt.Fprintln(os.Stderr, "Error: workspace not initialized")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "To get started, initialize a workspace:")
+			fmt.Fprintln(os.Stderr, "  gws --init <directory>")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "Example:")
+			fmt.Fprintln(os.Stderr, "  gws --init ~/projects")
+			return fmt.Errorf("workspace not initialized")
 		}
 
 		if flagPrintWorkspace {
@@ -137,6 +163,24 @@ For navigation support, add this to your shell config:
 			return runRefresh(cmd, args)
 		}
 
+		// Navigation via --go flag
+		if flagGo != "" {
+			cfg, err := config.Load()
+			if err != nil {
+				return fmt.Errorf("failed to load workspace configuration: %w", err)
+			}
+			return runNavigate(flagGo, flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
+		}
+
+		// Navigation via positional argument
+		if len(args) > 0 {
+			cfg, err := config.Load()
+			if err != nil {
+				return fmt.Errorf("failed to load workspace configuration: %w", err)
+			}
+			return runNavigate(args[0], flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
+		}
+
 		// Default behavior: display workspace information
 		cfg, err := config.Load()
 		if err != nil {
@@ -160,6 +204,8 @@ func init() {
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "u", false, "Remove a tag from repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")
 	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Print workspace path (for shell integration)")
+	rootCmd.Flags().StringVarP(&flagGo, "go", "g", "", "Navigate to a repository by name (prints path)")
+	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
 
 	// Filter flags (apply when --list is active)
 	rootCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
@@ -168,6 +214,39 @@ func init() {
 	rootCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match)")
 	rootCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 	rootCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
+
+	// Register template helpers for grouped flag display
+	flagGroup := func(names []string) func(*cobra.Command) string {
+		return func(cmd *cobra.Command) string {
+			fs := pflag.NewFlagSet("", pflag.ContinueOnError)
+			for _, name := range names {
+				if f := cmd.Flags().Lookup(name); f != nil {
+					fs.AddFlag(f)
+				}
+			}
+			return fs.FlagUsages()
+		}
+	}
+	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add-tag", "remove-tag", "refresh", "print-workspace"}))
+	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status"}))
+	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
+
+	rootCmd.SetUsageTemplate(`Usage:
+  {{.UseLine}}
+
+Commands:
+{{commandFlagUsages . | trimRightSpace}}
+
+List Filters (require --list / -l):
+{{filterFlagUsages . | trimRightSpace}}
+
+Navigation:
+{{navigationFlagUsages . | trimRightSpace}}
+
+Other:
+  -h, --help      help for {{.Name}}
+      --version   version for {{.Name}}
+`)
 }
 
 // hasFilterFlags checks if any filter flag has been explicitly set by the user

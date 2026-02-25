@@ -1,7 +1,7 @@
 # Makefile for gws - Git Workspace CLI
 
 # Binary name
-BINARY_NAME=gws
+BINARY_NAME=git-workspace
 
 # Build directory
 BUILD_DIR=./build
@@ -31,7 +31,7 @@ setup-hooks:
 build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/gws
+	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/git-workspace
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
 ## test: Run tests
@@ -106,7 +106,7 @@ clean:
 ## install: Install the binary to GOPATH/bin
 install: build
 	@echo "Installing $(BINARY_NAME)..."
-	go install $(LDFLAGS) ./cmd/gws
+	go install $(LDFLAGS) ./cmd/git-workspace
 	@echo "Install complete"
 
 ## help: Show this help message

@@ -34,8 +34,8 @@ func TestVersionVariablesAreDefined(t *testing.T) {
 
 func TestRootCommand(t *testing.T) {
 	// Test that root command is properly configured with new flag-based interface
-	if rootCmd.Use != "gws" {
-		t.Errorf("Expected root command Use to be 'gws', got '%s'", rootCmd.Use)
+	if rootCmd.Use != "git-workspace" {
+		t.Errorf("Expected root command Use to be 'git-workspace', got '%s'", rootCmd.Use)
 	}
 
 	if rootCmd.Short == "" {
@@ -74,6 +74,8 @@ func TestCommandFlagsRegistered(t *testing.T) {
 		{"remove-tag", "u"},
 		{"refresh", "r"},
 		{"print-workspace", "w"},
+		{"go", "g"},
+		{"quiet", "q"},
 	}
 
 	for _, f := range flags {
@@ -153,7 +155,7 @@ func TestMutualExclusivity(t *testing.T) {
 	}
 
 	expected := "only one command flag can be used at a time"
-	if err.Error() != "only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace)" {
+	if err.Error() != "only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace, --go)" {
 		t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
 	}
 }
@@ -163,18 +165,13 @@ func TestFilterFlagsRequireList(t *testing.T) {
 	origList := flagList
 	defer func() {
 		flagList = origList
-		// Reset changed flags
 		rootCmd.Flags().Lookup("type").Changed = false
 	}()
 
 	flagList = false
-	// Simulate the user explicitly setting --type
 	rootCmd.Flags().Lookup("type").Changed = true
 
 	err := rootCmd.RunE(rootCmd, []string{})
-
-	// Reset for other tests
-	rootCmd.Flags().Lookup("type").Changed = false
 
 	if err == nil {
 		t.Error("Expected error when filter flag used without --list")

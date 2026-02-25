@@ -1,4 +1,4 @@
-# gws - Git Workspace
+# git-workspace
 
 [![CI](https://github.com/daileyo/gws/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/gws/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/daileyo/gws)](https://goreportcard.com/report/github.com/daileyo/gws)
@@ -16,8 +16,7 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 - **Smart Caching**: Fast status display with configurable cache (5-minute TTL)
 - **Custom Tagging**: Organize repositories with custom tags (personal, work, archived, etc.)
 - **Advanced Filtering**: Search and filter repositories by type, tags, name, or path
-- **Filter Shortcuts**: Quick access with `gws personal` shorthand
-- **Workspace Refresh**: Update repository metadata and status cache with one command
+- **Repository Navigation**: Jump to any repository instantly with `gws my-repo` shell function
 - **Workspace Management**: Track and organize repositories in a centralized configuration
 - **Cross-Platform**: Works on Linux, macOS, and Windows
 - **Lightweight**: Single binary with no external dependencies
@@ -34,7 +33,7 @@ cd gws
 # Build the binary
 make build
 
-# The binary will be in ./build/gws
+# The binary will be in ./build/git-workspace
 # Optionally, install to your PATH
 make install
 ```
@@ -43,17 +42,17 @@ make install
 
 ### 1. Initialize a Workspace
 
-Initialize gws by scanning a directory for git repositories:
+Initialize git-workspace by scanning a directory for git repositories:
 
 ```bash
 # Initialize in current directory
-gws init .
+git-workspace --init .
 
 # Initialize in a specific directory
-gws init ~/projects
+git-workspace --init ~/projects
 
 # Initialize with absolute path
-gws init /path/to/your/workspace
+git-workspace --init /path/to/your/workspace
 ```
 
 This command will:
@@ -63,10 +62,10 @@ This command will:
 
 ### 2. View Workspace Information
 
-Once initialized, run `gws` to see your workspace information:
+Once initialized, run `git-workspace` to see your workspace information:
 
 ```bash
-gws
+git-workspace
 ```
 
 Output:
@@ -74,7 +73,7 @@ Output:
 Workspace: /home/user/projects
 Repositories: 15
 
-Use 'gws --help' to see available commands
+Use 'git-workspace --help' to see available commands
 ```
 
 ### 3. List Repositories
@@ -82,7 +81,7 @@ Use 'gws --help' to see available commands
 View all tracked repositories with their metadata:
 
 ```bash
-gws list
+git-workspace --list
 ```
 
 Output:
@@ -99,9 +98,9 @@ client-site    bitbucket unknown     client, archived  /home/user/projects/clien
 **Show Git Status:**
 
 ```bash
-gws list --status
+git-workspace --list --status
 # or
-gws list -s
+git-workspace -l -s
 ```
 
 Output:
@@ -124,12 +123,12 @@ client-site    main ✓ ↓1      bitbucket unknown     client, archived  /home/
 ### 4. Check Version
 
 ```bash
-gws version
+git-workspace --version
 ```
 
 Output:
 ```
-gws version dev
+git-workspace version dev
   commit: abc1234
   built:  2025-12-25T21:00:00Z
 ```
@@ -138,7 +137,7 @@ gws version dev
 
 ### Automatic Classification
 
-When repositories are discovered with `gws init`, they are automatically classified based on their remote URL:
+When repositories are discovered with `git-workspace --init`, they are automatically classified based on their remote URL:
 
 | Repository Type | Detected From |
 |----------------|---------------|
@@ -181,35 +180,27 @@ Add custom tags to organize repositories. Tags are applied to **all repositories
 
 ```bash
 # Add a tag to all repos matching "my-project" (partial match)
-gws tag my-project personal
+git-workspace --add-tag my-project personal
 
 # Add a tag to all repos with "api" in the name
-gws tag api backend
-
-# Tag specific repo by exact path
-gws tag /path/to/specific/repo production
+git-workspace --add-tag api backend
 
 # Remove a tag from all matching repos
-gws untag my-project personal
+git-workspace --remove-tag my-project personal
 
 # Tags can be anything: personal, work, client, archived, production, etc.
 ```
 
 **How Tag Matching Works:**
-- Matches by **partial name** (case-insensitive): `gws tag api work` tags "my-api", "api-gateway", etc.
-- Matches by **exact path**: `gws tag /home/user/projects/myrepo work` tags only that specific repo
+- Matches by **partial name** (case-insensitive): `--add-tag api work` tags "my-api", "api-gateway", etc.
 - Tags are applied to **all matching repositories**
 - You'll see a summary of how many repos were tagged
 
 **Examples:**
 ```bash
 # Tag all API services as backend
-gws tag api backend
+git-workspace --add-tag api backend
 # Output: Added tag 'backend' to 3 repositories
-
-# Tag a specific repo by path
-gws tag /home/user/work/api-gateway production
-# Output: Added tag 'production' to 1 repository
 ```
 
 ### Filtering Repositories
@@ -218,42 +209,23 @@ Filter repositories by type, tags, name, or path. All filters can be combined:
 
 ```bash
 # Filter by repository type
-gws list --type github
+git-workspace --list --type github
 
 # Filter by single tag
-gws list --tag personal
+git-workspace --list --tag personal
 
 # Filter by multiple tags (AND logic - repo must have ALL tags)
-gws list --tag work --tag backend
+git-workspace --list --tag work --tag backend
 
 # Filter by repository name (partial match, case-insensitive)
-gws list --name project
+git-workspace --list --name project
 
 # Filter by repository path (partial match)
-gws list --path /home/user/projects
+git-workspace --list --path /home/user/projects
 
 # Combine multiple filters
-gws list --type gitlab --tag work --name api
+git-workspace --list --type gitlab --tag work --name api
 ```
-
-### Filter Shortcuts
-
-Quick access to tagged repositories using shorthand syntax:
-
-```bash
-# List all repositories tagged as "personal"
-gws personal
-
-# List all repositories tagged as "work"
-gws work
-
-# This is equivalent to: gws list --tag <tag>
-```
-
-**Features:**
-- Automatic status display (shows git status if cache available)
-- Faster than typing full `gws list --tag` command
-- Perfect for quick checks on specific project groups
 
 ### Output Formats
 
@@ -261,14 +233,14 @@ Control how repositories are displayed:
 
 ```bash
 # Default table format
-gws list
+git-workspace --list
 
 # JSON format for scripting/automation
-gws list --output json
-gws list -o json
+git-workspace --list --output json
+git-workspace --list -o json
 
 # JSON with filters
-gws list --type github -o json
+git-workspace --list --type github -o json
 ```
 
 **JSON Output Example:**
@@ -290,7 +262,7 @@ gws list --type github -o json
 Update repository metadata and clear status cache:
 
 ```bash
-gws refresh
+git-workspace --refresh
 ```
 
 **What it does:**
@@ -325,7 +297,7 @@ Navigate to your workspace root with shell integration:
 ```bash
 # Navigate to workspace root
 function cdgws() {
-  cd "$(gws --print-workspace)"
+  cd "$(git-workspace --print-workspace)"
 }
 
 # Short alias
@@ -348,8 +320,86 @@ pwd
 **Print workspace path:**
 
 ```bash
-gws --print-workspace
+git-workspace --print-workspace
 # Output: /home/user/projects
+```
+
+### Repository Navigation
+
+Jump to any tracked repository by name using the `gws` shell function.
+
+**Setup (add to ~/.bashrc or ~/.zshrc):**
+
+```bash
+# 'gws': navigate to a repo by name, or pass flags through to git-workspace
+function gws() {
+  if [[ "$1" == -* ]]; then
+    git-workspace "$@"
+  else
+    cd "$(git-workspace -g "$1" -q)"
+  fi
+}
+```
+
+**Usage:**
+
+```bash
+# Navigate to a repository by name — changes your directory
+gws my-repo
+
+# Pass any flag through to git-workspace as normal
+gws --list
+gws -l --tag personal --status
+gws --refresh
+```
+
+**Wildcard matching:**
+
+```bash
+# Wildcards work too (* = zero or more, ? = single character)
+gws "api-*"
+gws "?rontend"
+```
+
+**Multiple matches:**
+
+When multiple repositories match, git-workspace displays a numbered list for selection:
+
+```
+Multiple repositories match 'api':
+
+  1) my-api (github) /home/user/projects/my-api
+  2) my-api-v2 (github) /home/user/projects/my-api-v2
+  3) work-api (gitlab) /home/user/projects/work-api
+
+Select repository [1-3]:
+```
+
+When piped (non-TTY), all matching paths are printed without prompting.
+
+**No match suggestions:**
+
+When no repositories match, git-workspace suggests similar names:
+
+```
+No repositories found matching 'aip'
+
+Did you mean:
+  my-api
+  work-api
+```
+
+**Using the binary directly:**
+
+```bash
+# Print path without changing directory (useful for scripting)
+git-workspace -g my-repo -q
+# Output: /home/user/projects/my-repo
+
+# Verbose mode (default) — details to stderr, path to stdout
+git-workspace -g my-repo
+# stderr: my-repo (github) → /home/user/projects/my-repo
+# stdout: /home/user/projects/my-repo
 ```
 
 ## Manual Verification Steps
@@ -368,9 +418,9 @@ gws --print-workspace
    git clone https://github.com/some/repo3.git subdir/repo3
    ```
 
-2. **Initialize gws** in the test workspace:
+2. **Initialize git-workspace** in the test workspace:
    ```bash
-   gws init /tmp/test-workspace
+   git-workspace --init /tmp/test-workspace
    ```
 
 3. **Verify the output** shows all 3 repositories discovered:
@@ -417,8 +467,8 @@ gws --print-workspace
    # Remove config to simulate uninitialized state
    rm ~/.gws/config.json
 
-   # Run gws command
-   gws
+   # Run git-workspace command
+   git-workspace
    ```
 
    Expected output:
@@ -426,15 +476,15 @@ gws --print-workspace
    Error: workspace not initialized
 
    To get started, initialize a workspace:
-     gws init <directory>
+     git-workspace --init <directory>
 
    Example:
-     gws init ~/projects
+     git-workspace --init ~/projects
    ```
 
 2. **Test with invalid directory**:
    ```bash
-   gws init /nonexistent/directory
+   git-workspace --init /nonexistent/directory
    ```
 
    Expected output:
@@ -457,7 +507,7 @@ gws --print-workspace
 
 2. **Initialize and verify both are found**:
    ```bash
-   gws init /tmp/nested-test
+   git-workspace --init /tmp/nested-test
    ```
 
    Expected: Both `parent` and `child` repositories should be discovered.
@@ -477,14 +527,14 @@ gws --print-workspace
 
 2. **Initialize and verify only valid-repo is found**:
    ```bash
-   gws init /tmp/skip-test
+   git-workspace --init /tmp/skip-test
    ```
 
    Expected: Only `valid-repo` should be found (node_modules should be skipped).
 
 ## Configuration
 
-gws stores its configuration in `~/.gws/config.json`. The configuration includes:
+git-workspace stores its configuration in `~/.gws/config.json`. The configuration includes:
 
 - **version**: Config file format version
 - **workspace**: Root directory of the workspace
@@ -554,10 +604,11 @@ go test -v ./internal/discovery
 ```
 .
 ├── cmd/
-│   └── gws/              # Main application entry point
+│   └── git-workspace/    # Main application entry point
 │       ├── main.go       # Root command and CLI setup
 │       ├── init.go       # Init command implementation
 │       ├── list.go       # List command with status display
+│       ├── navigate.go   # Navigation implementation
 │       ├── refresh.go    # Refresh command implementation
 │       ├── tag.go        # Tag command implementation
 │       └── untag.go      # Untag command implementation
@@ -594,7 +645,7 @@ go test -v ./internal/discovery
 - [x] Multiple output formats (table, JSON)
 - [x] Git status integration with visual indicators
 - [x] Workspace refresh and cache management
-- [x] Filter shortcuts and shell navigation
+- [x] Repository navigation with `gws` shell function
 - [x] CI/CD pipeline with automated releases
 - [ ] Plugin support for editors (Neovim, VSCode)
 
@@ -627,9 +678,9 @@ Pre-built binaries are available on the [Releases page](https://github.com/daile
 
 ```bash
 # Example: Download and install on Linux/macOS
-curl -LO https://github.com/daileyo/gws/releases/latest/download/gws_<version>_<os>_<arch>.tar.gz
-tar -xzf gws_*.tar.gz
-sudo mv gws /usr/local/bin/
+curl -LO https://github.com/daileyo/gws/releases/latest/download/git-workspace_<version>_<os>_<arch>.tar.gz
+tar -xzf git-workspace_*.tar.gz
+sudo mv git-workspace /usr/local/bin/
 ```
 
 ## Security
