@@ -114,7 +114,7 @@ Register `--recursive` / `-v` as a boolean modifier flag in `main.go`. Add valid
 
 ---
 
-### [ ] 4.0 Add Shell Tab Completion
+### [x] 4.0 Add Shell Tab Completion
 
 Register Cobra's built-in `completion` subcommand on the root command. Register a `ValidArgsFunction` on the `--add` flag that returns directory path completions. Update the usage template to surface the `completion` subcommand. Manually verify completion works in at least one shell (zsh or bash).
 
@@ -128,9 +128,9 @@ Register Cobra's built-in `completion` subcommand on the root command. Register 
 
 #### 4.0 Tasks
 
-- [ ] 4.1 In `main.go init()`, after all flags are registered, add: `rootCmd.InitDefaultCompletionCmd()`. This registers Cobra's built-in `completion` subcommand (supporting bash, zsh, fish, and powershell) on the root command.
-- [ ] 4.2 In `main.go init()`, register a completion function for the `--add` flag value by calling: `rootCmd.RegisterFlagCompletionFunc("add", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) { return nil, cobra.ShellCompDirectiveFilterDirs })`. This tells the shell completion system to suggest only directories when completing the `--add` flag value.
-- [ ] 4.3 In `main.go`, update the custom `SetUsageTemplate` string to add a `completion` line in the Commands section so users can discover it via `gws --help`. Add a line like `  gws completion [bash|zsh|fish|powershell]  # Generate shell completion script` to the Long description string.
-- [ ] 4.4 Build the binary (`make build` or `go build ./cmd/git-workspace/`) and run `gws completion zsh` to verify it produces output. Run `gws completion bash` as well. Both should print a shell script to stdout.
-- [ ] 4.5 Manually test completion in your shell: run `source <(gws completion zsh)` (or the bash equivalent), then type `gws --add ~/` and press `<Tab>`. Verify that directory names are suggested.
-- [ ] 4.6 Run `make ci` and confirm all tests pass before marking this task complete.
+- [x] 4.1 In `main.go init()`, after all flags are registered, add: `rootCmd.InitDefaultCompletionCmd()`. This registers Cobra's built-in `completion` subcommand (supporting bash, zsh, fish, and powershell) on the root command.
+- [x] 4.2 In `main.go init()`, register a completion function for the `--add` flag value by calling: `rootCmd.RegisterFlagCompletionFunc("add", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) { return nil, cobra.ShellCompDirectiveFilterDirs })`. This tells the shell completion system to suggest only directories when completing the `--add` flag value.
+- [x] 4.3 In `main.go`, update the custom `SetUsageTemplate` string to add a `completion` line in the Commands section so users can discover it via `gws --help`. Add a line like `  gws completion [bash|zsh|fish|powershell]  # Generate shell completion script` to the Long description string.
+- [x] 4.4 Build the binary (`make build` or `go build ./cmd/git-workspace/`) and run `gws completion zsh` to verify it produces output. Run `gws completion bash` as well. Both should print a shell script to stdout.
+- [x] 4.5 Manually test completion in your shell: run `source <(gws completion zsh)` (or the bash equivalent), then type `gws --add ~/` and press `<Tab>`. Verify that directory names are suggested.
+- [x] 4.6 Run `make ci` and confirm all tests pass before marking this task complete.

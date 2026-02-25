@@ -246,11 +246,20 @@ func init() {
 	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
 
+	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
+	rootCmd.InitDefaultCompletionCmd()
+
+	// Directory completion for --add flag value
+	_ = rootCmd.RegisterFlagCompletionFunc("add", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return nil, cobra.ShellCompDirectiveFilterDirs
+	})
+
 	rootCmd.SetUsageTemplate(`Usage:
   {{.UseLine}}
 
 Commands:
 {{commandFlagUsages . | trimRightSpace}}
+  gws completion [bash|zsh|fish|powershell]    Generate shell completion script
 
 List Filters (require --list / -l):
 {{filterFlagUsages . | trimRightSpace}}
