@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/daileyo/gws/compare/v1.1.0...v2.0.0) (2026-02-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* binary is now named git-workspace
+
+### Features
+
+* add repository navigation and rename binary to git-workspace ([#4](https://github.com/daileyo/gws/issues/4)) ([fb4a6ff](https://github.com/daileyo/gws/commit/fb4a6ff133241fb1f640278fe83a6bfe351f6713))
+
 ## [1.1.0](https://github.com/daileyo/gws/compare/v1.0.0...v1.1.0) (2026-02-13)
 
 
