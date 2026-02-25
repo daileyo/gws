@@ -28,10 +28,10 @@ func Apply(repos []config.Repository, criteria Criteria) []config.Repository {
 	return filtered
 }
 
-// matchesPattern checks if a value matches a pattern. If the pattern contains
+// MatchesPattern checks if a value matches a pattern. If the pattern contains
 // wildcard characters (* or ?), it uses glob-style matching. Otherwise, it
 // falls back to partial, case-insensitive substring matching.
-func matchesPattern(value, pattern string) bool {
+func MatchesPattern(value, pattern string) bool {
 	valueLower := strings.ToLower(value)
 	patternLower := strings.ToLower(pattern)
 
@@ -50,7 +50,7 @@ func matchesPattern(value, pattern string) bool {
 // matchesCriteria checks if a repository matches all filter criteria
 func matchesCriteria(repo config.Repository, criteria Criteria) bool {
 	// Apply type filter
-	if criteria.Type != "" && !matchesPattern(string(repo.Type), criteria.Type) {
+	if criteria.Type != "" && !MatchesPattern(string(repo.Type), criteria.Type) {
 		return false
 	}
 
@@ -59,7 +59,7 @@ func matchesCriteria(repo config.Repository, criteria Criteria) bool {
 		for _, filterTag := range criteria.Tags {
 			hasTag := false
 			for _, repoTag := range repo.Tags {
-				if matchesPattern(repoTag, filterTag) {
+				if MatchesPattern(repoTag, filterTag) {
 					hasTag = true
 					break
 				}
@@ -72,14 +72,14 @@ func matchesCriteria(repo config.Repository, criteria Criteria) bool {
 
 	// Apply name filter
 	if criteria.Name != "" {
-		if !matchesPattern(repo.Name, criteria.Name) {
+		if !MatchesPattern(repo.Name, criteria.Name) {
 			return false
 		}
 	}
 
 	// Apply path filter
 	if criteria.Path != "" {
-		if !matchesPattern(repo.Path, criteria.Path) {
+		if !MatchesPattern(repo.Path, criteria.Path) {
 			return false
 		}
 	}

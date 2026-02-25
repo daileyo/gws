@@ -383,9 +383,9 @@ func TestMatchesPattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := matchesPattern(tt.value, tt.pattern)
+			result := MatchesPattern(tt.value, tt.pattern)
 			if result != tt.expected {
-				t.Errorf("matchesPattern(%q, %q) = %v, expected %v", tt.value, tt.pattern, result, tt.expected)
+				t.Errorf("MatchesPattern(%q, %q) = %v, expected %v", tt.value, tt.pattern, result, tt.expected)
 			}
 		})
 	}
