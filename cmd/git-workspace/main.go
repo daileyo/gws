@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -67,10 +68,12 @@ Navigation:
 
 Shell integration (add to ~/.bashrc or ~/.zshrc):
 
-  # 'gws' shorthand: navigate to a repo, or pass flags through to git-workspace
+  # 'gws' shorthand: navigate to a repo, or pass flags/subcommands through to git-workspace
   function gws() {
-    if [[ "$1" == -* ]]; then git-workspace "$@"
-    else cd "$(git-workspace -g "$1" -q)"; fi
+    case "$1" in
+      -*|completion|help) git-workspace "$@" ;;
+      *) cd "$(git-workspace -g "$1" -q)" ;;
+    esac
   }
 
   # Navigate to workspace root
@@ -248,6 +251,24 @@ func init() {
 
 	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
 	rootCmd.InitDefaultCompletionCmd()
+
+	// Repo name completion for positional args (navigation)
+	rootCmd.ValidArgsFunction = func(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) > 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		cfg, err := config.Load()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		var names []string
+		for _, repo := range cfg.Repositories {
+			if strings.HasPrefix(strings.ToLower(repo.Name), strings.ToLower(toComplete)) {
+				names = append(names, repo.Name)
+			}
+		}
+		return names, cobra.ShellCompDirectiveNoFileComp
+	}
 
 	// Directory completion for --add flag value
 	_ = rootCmd.RegisterFlagCompletionFunc("add", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {

@@ -331,13 +331,12 @@ Jump to any tracked repository by name using the `gws` shell function.
 **Setup (add to ~/.bashrc or ~/.zshrc):**
 
 ```bash
-# 'gws': navigate to a repo by name, or pass flags through to git-workspace
+# 'gws': navigate to a repo by name, or pass flags/subcommands through to git-workspace
 function gws() {
-  if [[ "$1" == -* ]]; then
-    git-workspace "$@"
-  else
-    cd "$(git-workspace -g "$1" -q)"
-  fi
+  case "$1" in
+    -*|completion|help) git-workspace "$@" ;;
+    *) cd "$(git-workspace -g "$1" -q)" ;;
+  esac
 }
 ```
 
@@ -400,6 +399,64 @@ git-workspace -g my-repo -q
 git-workspace -g my-repo
 # stderr: my-repo (github) → /home/user/projects/my-repo
 # stdout: /home/user/projects/my-repo
+```
+
+### Shell Completion
+
+`git-workspace` can generate completion scripts for bash, zsh, fish, and PowerShell. Once installed, pressing `Tab` after `gws ` will complete repository names from your workspace.
+
+#### zsh
+
+```bash
+# One-time install: generate and save the completion script
+git-workspace completion zsh > "${fpath[1]}/_git-workspace"
+
+# Or source it inline in ~/.zshrc (regenerates on each shell start):
+source <(git-workspace completion zsh)
+```
+
+Make sure `compinit` runs in your `~/.zshrc` (oh-my-zsh and most frameworks handle this automatically):
+
+```bash
+autoload -U compinit && compinit
+```
+
+To make `gws` share the same completions as `git-workspace`, add this **after** the `gws` function definition in your `~/.zshrc`:
+
+```bash
+compdef gws=git-workspace
+```
+
+Full `~/.zshrc` snippet:
+
+```bash
+alias gw="/path/to/build/git-workspace"
+
+function gws() {
+  case "$1" in
+    -*|completion|help) git-workspace "$@" ;;
+    *) cd "$(git-workspace -g "$1" -q)" ;;
+  esac
+}
+compdef gws=git-workspace   # tab-complete repo names for 'gws'
+
+source <(git-workspace completion zsh)
+```
+
+#### bash
+
+```bash
+# Add to ~/.bashrc:
+source <(git-workspace completion bash)
+
+# Hook 'gws' into the same completions:
+complete -F _git-workspace gws
+```
+
+#### fish
+
+```bash
+git-workspace completion fish > ~/.config/fish/completions/git-workspace.fish
 ```
 
 ## Manual Verification Steps
