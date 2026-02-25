@@ -20,7 +20,7 @@ var (
 // Command flags
 var (
 	flagList           bool
-	flagInit           string
+	flagInit           bool
 	flagAddTag         bool
 	flagRemoveTag      bool
 	flagRefresh        bool
@@ -50,7 +50,7 @@ Commands (flags):
   git-workspace --list                         # List all repositories
   git-workspace -l --type github               # List only GitHub repositories
   git-workspace -l --tag personal --status     # List repos tagged "personal" with git status
-  git-workspace --init ~/projects              # Initialize workspace
+  git-workspace --init                         # Initialize workspace in current directory
   git-workspace --add-tag my-project personal  # Add tag to matching repos
   git-workspace --remove-tag api work          # Remove tag from matching repos
   git-workspace --refresh                      # Refresh repository metadata
@@ -78,7 +78,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if flagList {
 			activeCount++
 		}
-		if flagInit != "" {
+		if flagInit {
 			activeCount++
 		}
 		if flagAddTag {
@@ -117,7 +117,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		}
 
 		// Dispatch to command handlers
-		if flagInit != "" {
+		if flagInit {
 			return runInit(cmd, args)
 		}
 
@@ -130,11 +130,8 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if !exists {
 			fmt.Fprintln(os.Stderr, "Error: workspace not initialized")
 			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "To get started, initialize a workspace:")
-			fmt.Fprintln(os.Stderr, "  gws --init <directory>")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "Example:")
-			fmt.Fprintln(os.Stderr, "  gws --init ~/projects")
+			fmt.Fprintln(os.Stderr, "To get started, navigate to your projects directory and run:")
+			fmt.Fprintln(os.Stderr, "  gws --init")
 			return fmt.Errorf("workspace not initialized")
 		}
 
@@ -199,8 +196,8 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 func init() {
 	// Command flags
 	rootCmd.Flags().BoolVarP(&flagList, "list", "l", false, "List all tracked repositories")
-	rootCmd.Flags().StringVarP(&flagInit, "init", "i", "", "Initialize workspace by scanning directory")
-	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "a", false, "Add a tag to repositories (args: <repo> <tag>)")
+	rootCmd.Flags().BoolVarP(&flagInit, "init", "i", false, "Initialize a gws workspace in the current directory")
+	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "u", false, "Remove a tag from repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")
 	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Print workspace path (for shell integration)")

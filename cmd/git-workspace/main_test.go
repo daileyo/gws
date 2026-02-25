@@ -70,7 +70,7 @@ func TestCommandFlagsRegistered(t *testing.T) {
 	}{
 		{"list", "l"},
 		{"init", "i"},
-		{"add-tag", "a"},
+		{"add-tag", "d"},
 		{"remove-tag", "u"},
 		{"refresh", "r"},
 		{"print-workspace", "w"},
@@ -146,7 +146,7 @@ func TestMutualExclusivity(t *testing.T) {
 	}()
 
 	flagList = true
-	flagInit = "/some/path"
+	flagInit = true
 
 	err := rootCmd.RunE(rootCmd, []string{})
 	if err == nil {
