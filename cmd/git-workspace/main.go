@@ -71,7 +71,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
   # 'gws' shorthand: navigate to a repo, or pass flags/subcommands through to git-workspace
   function gws() {
     case "$1" in
-      -*|completion|help) git-workspace "$@" ;;
+      -*|__complete*|completion|help) git-workspace "$@" ;;
       *) cd "$(git-workspace -g "$1" -q)" ;;
     esac
   }
@@ -261,9 +261,11 @@ func init() {
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
+		seen := make(map[string]bool)
 		var names []string
 		for _, repo := range cfg.Repositories {
-			if strings.HasPrefix(strings.ToLower(repo.Name), strings.ToLower(toComplete)) {
+			if strings.HasPrefix(strings.ToLower(repo.Name), strings.ToLower(toComplete)) && !seen[repo.Name] {
+				seen[repo.Name] = true
 				names = append(names, repo.Name)
 			}
 		}

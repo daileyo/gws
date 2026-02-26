@@ -334,7 +334,7 @@ Jump to any tracked repository by name using the `gws` shell function.
 # 'gws': navigate to a repo by name, or pass flags/subcommands through to git-workspace
 function gws() {
   case "$1" in
-    -*|completion|help) git-workspace "$@" ;;
+    -*|__complete*|completion|help) git-workspace "$@" ;;
     *) cd "$(git-workspace -g "$1" -q)" ;;
   esac
 }
@@ -407,41 +407,39 @@ git-workspace -g my-repo
 
 #### zsh
 
-```bash
-# One-time install: generate and save the completion script
-git-workspace completion zsh > "${fpath[1]}/_git-workspace"
-
-# Or source it inline in ~/.zshrc (regenerates on each shell start):
-source <(git-workspace completion zsh)
-```
-
-Make sure `compinit` runs in your `~/.zshrc` (oh-my-zsh and most frameworks handle this automatically):
+**Recommended (after `make install`):** the completion file is placed in `~/.local/share/zsh/site-functions/` by the installer. Add to `~/.zshrc`:
 
 ```bash
+# Must come BEFORE compinit
+fpath=(~/.local/share/zsh/site-functions $fpath)
 autoload -U compinit && compinit
-```
-
-To make `gws` share the same completions as `git-workspace`, add this **after** the `gws` function definition in your `~/.zshrc`:
-
-```bash
-compdef gws=git-workspace
-```
-
-Full `~/.zshrc` snippet:
-
-```bash
-alias gw="/path/to/build/git-workspace"
 
 function gws() {
   case "$1" in
-    -*|completion|help) git-workspace "$@" ;;
+    -*|__complete*|completion|help) git-workspace "$@" ;;
     *) cd "$(git-workspace -g "$1" -q)" ;;
   esac
 }
-compdef gws=git-workspace   # tab-complete repo names for 'gws'
-
-source <(git-workspace completion zsh)
+compdef _git-workspace gws   # tab-complete repo names for 'gws'
 ```
+
+**Alternative (inline, no static file):** source the completion script directly. This requires `git-workspace` to be on your PATH:
+
+```bash
+autoload -U compinit && compinit
+source <(git-workspace completion zsh)
+
+function gws() {
+  case "$1" in
+    -*|__complete*|completion|help) git-workspace "$@" ;;
+    *) cd "$(git-workspace -g "$1" -q)" ;;
+  esac
+}
+compdef _git-workspace gws   # tab-complete repo names for 'gws'
+```
+
+> **Why `compdef _git-workspace gws` and not `compdef gws=git-workspace`?**
+> `compdef gws=git-workspace` tells zsh to look up `git-workspace`'s registered completion — if it isn't registered yet, zsh falls back to searching for `_git_workspace` (underscores) and fails. `compdef _git-workspace gws` directly names the function to call, which works regardless of ordering.
 
 #### bash
 
