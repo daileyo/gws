@@ -25,6 +25,7 @@ dist/
 
 # Binary output (in root directory)
 /gws
+/git-workspace
 
 # IDE and editor files
 .vscode/

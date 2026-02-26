@@ -9,6 +9,11 @@ BUILD_DIR=./build
 # Coverage directory
 COVERAGE_DIR=./coverage
 
+# Install locations (XDG-compliant, overridable)
+INSTALL_BIN  ?= $(HOME)/.local/bin
+INSTALL_ZSH  ?= $(HOME)/.local/share/zsh/site-functions
+INSTALL_BASH ?= $(HOME)/.local/share/bash-completion/completions
+
 # Version information
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
@@ -17,7 +22,7 @@ DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Linker flags to embed version information
 LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)"
 
-.PHONY: all build test clean install help lint coverage snapshot ci vet fmt setup-hooks
+.PHONY: all build test clean install uninstall help lint coverage snapshot ci vet fmt setup-hooks
 
 all: build
 
@@ -103,11 +108,37 @@ clean:
 	@rm -f $(BINARY_NAME)
 	@echo "Clean complete"
 
-## install: Install the binary to GOPATH/bin
+## uninstall: Remove installed binary and shell completions
+uninstall:
+	@echo "Uninstalling $(BINARY_NAME)..."
+	@rm -f $(INSTALL_BIN)/$(BINARY_NAME)
+	@rm -f $(INSTALL_ZSH)/_$(BINARY_NAME)
+	@rm -f $(INSTALL_BASH)/$(BINARY_NAME)
+	@echo "Uninstall complete"
+
+## install: Install binary and shell completions
 install: build
-	@echo "Installing $(BINARY_NAME)..."
-	go install $(LDFLAGS) ./cmd/git-workspace
-	@echo "Install complete"
+	@echo "Installing $(BINARY_NAME) to $(INSTALL_BIN)..."
+	@mkdir -p $(INSTALL_BIN)
+	@cp $(BUILD_DIR)/$(BINARY_NAME) $(INSTALL_BIN)/$(BINARY_NAME)
+	@echo "Installing zsh completion to $(INSTALL_ZSH)..."
+	@mkdir -p $(INSTALL_ZSH)
+	@$(INSTALL_BIN)/$(BINARY_NAME) completion zsh > $(INSTALL_ZSH)/_$(BINARY_NAME)
+	@echo "Installing bash completion to $(INSTALL_BASH)..."
+	@mkdir -p $(INSTALL_BASH)
+	@$(INSTALL_BIN)/$(BINARY_NAME) completion bash > $(INSTALL_BASH)/$(BINARY_NAME)
+	@echo ""
+	@echo "Install complete!"
+	@echo ""
+	@echo "Add to your shell config:"
+	@echo ""
+	@echo "  zsh (~/.zshrc):"
+	@echo "    export PATH=\"$(INSTALL_BIN):\$$PATH\""
+	@echo "    eval \"\$$(git-workspace shell-init zsh)\""
+	@echo ""
+	@echo "  bash (~/.bashrc):"
+	@echo "    export PATH=\"$(INSTALL_BIN):\$$PATH\""
+	@echo "    eval \"\$$(git-workspace shell-init bash)\""
 
 ## help: Show this help message
 help:
