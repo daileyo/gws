@@ -27,12 +27,7 @@ Full documentation is available at **https://daileyo.github.io/gws**
 
 ## Installation
 
-```bash
-brew tap daileyo/gws
-brew install gws
-```
-
-For other installation methods, see the [Getting Started](https://daileyo.github.io/gws/getting-started/) guide.
+See the [Getting Started](https://daileyo.github.io/gws/getting-started/) guide for installation instructions.
 
 ## Development
 
@@ -95,10 +90,10 @@ python -m mkdocs build
 │   └── git/              # Git status integration
 ├── docs/
 │   ├── site/             # MkDocs documentation source
-│   └── specs/            # Specification documents
+│   ├── specs/            # Specification documents
+│   └── requirements.txt  # Python dependencies (MkDocs)
 ├── Makefile              # Build automation
 ├── mkdocs.yml            # Documentation site configuration
-├── requirements.txt      # Python dependencies (MkDocs)
 ├── go.mod                # Go module definition
 └── README.md             # This file
 ```
