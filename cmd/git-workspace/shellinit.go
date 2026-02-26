@@ -8,8 +8,8 @@ import (
 )
 
 var shellInitCmd = &cobra.Command{
-	Use:       "shell-init [zsh|bash]",
-	Short:     "Output shell integration code to eval in your shell config",
+	Use:   "shell-init [zsh|bash]",
+	Short: "Output shell integration code to eval in your shell config",
 	Long: `Outputs shell integration code for the given shell.
 
 Add to the end of your ~/.zshrc or ~/.bashrc (after PATH is set):
