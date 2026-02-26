@@ -26,11 +26,13 @@ LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.da
 
 all: build
 
-## setup-hooks: Install git hooks for pre-push linting
+## setup-hooks: Install git hooks (pre-push linting, commit-msg formatting)
 setup-hooks:
 	@echo "Setting up git hooks..."
 	git config core.hooksPath .githooks
-	@echo "Git hooks installed! Pre-push hook will run linting before each push."
+	@echo "Git hooks installed:"
+	@echo "  pre-push   — runs go vet, golangci-lint, and tests before each push"
+	@echo "  commit-msg — pads conventional commit types for aligned git log output"
 
 ## build: Build the binary
 build:
