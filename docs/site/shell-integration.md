@@ -1,61 +1,21 @@
 # Shell Integration
 
-## Workspace Navigation
+## Setup
 
-Navigate to your workspace root with shell integration.
-
-**Setup (add to `~/.bashrc` or `~/.zshrc`):**
+Add two lines to your `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
-# Navigate to workspace root
-function cdgws() {
-  cd "$(git-workspace --print-workspace)"
-}
-
-# Short alias
-alias gcd=cdgws
+export PATH="$HOME/.local/bin:$PATH"
+eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
 ```
 
-**Usage:**
-
-```bash
-# Navigate to workspace from anywhere
-cdgws
-# or
-gcd
-
-# You'll be in your workspace root directory
-pwd
-# Output: /home/user/projects
-```
-
-**Print workspace path:**
-
-```bash
-git-workspace --print-workspace
-# Output: /home/user/projects
-```
+The `shell-init` command outputs the `gws` function and tab completion setup directly from the binary, so your shell integration is always in sync with the installed version. No manual updates needed when you upgrade.
 
 ---
 
 ## Repository Navigation
 
-Jump to any tracked repository by name using the `gws` shell function.
-
-**Setup (add to `~/.bashrc` or `~/.zshrc`):**
-
-```bash
-# 'gws': navigate to a repo by name, or pass flags through to git-workspace
-function gws() {
-  if [[ "$1" == -* ]]; then
-    git-workspace "$@"
-  else
-    cd "$(git-workspace -g "$1" -q)"
-  fi
-}
-```
-
-**Usage:**
+Once set up, use `gws` to jump to any tracked repository by name:
 
 ```bash
 # Navigate to a repository by name — changes your directory
@@ -109,9 +69,43 @@ Did you mean:
 # Print path without changing directory (useful for scripting)
 git-workspace -g my-repo -q
 # Output: /home/user/projects/my-repo
+```
 
-# Verbose mode (default) — details to stderr, path to stdout
-git-workspace -g my-repo
-# stderr: my-repo (github) → /home/user/projects/my-repo
-# stdout: /home/user/projects/my-repo
+---
+
+## Tab Completion
+
+Tab completion is set up automatically by `shell-init` — no separate step needed if you followed the setup above.
+
+For other shells:
+
+**fish:**
+
+```bash
+git-workspace completion fish > ~/.config/fish/completions/git-workspace.fish
+```
+
+**Manual zsh setup (without shell-init):**
+
+```bash
+autoload -U compinit && compinit
+source <(git-workspace completion zsh)
+function gws() {
+  case "$1" in
+    -*|__*|completion|shell-init|help) git-workspace "$@" ;;
+    *) cd "$(git-workspace -g "$1" -q)" ;;
+  esac
+}
+compdef _git-workspace gws
+```
+
+---
+
+## Workspace Navigation
+
+Print the workspace root path (useful for scripting):
+
+```bash
+git-workspace --print-workspace
+# Output: /home/user/projects
 ```

@@ -72,12 +72,12 @@
     5. `actions/upload-pages-artifact@v3` with `path: site/` (Upload Pages artifact)
     6. `actions/deploy-pages@v4` with `id: deployment` (Deploy to GitHub Pages)
 - [~] 2.2 In the `daileyo/gws` GitHub repository, go to **Settings → Pages → Build and deployment → Source** and select **"GitHub Actions"**. This is a one-time manual change that allows the workflow to deploy to GitHub Pages. (Note: this cannot be done via a file commit.)
-- [ ] 2.3 Commit and push `docs.yml` (and all Task 1.0 files if not already pushed) on the feature branch, then open or update the pull request and merge to `main`.
+- [~] 2.3 Commit and push `docs.yml` (and all Task 1.0 files if not already pushed) on the feature branch, then open or update the pull request and merge to `main`.
 - [ ] 2.4 After merging to `main`, push a release tag (e.g., the next version tag following the existing `v2.0.0`) to trigger the `docs.yml` workflow. Monitor the Actions tab on GitHub to confirm all steps complete with green checkmarks. Capture the proof artifact screenshots.
 
 ---
 
-### [ ] 3.0 Simplify README and Update Contributing Section
+### [x] 3.0 Simplify README and Update Contributing Section
 
 #### 3.0 Proof Artifact(s)
 
@@ -86,12 +86,12 @@
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Remove the following sections entirely from `README.md`: Quick Start (all four numbered steps), Repository Classification and Tagging, Manual Verification Steps, Configuration, Output Formats (this is embedded in the list section — remove it there), Shell Navigation, Repository Navigation, Roadmap, Release Process, and Security.
-- [ ] 3.2 After the features bullet list and before the Development section, add a new `## Documentation` section (or similar heading) with a single line linking to the docs site: `Full documentation is available at https://daileyo.github.io/gws`.
-- [ ] 3.3 Update the `## Installation` section to show only the Homebrew install command (the primary method) with a brief note that build-from-source instructions are in the documentation. Remove the detailed `Build from Source` block from the README.
-- [ ] 3.4 Rewrite the `## Contributing` section. Replace the current "Contributions are welcome!" opening and the Development Workflow, Running CI Locally, and Code Style sub-sections with the following:
+- [x] 3.1 Remove the following sections entirely from `README.md`: Quick Start (all four numbered steps), Repository Classification and Tagging, Manual Verification Steps, Configuration, Output Formats (this is embedded in the list section — remove it there), Shell Navigation, Repository Navigation, Roadmap, Release Process, and Security.
+- [x] 3.2 After the features bullet list and before the Development section, add a new `## Documentation` section (or similar heading) with a single line linking to the docs site: `Full documentation is available at https://daileyo.github.io/gws`.
+- [x] 3.3 Update the `## Installation` section to show only the Homebrew install command (the primary method) with a brief note that build-from-source instructions are in the documentation. Remove the detailed `Build from Source` block from the README.
+- [x] 3.4 Rewrite the `## Contributing` section. Replace the current "Contributions are welcome!" opening and the Development Workflow, Running CI Locally, and Code Style sub-sections with the following:
   - A clear statement that the project is not currently open for external contributions
   - A brief note that this may change in the future
   - An invitation for interested contributors to open a GitHub issue or reach out directly
   - Retain the **Commit Message Format** sub-section (types table and breaking change example) so the conventions are documented
-- [ ] 3.5 Review the final `README.md` and confirm: (a) it is under 150 lines, (b) it contains no CLI how-to usage content, (c) the docs link is visible near the top, and (d) the Contributing section has the correct closed-with-contact message. Capture the proof artifact screenshots after merging to `main`.
+- [x] 3.5 Review the final `README.md` and confirm: (a) it is under 150 lines, (b) it contains no CLI how-to usage content, (c) the docs link is visible near the top, and (d) the Contributing section has the correct closed-with-contact message. Capture the proof artifact screenshots after merging to `main`.
