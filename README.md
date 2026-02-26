@@ -31,6 +31,14 @@ See the [Getting Started](https://daileyo.github.io/gws/getting-started/) guide 
 
 ## Development
 
+### One-Time Setup
+
+Git hooks are provided in `.githooks/` for pre-push checks and commit message formatting. Activate them once after cloning:
+
+```bash
+make setup-hooks
+```
+
 ### Build Commands
 
 ```bash
