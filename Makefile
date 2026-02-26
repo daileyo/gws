@@ -130,14 +130,15 @@ install: build
 	@echo ""
 	@echo "Install complete!"
 	@echo ""
-	@echo "Ensure ~/.local/bin is in your PATH, then add to your shell config:"
+	@echo "Add to your shell config:"
 	@echo ""
 	@echo "  zsh (~/.zshrc):"
-	@echo "    autoload -U compinit && compinit"
-	@echo "    compdef _$(BINARY_NAME) gws"
+	@echo "    export PATH=\"$(INSTALL_BIN):\$$PATH\""
+	@echo "    eval \"\$$(git-workspace shell-init zsh)\""
 	@echo ""
 	@echo "  bash (~/.bashrc):"
-	@echo "    complete -F _$(BINARY_NAME) gws"
+	@echo "    export PATH=\"$(INSTALL_BIN):\$$PATH\""
+	@echo "    eval \"\$$(git-workspace shell-init bash)\""
 
 ## help: Show this help message
 help:

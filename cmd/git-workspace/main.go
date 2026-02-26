@@ -68,13 +68,9 @@ Navigation:
 
 Shell integration (add to ~/.bashrc or ~/.zshrc):
 
-  # 'gws' shorthand: navigate to a repo, or pass flags/subcommands through to git-workspace
-  function gws() {
-    case "$1" in
-      -*|__complete*|completion|help) git-workspace "$@" ;;
-      *) cd "$(git-workspace -g "$1" -q)" ;;
-    esac
-  }
+  # Recommended — sets up 'gws' and tab completion, always up to date:
+  export PATH="$HOME/.local/bin:$PATH"
+  eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
 
   # Navigate to workspace root
   function cdgws() { cd "$(git-workspace --print-workspace)"; }
@@ -283,6 +279,7 @@ func init() {
 Commands:
 {{commandFlagUsages . | trimRightSpace}}
   gws completion [bash|zsh|fish|powershell]    Generate shell completion script
+  gws shell-init [zsh|bash]                    Output shell integration code to eval
 
 List Filters (require --list / -l):
 {{filterFlagUsages . | trimRightSpace}}
