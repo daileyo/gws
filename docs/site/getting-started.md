@@ -2,15 +2,6 @@
 
 ## Installation
 
-### Install via Homebrew
-
-The easiest way to install `git-workspace` on macOS:
-
-```bash
-brew tap daileyo/gws
-brew install gws
-```
-
 ### Build from Source
 
 ```bash
