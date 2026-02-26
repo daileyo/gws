@@ -70,7 +70,7 @@ func TestCommandFlagsRegistered(t *testing.T) {
 	}{
 		{"list", "l"},
 		{"init", "i"},
-		{"add-tag", "a"},
+		{"add-tag", "d"},
 		{"remove-tag", "u"},
 		{"refresh", "r"},
 		{"print-workspace", "w"},
@@ -146,7 +146,7 @@ func TestMutualExclusivity(t *testing.T) {
 	}()
 
 	flagList = true
-	flagInit = "/some/path"
+	flagInit = true
 
 	err := rootCmd.RunE(rootCmd, []string{})
 	if err == nil {
@@ -155,7 +155,7 @@ func TestMutualExclusivity(t *testing.T) {
 	}
 
 	expected := "only one command flag can be used at a time"
-	if err.Error() != "only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace, --go)" {
+	if err.Error() != "only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go)" {
 		t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
 	}
 }

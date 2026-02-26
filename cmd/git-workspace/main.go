@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -20,7 +21,9 @@ var (
 // Command flags
 var (
 	flagList           bool
-	flagInit           string
+	flagInit           bool
+	flagAdd            string
+	flagRecursive      bool
 	flagAddTag         bool
 	flagRemoveTag      bool
 	flagRefresh        bool
@@ -50,7 +53,9 @@ Commands (flags):
   git-workspace --list                         # List all repositories
   git-workspace -l --type github               # List only GitHub repositories
   git-workspace -l --tag personal --status     # List repos tagged "personal" with git status
-  git-workspace --init ~/projects              # Initialize workspace
+  git-workspace --init                         # Initialize workspace in current directory
+  git-workspace --add                          # Add current directory to workspace
+  git-workspace --add ~/elsewhere/my-repo     # Add a specific repo to workspace
   git-workspace --add-tag my-project personal  # Add tag to matching repos
   git-workspace --remove-tag api work          # Remove tag from matching repos
   git-workspace --refresh                      # Refresh repository metadata
@@ -63,11 +68,9 @@ Navigation:
 
 Shell integration (add to ~/.bashrc or ~/.zshrc):
 
-  # 'gws' shorthand: navigate to a repo, or pass flags through to git-workspace
-  function gws() {
-    if [[ "$1" == -* ]]; then git-workspace "$@"
-    else cd "$(git-workspace -g "$1" -q)"; fi
-  }
+  # Recommended — sets up 'gws' and tab completion, always up to date:
+  export PATH="$HOME/.local/bin:$PATH"
+  eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
 
   # Navigate to workspace root
   function cdgws() { cd "$(git-workspace --print-workspace)"; }
@@ -78,7 +81,10 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if flagList {
 			activeCount++
 		}
-		if flagInit != "" {
+		if flagInit {
+			activeCount++
+		}
+		if flagAdd != "" {
 			activeCount++
 		}
 		if flagAddTag {
@@ -98,12 +104,17 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		}
 
 		if activeCount > 1 {
-			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add-tag, --remove-tag, --refresh, --print-workspace, --go)")
+			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go)")
 		}
 
 		// Validate filter flags require --list
 		if !flagList && hasFilterFlags(cmd) {
 			return fmt.Errorf("filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set")
+		}
+
+		// Validate --recursive requires --add
+		if flagRecursive && flagAdd == "" {
+			return fmt.Errorf("--recursive/-v requires --add/-a to be set")
 		}
 
 		// Validate --quiet only applies to navigation
@@ -117,8 +128,11 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		}
 
 		// Dispatch to command handlers
-		if flagInit != "" {
+		if flagInit {
 			return runInit(cmd, args)
+		}
+		if flagAdd != "" {
+			return runAdd(cmd, args)
 		}
 
 		// All other commands require workspace to be initialized
@@ -130,11 +144,8 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if !exists {
 			fmt.Fprintln(os.Stderr, "Error: workspace not initialized")
 			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "To get started, initialize a workspace:")
-			fmt.Fprintln(os.Stderr, "  gws --init <directory>")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "Example:")
-			fmt.Fprintln(os.Stderr, "  gws --init ~/projects")
+			fmt.Fprintln(os.Stderr, "To get started, navigate to your projects directory and run:")
+			fmt.Fprintln(os.Stderr, "  gws --init")
 			return fmt.Errorf("workspace not initialized")
 		}
 
@@ -199,8 +210,11 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 func init() {
 	// Command flags
 	rootCmd.Flags().BoolVarP(&flagList, "list", "l", false, "List all tracked repositories")
-	rootCmd.Flags().StringVarP(&flagInit, "init", "i", "", "Initialize workspace by scanning directory")
-	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "a", false, "Add a tag to repositories (args: <repo> <tag>)")
+	rootCmd.Flags().BoolVarP(&flagInit, "init", "i", false, "Initialize a gws workspace in the current directory")
+	rootCmd.Flags().StringVarP(&flagAdd, "add", "a", "", "Add a git repository to the workspace (defaults to current directory)")
+	rootCmd.Flags().Lookup("add").NoOptDefVal = "."
+	rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories found in the current directory (use with --add)")
+	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "u", false, "Remove a tag from repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")
 	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Print workspace path (for shell integration)")
@@ -227,15 +241,45 @@ func init() {
 			return fs.FlagUsages()
 		}
 	}
-	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add-tag", "remove-tag", "refresh", "print-workspace"}))
+	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add", "add-tag", "remove-tag", "refresh", "print-workspace"}))
 	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
+
+	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
+	rootCmd.InitDefaultCompletionCmd()
+
+	// Repo name completion for positional args (navigation)
+	rootCmd.ValidArgsFunction = func(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) > 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		cfg, err := config.Load()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		seen := make(map[string]bool)
+		var names []string
+		for _, repo := range cfg.Repositories {
+			if strings.HasPrefix(strings.ToLower(repo.Name), strings.ToLower(toComplete)) && !seen[repo.Name] {
+				seen[repo.Name] = true
+				names = append(names, repo.Name)
+			}
+		}
+		return names, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	// Directory completion for --add flag value
+	_ = rootCmd.RegisterFlagCompletionFunc("add", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return nil, cobra.ShellCompDirectiveFilterDirs
+	})
 
 	rootCmd.SetUsageTemplate(`Usage:
   {{.UseLine}}
 
 Commands:
 {{commandFlagUsages . | trimRightSpace}}
+  gws completion [bash|zsh|fish|powershell]    Generate shell completion script
+  gws shell-init [zsh|bash]                    Output shell integration code to eval
 
 List Filters (require --list / -l):
 {{filterFlagUsages . | trimRightSpace}}

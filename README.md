@@ -331,15 +331,11 @@ Jump to any tracked repository by name using the `gws` shell function.
 **Setup (add to ~/.bashrc or ~/.zshrc):**
 
 ```bash
-# 'gws': navigate to a repo by name, or pass flags through to git-workspace
-function gws() {
-  if [[ "$1" == -* ]]; then
-    git-workspace "$@"
-  else
-    cd "$(git-workspace -g "$1" -q)"
-  fi
-}
+export PATH="$HOME/.local/bin:$PATH"
+eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
 ```
+
+The `shell-init` command outputs the `gws` function and tab completion setup, so it's always in sync with the installed binary. No manual updates needed.
 
 **Usage:**
 
@@ -400,6 +396,32 @@ git-workspace -g my-repo -q
 git-workspace -g my-repo
 # stderr: my-repo (github) → /home/user/projects/my-repo
 # stdout: /home/user/projects/my-repo
+```
+
+### Shell Completion
+
+Tab completion is set up automatically by `shell-init` — no separate step needed if you followed the setup above.
+
+If you need completions for other shells:
+
+#### fish
+
+```bash
+git-workspace completion fish > ~/.config/fish/completions/git-workspace.fish
+```
+
+#### Manual zsh setup (without shell-init)
+
+```bash
+autoload -U compinit && compinit
+source <(git-workspace completion zsh)
+function gws() {
+  case "$1" in
+    -*|__*|completion|shell-init|help) git-workspace "$@" ;;
+    *) cd "$(git-workspace -g "$1" -q)" ;;
+  esac
+}
+compdef _git-workspace gws
 ```
 
 ## Manual Verification Steps
