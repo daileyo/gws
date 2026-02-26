@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/daileyo/gws/compare/v2.1.0...v2.1.1) (2026-02-26)
+
+
+### Bug Fixes
+
+* correct project structure paths and remove premature brew install references ([ec1208e](https://github.com/daileyo/gws/commit/ec1208efb1ef1f52193e5735fa923cc7fd9187d1))
+
 ## [2.1.0](https://github.com/daileyo/gws/compare/v2.0.0...v2.1.0) (2026-02-26)
 
 
