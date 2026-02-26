@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/daileyo/gws/compare/v2.0.0...v2.1.0) (2026-02-26)
+
+
+### Features
+
+* refactor init/add, shell completions, and shell-init integration ([#6](https://github.com/daileyo/gws/issues/6)) ([e9d1564](https://github.com/daileyo/gws/commit/e9d156448ac012460050bca78dd2f06ff4d63bb5))
+
 ## [2.0.0](https://github.com/daileyo/gws/compare/v1.1.0...v2.0.0) (2026-02-25)
 
 
