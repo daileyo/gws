@@ -49,7 +49,7 @@
 
 ---
 
-### [ ] 2.0 Add GitHub Actions Deployment Workflow and Enable GitHub Pages
+### [~] 2.0 Add GitHub Actions Deployment Workflow and Enable GitHub Pages
 
 #### 2.0 Proof Artifact(s)
 
@@ -59,7 +59,7 @@
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Create `.github/workflows/docs.yml`. The workflow should:
+- [x] 2.1 Create `.github/workflows/docs.yml`. The workflow should:
   - Be named `Deploy Docs`
   - Trigger on `push` with tag pattern `v*`
   - Declare `permissions` at the top level: `contents: read`, `pages: write`, `id-token: write`
@@ -71,7 +71,7 @@
     4. `run: mkdocs build` (Build documentation)
     5. `actions/upload-pages-artifact@v3` with `path: site/` (Upload Pages artifact)
     6. `actions/deploy-pages@v4` with `id: deployment` (Deploy to GitHub Pages)
-- [ ] 2.2 In the `daileyo/gws` GitHub repository, go to **Settings → Pages → Build and deployment → Source** and select **"GitHub Actions"**. This is a one-time manual change that allows the workflow to deploy to GitHub Pages. (Note: this cannot be done via a file commit.)
+- [~] 2.2 In the `daileyo/gws` GitHub repository, go to **Settings → Pages → Build and deployment → Source** and select **"GitHub Actions"**. This is a one-time manual change that allows the workflow to deploy to GitHub Pages. (Note: this cannot be done via a file commit.)
 - [ ] 2.3 Commit and push `docs.yml` (and all Task 1.0 files if not already pushed) on the feature branch, then open or update the pull request and merge to `main`.
 - [ ] 2.4 After merging to `main`, push a release tag (e.g., the next version tag following the existing `v2.0.0`) to trigger the `docs.yml` workflow. Monitor the Actions tab on GitHub to confirm all steps complete with green checkmarks. Capture the proof artifact screenshots.
 
