@@ -1,0 +1,62 @@
+#!/bin/sh
+# commit-msg hook: Pads conventional commit type tokens for column alignment
+# so that all commit descriptions begin at the same column in git log output.
+# Handles: type: description  and  type!: description (breaking change, no scope)
+# Activated by: make setup-hooks
+
+COMMIT_MSG_FILE="$1"
+
+# Project-defined conventional commit types (must match types in README.md)
+TYPES="ci fix feat docs perf test chore style refactor"
+
+# Compute alignment column width.
+# Longest possible token is type!: — e.g. refactor!: = 10 chars.
+# TARGET_WIDTH = max_token_len + 2 (minimum two spaces between token and description).
+max_width=0
+for type in $TYPES; do
+    token="${type}!:"
+    len=${#token}
+    if [ "$len" -gt "$max_width" ]; then
+        max_width=$len
+    fi
+done
+TARGET_WIDTH=$((max_width + 2))
+
+# Read the first line of the commit message
+first_line=$(head -n 1 "$COMMIT_MSG_FILE")
+
+# Match against known types (breaking-change variant first, then plain)
+matched=0
+for type in $TYPES; do
+    if printf '%s' "$first_line" | grep -q "^${type}!: "; then
+        token="${type}!:"
+        desc=$(printf '%s' "$first_line" | sed "s/^${type}!: *//")
+        matched=1
+        break
+    elif printf '%s' "$first_line" | grep -q "^${type}: "; then
+        token="${type}:"
+        desc=$(printf '%s' "$first_line" | sed "s/^${type}: *//")
+        matched=1
+        break
+    fi
+done
+
+# Non-conforming message: warn and allow commit to proceed unchanged
+if [ "$matched" -eq 0 ]; then
+    printf 'commit-msg: message does not match conventional commit format, skipping formatting\n' >&2
+    exit 0
+fi
+
+# Build padded first line
+token_len=${#token}
+padding_len=$((TARGET_WIDTH - token_len))
+padding=$(printf '%*s' "$padding_len" '')
+new_first_line="${token}${padding}${desc}"
+
+# Rewrite the message file: new first line + unchanged remainder
+rest=$(tail -n +2 "$COMMIT_MSG_FILE")
+if [ -n "$rest" ]; then
+    printf '%s\n%s\n' "$new_first_line" "$rest" > "$COMMIT_MSG_FILE"
+else
+    printf '%s\n' "$new_first_line" > "$COMMIT_MSG_FILE"
+fi
