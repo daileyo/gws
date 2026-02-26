@@ -44,7 +44,7 @@ The spec described storing the hook at `scripts/hooks/commit-msg` with a symlink
 
 - [x] 1.6 Make the script executable with `chmod +x .githooks/commit-msg`. Verify it is active by running `make setup-hooks` (if not already done). Then manually test by creating and immediately amending or dropping test commits using several type formats (`ci`, `feat`, `refactor`, `refactor!`, `WIP`) to confirm all alignment and pass-through behaviors match the proof artifacts above. Do not push these test commits.
 
-### [ ] 2.0 Update Makefile messaging and README documentation
+### [x] 2.0 Update Makefile messaging and README documentation
 
 #### 2.0 Proof Artifact(s)
 
@@ -54,8 +54,8 @@ The spec described storing the hook at `scripts/hooks/commit-msg` with a symlink
 
 #### 2.0 Tasks
 
-- [ ] 2.1 In `Makefile`, update the `## setup-hooks:` comment line (the line used by `make help`) to reflect both hooks. Current value: `Install git hooks for pre-push linting`. New value should mention both pre-push linting and commit-msg formatting, e.g.: `Install git hooks (pre-push linting, commit-msg formatting)`.
+- [x] 2.1 In `Makefile`, update the `## setup-hooks:` comment line (the line used by `make help`) to reflect both hooks. Current value: `Install git hooks for pre-push linting`. New value should mention both pre-push linting and commit-msg formatting, e.g.: `Install git hooks (pre-push linting, commit-msg formatting)`.
 
-- [ ] 2.2 In `Makefile`, update the echo messages inside the `setup-hooks` target body to name both hooks so that `make setup-hooks` output is informative. Keep the same `@echo` style as the rest of the target. Example: replace the current single "Git hooks installed!" message with two lines — one naming the pre-push hook and one naming the commit-msg hook — followed by a brief description of what each does.
+- [x] 2.2 In `Makefile`, update the echo messages inside the `setup-hooks` target body to name both hooks so that `make setup-hooks` output is informative. Keep the same `@echo` style as the rest of the target. Example: replace the current single "Git hooks installed!" message with two lines — one naming the pre-push hook and one naming the commit-msg hook — followed by a brief description of what each does.
 
-- [ ] 2.3 In `README.md`, add a `### One-Time Setup` subsection to the `## Development` section, placed before the existing `### Build Commands` subsection. It should contain a brief explanation that git hooks are provided in `.githooks/` and must be activated once after cloning, followed by the command `make setup-hooks` in a `bash` fenced code block. Keep the tone and style consistent with the surrounding Development content.
+- [x] 2.3 In `README.md`, add a `### One-Time Setup` subsection to the `## Development` section, placed before the existing `### Build Commands` subsection. It should contain a brief explanation that git hooks are provided in `.githooks/` and must be activated once after cloning, followed by the command `make setup-hooks` in a `bash` fenced code block. Keep the tone and style consistent with the surrounding Development content.
