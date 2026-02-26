@@ -72,7 +72,7 @@ go test -v ./internal/config
 
 ```bash
 # Install Python dependencies
-pip install -r requirements.txt
+pip install -r docs/requirements.txt
 
 # Preview locally
 python -m mkdocs serve
