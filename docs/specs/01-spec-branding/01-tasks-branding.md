@@ -56,7 +56,7 @@ Add the gws logo and tagline to the README. The logo should be left-aligned next
 - [x] 2.3 Verify that all existing badges (CI, Go Report Card, Snyk, Release, License) and all content below them remain unchanged.
 - [x] 2.4 Review the raw markdown to confirm the image uses a relative path, has alt text, and specifies width.
 
-### [ ] 3.0 MkDocs Theme and Color Configuration
+### [x] 3.0 MkDocs Theme and Color Configuration
 
 Configure the Material theme in `mkdocs.yml` with deep purple primary, orange accent, dark mode default, light/dark toggle, Nunito body font, and JetBrains Mono code font. Add custom CSS if needed for refinements beyond the built-in palette.
 
@@ -69,11 +69,11 @@ Configure the Material theme in `mkdocs.yml` with deep purple primary, orange ac
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Add `palette` configuration under `theme` in `mkdocs.yml` with two scheme entries: (1) **Dark mode (default)**: `scheme: slate`, `primary: deep purple`, `accent: orange`, with a toggle icon (`material/brightness-7`) and name "Switch to light mode"; (2) **Light mode**: `scheme: default`, `primary: deep purple`, `accent: orange`, with a toggle icon (`material/brightness-4`) and name "Switch to dark mode". Dark mode must be listed first so it is the default.
-- [ ] 3.2 Add `font` configuration under `theme` in `mkdocs.yml`: `text: Nunito`, `code: JetBrains Mono`.
-- [ ] 3.3 Create the directory `docs/site/assets/css/` and create a `custom.css` file for any branding refinements (e.g., fine-tuning link hover colors, header gradient, or accent shades that the built-in palette doesn't cover). If no custom CSS is needed beyond the built-in palette, create the file with a comment placeholder for future use.
-- [ ] 3.4 Add `extra_css` to `mkdocs.yml` pointing to `assets/css/custom.css`.
-- [ ] 3.5 Run `python -m mkdocs serve` locally and verify: (a) dark mode loads by default, (b) the toggle switch appears and works, (c) purple header/nav and orange accents are visible, (d) Nunito renders for body text, (e) JetBrains Mono renders for code blocks.
+- [x] 3.1 Add `palette` configuration under `theme` in `mkdocs.yml` with two scheme entries: (1) **Dark mode (default)**: `scheme: slate`, `primary: deep purple`, `accent: orange`, with a toggle icon (`material/brightness-7`) and name "Switch to light mode"; (2) **Light mode**: `scheme: default`, `primary: deep purple`, `accent: orange`, with a toggle icon (`material/brightness-4`) and name "Switch to dark mode". Dark mode must be listed first so it is the default.
+- [x] 3.2 Add `font` configuration under `theme` in `mkdocs.yml`: `text: Nunito`, `code: JetBrains Mono`.
+- [x] 3.3 Create the directory `docs/site/assets/css/` and create a `custom.css` file for any branding refinements (e.g., fine-tuning link hover colors, header gradient, or accent shades that the built-in palette doesn't cover). If no custom CSS is needed beyond the built-in palette, create the file with a comment placeholder for future use.
+- [x] 3.4 Add `extra_css` to `mkdocs.yml` pointing to `assets/css/custom.css`.
+- [x] 3.5 Run `python -m mkdocs serve` locally and verify: (a) dark mode loads by default, (b) the toggle switch appears and works, (c) purple header/nav and orange accents are visible, (d) Nunito renders for body text, (e) JetBrains Mono renders for code blocks.
 
 ### [ ] 4.0 MkDocs Logo and Homepage Integration
 
