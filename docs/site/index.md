@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/images/gws-logo-hero.png" alt="gws logo" width="250"></p>
+
 # git-workspace
 
 [![CI](https://github.com/daileyo/gws/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/gws/actions/workflows/ci.yml)
