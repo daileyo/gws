@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.2.0](https://github.com/daileyo/gws/compare/v2.1.1...v2.2.0) (2026-02-27)
+
+
+### Features
+
+* **config:** extend model with user profiles and repository user fields ([5fd4bf7](https://github.com/daileyo/gws/commit/5fd4bf7f9b8eaca8c68375f4d51d982c82f6e5dd))
+* **git:** implement user detection from repositories ([11f7310](https://github.com/daileyo/gws/commit/11f73103a7295f6d91c28c48a45a48be93f72768))
+* **list:** add --user flag to display git user information ([00476f9](https://github.com/daileyo/gws/commit/00476f9adf6cf402a4eaf55e3b0a405bb5358cb9))
+* **user:** add assign and sync commands for repository user management ([3dda5f1](https://github.com/daileyo/gws/commit/3dda5f14c774c463b9bf19d2a5e5b6e1125d7547))
+* **user:** add user profile management commands ([418e3ed](https://github.com/daileyo/gws/commit/418e3ed2edeb64de0e1a2235ab450c0720137876))
+* **user:** implement profile auto-detection from gitconfig ([c560843](https://github.com/daileyo/gws/commit/c5608432b5b1118d07cd0c436f62364bcd8c7fe2))
+
+
+### Bug Fixes
+
+* resolve linting issues ([c846fe0](https://github.com/daileyo/gws/commit/c846fe0b26585215f4a73ea01b5dd33e111e6027))
+
 ## [2.1.1](https://github.com/daileyo/gws/compare/v2.1.0...v2.1.1) (2026-02-26)
 
 
