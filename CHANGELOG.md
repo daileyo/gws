@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.4.0](https://github.com/daileyo/gws/compare/v2.3.0...v2.4.0) (2026-02-27)
+
+
+### Features
+
+* add logo and tagline to README ([5ec212d](https://github.com/daileyo/gws/commit/5ec212d93e261c375f7ddba377e707e8636dbe8c))
+* add logo to mkdocs nav bar, favicon, and homepage hero ([84f8b84](https://github.com/daileyo/gws/commit/84f8b84a4c78e9637287f06476d20ee3dce4c02f))
+* add optimized logo variants for branding ([09a19e5](https://github.com/daileyo/gws/commit/09a19e54acf6f4acc8e7eba1ef42810aa5bdb93f))
+* configure mkdocs theme with branded colors and fonts ([c60b0aa](https://github.com/daileyo/gws/commit/c60b0aa4b9eea74e91dc9384ff48eae82a3435b5))
+
 ## [2.3.0](https://github.com/daileyo/gws/compare/v2.2.0...v2.3.0) (2026-02-27)
 
 
