@@ -40,7 +40,7 @@ Create optimized logo variants from the original 1024x1024 PNG (1.5 MB) for use 
 - [x] 1.5 Visually inspect each generated variant to confirm the logo renders correctly without distortion or artifacts at its target size.
 - [x] 1.6 Run `ls -la docs/site/assets/images/` to confirm all three variants exist with appropriate file sizes.
 
-### [ ] 2.0 README Branding
+### [x] 2.0 README Branding
 
 Add the gws logo and tagline to the README. The logo should be left-aligned next to the project title at ~200px width, with the tagline "Your Git workspace, simplified" displayed as a subtitle. All existing badges and content must remain intact.
 
@@ -51,10 +51,10 @@ Add the gws logo and tagline to the README. The logo should be left-aligned next
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Replace the current `# git-workspace` heading in `README.md` with a layout that places the logo (~200px width) left-aligned next to the title text. Use an HTML table or inline HTML `<img>` tag with `width="200"` and appropriate `alt` text (e.g., `alt="gws logo"`). Reference the hero image variant at `docs/site/assets/images/gws-logo-hero.png`.
-- [ ] 2.2 Add the tagline *"Your Git workspace, simplified"* as an italicized subtitle line immediately below the logo/title area, above the badges.
-- [ ] 2.3 Verify that all existing badges (CI, Go Report Card, Snyk, Release, License) and all content below them remain unchanged.
-- [ ] 2.4 Review the raw markdown to confirm the image uses a relative path, has alt text, and specifies width.
+- [x] 2.1 Replace the current `# git-workspace` heading in `README.md` with a layout that places the logo (~200px width) left-aligned next to the title text. Use an HTML table or inline HTML `<img>` tag with `width="200"` and appropriate `alt` text (e.g., `alt="gws logo"`). Reference the hero image variant at `docs/site/assets/images/gws-logo-hero.png`.
+- [x] 2.2 Add the tagline *"Your Git workspace, simplified"* as an italicized subtitle line immediately below the logo/title area, above the badges.
+- [x] 2.3 Verify that all existing badges (CI, Go Report Card, Snyk, Release, License) and all content below them remain unchanged.
+- [x] 2.4 Review the raw markdown to confirm the image uses a relative path, has alt text, and specifies width.
 
 ### [ ] 3.0 MkDocs Theme and Color Configuration
 
