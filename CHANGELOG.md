@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.0](https://github.com/daileyo/gws/compare/v2.2.0...v2.3.0) (2026-02-27)
+
+
+### Features
+
+* add commit-msg hook for conventional commit alignment ([f0ef8bd](https://github.com/daileyo/gws/commit/f0ef8bda2f9311821e62f7e1a8019ce7d87eee77))
+* update setup-hooks messaging and document in README ([d7dd3d7](https://github.com/daileyo/gws/commit/d7dd3d7ca598d93ffe7016bb184b6d915ed539c8))
+
 ## [2.2.0](https://github.com/daileyo/gws/compare/v2.1.1...v2.2.0) (2026-02-27)
 
 
