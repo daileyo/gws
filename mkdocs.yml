@@ -17,6 +17,8 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to dark mode
+  logo: assets/images/gws-logo-nav.png
+  favicon: assets/images/gws-logo-favicon.png
   font:
     text: Nunito
     code: JetBrains Mono
