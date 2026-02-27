@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.1](https://github.com/daileyo/gws/compare/v2.4.0...v2.4.1) (2026-02-27)
+
+
+### Bug Fixes
+
+* correct license badge in docds ([697ccbe](https://github.com/daileyo/gws/commit/697ccbecd41e0f8fdd0488526af625c388a01dab))
+
 ## [2.4.0](https://github.com/daileyo/gws/compare/v2.3.0...v2.4.0) (2026-02-27)
 
 
