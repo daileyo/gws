@@ -75,7 +75,7 @@ Configure the Material theme in `mkdocs.yml` with deep purple primary, orange ac
 - [x] 3.4 Add `extra_css` to `mkdocs.yml` pointing to `assets/css/custom.css`.
 - [x] 3.5 Run `python -m mkdocs serve` locally and verify: (a) dark mode loads by default, (b) the toggle switch appears and works, (c) purple header/nav and orange accents are visible, (d) Nunito renders for body text, (e) JetBrains Mono renders for code blocks.
 
-### [ ] 4.0 MkDocs Logo and Homepage Integration
+### [x] 4.0 MkDocs Logo and Homepage Integration
 
 Add the logo to the MkDocs navigation bar, set the favicon, and add a centered hero image (~200-250px) to the homepage (`docs/site/index.md`). Every page should show the nav logo and favicon.
 
@@ -88,7 +88,7 @@ Add the logo to the MkDocs navigation bar, set the favicon, and add a centered h
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Add `logo` and `favicon` under `theme` in `mkdocs.yml`. Set `logo` to `assets/images/gws-logo-nav.png` and `favicon` to `assets/images/gws-logo-favicon.png`. (Paths are relative to `docs_dir`.)
-- [ ] 4.2 Update `docs/site/index.md` to add the hero logo image centered on the page. Use an HTML block like `<p align="center"><img src="assets/images/gws-logo-hero.png" alt="gws logo" width="250"></p>` at the top of the page content, above the existing text.
-- [ ] 4.3 Run `python -m mkdocs serve` locally and verify: (a) the logo appears in the navigation bar on every page, (b) the favicon is visible in the browser tab, (c) the homepage displays the centered hero logo at ~250px width.
-- [ ] 4.4 Navigate to at least two different documentation pages to confirm the nav logo and favicon are consistent across the site.
+- [x] 4.1 Add `logo` and `favicon` under `theme` in `mkdocs.yml`. Set `logo` to `assets/images/gws-logo-nav.png` and `favicon` to `assets/images/gws-logo-favicon.png`. (Paths are relative to `docs_dir`.)
+- [x] 4.2 Update `docs/site/index.md` to add the hero logo image centered on the page. Use an HTML block like `<p align="center"><img src="assets/images/gws-logo-hero.png" alt="gws logo" width="250"></p>` at the top of the page content, above the existing text.
+- [x] 4.3 Run `python -m mkdocs serve` locally and verify: (a) the logo appears in the navigation bar on every page, (b) the favicon is visible in the browser tab, (c) the homepage displays the centered hero logo at ~250px width.
+- [x] 4.4 Navigate to at least two different documentation pages to confirm the nav logo and favicon are consistent across the site.
