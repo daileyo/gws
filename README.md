@@ -1,4 +1,9 @@
-# git-workspace
+<table><tr>
+<td><img src="docs/site/assets/images/gws-logo-hero.png" alt="gws logo" width="200"></td>
+<td><h1>git-workspace</h1></td>
+</tr></table>
+
+*Your Git workspace, simplified*
 
 [![CI](https://github.com/daileyo/gws/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/gws/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/daileyo/gws)](https://goreportcard.com/report/github.com/daileyo/gws)
