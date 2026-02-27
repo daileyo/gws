@@ -4,6 +4,25 @@ docs_dir: docs/site
 
 theme:
   name: material
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+  font:
+    text: Nunito
+    code: JetBrains Mono
+
+extra_css:
+  - assets/css/custom.css
 
 nav:
   - Home: index.md
