@@ -54,7 +54,7 @@ Register the new `--user`, `--update/-u`, `--delete/-D`, `--all`, `--verbose` fl
 - [x] 1.7 Update the help template in `init()`: add a new "User Operations" section using a new `cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "name", "email"}))`. Add the section to `SetUsageTemplate` between "Commands" and "List Filters".
 - [x] 1.8 Write tests in `cmd/git-workspace/main_test.go` (or a new test file) that verify: `--update` without `--user` returns error; `--delete` without `--user` returns error; `--user --update --delete` returns error; `--all` without `--delete` returns error; `--user` is mutually exclusive with other command flags.
 
-### [~] 2.0 Single Repository User Update (`--user -u`)
+### [x] 2.0 Single Repository User Update (`--user -u`)
 
 Implement the `runUserUpdate()` handler that sets local git user config on one or more matching repositories. Support both named profiles and inline `--name`/`--email` values (with inline taking precedence). Display moderate output by default, with `--verbose` for full detail and `--quiet` for silent operation. Update `config.json` after successful operations.
 
@@ -73,7 +73,7 @@ Implement the `runUserUpdate()` handler that sets local git user config on one o
 - [x] 2.4 Add `config.Save(cfg)` call after all repos are updated to persist config.json changes.
 - [x] 2.5 Write tests in `userupdate_test.go`: test profile resolution (named profile, inline values, profile + inline override); test single repo update writes to `.git/config`; test multiple repo match updates all; test `--quiet` suppresses output; test error when no profile or inline values provided; test error when no repos match identifier.
 
-### [ ] 3.0 Single Repository User Delete (`--user --delete`)
+### [~] 3.0 Single Repository User Delete (`--user --delete`)
 
 Implement `DeleteLocal()` in `internal/user/assign.go` to remove user config keys from `.git/config`. Implement the `runUserDelete()` handler. By default, remove only `[user]` name and email; with `--all`, also remove signing config. After deletion, re-detect the effective user config and update `config.json` so the repo shows its fallback (global/includeIf) user.
 
@@ -86,13 +86,13 @@ Implement `DeleteLocal()` in `internal/user/assign.go` to remove user config key
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Implement `DeleteLocal(repoPath string, removeAll bool) error` in `internal/user/assign.go`. Read the repo's `.git/config` file, remove `name` and `email` keys from the `[user]` section. If `removeAll` is true, also remove `signingkey` from `[user]` and `gpgsign` from `[commit]`. If the `[user]` or `[commit]` section becomes empty after key removal, remove the entire section header. Write the modified config back to the file.
-- [ ] 3.2 Implement a helper `removeGitConfigKey(content, section, key string) string` in `internal/user/assign.go` (companion to existing `setGitConfigValue`). It should find the `[section]` and remove the line matching the key. If the section has no remaining keys, remove the section header line too.
-- [ ] 3.3 Write tests for `DeleteLocal()` in `internal/user/assign_test.go`: test removing only name/email (default); test removing name/email/signingkey/gpgsign (`removeAll=true`); test that non-user sections are preserved; test that empty sections are cleaned up; test error when path is not a git repo.
-- [ ] 3.4 Implement `runUserDelete()` in `userdelete.go`: validate args (need a repo identifier unless `--tag` is used — tag-based batch is Task 4.0), call `findRepositories()`, for each matched repo capture current config via `git.GetUserConfig()`, call `user.DeleteLocal(repo.Path, flagAll)`, then re-detect effective config via `git.GetUserConfig()` (which will now return global/includeIf) and update the repo's config.json fields.
-- [ ] 3.5 Implement output formatting in `runUserDelete()`: in moderate mode, print `<repo-name>: removed local user config (now using <source>: "name" <email>)`. In `--verbose` mode, print full details of removed config and new effective config. In `--quiet` mode, print nothing. Print summary count at end for multiple repos.
-- [ ] 3.6 Add `config.Save(cfg)` call after all repos are processed.
-- [ ] 3.7 Write tests in `userdelete_test.go`: test single repo delete removes local config; test `--all` removes signing config; test config.json is updated with fallback user; test `--quiet` suppresses output; test error when no repos match.
+- [x] 3.1 Implement `DeleteLocal(repoPath string, removeAll bool) error` in `internal/user/assign.go`. Read the repo's `.git/config` file, remove `name` and `email` keys from the `[user]` section. If `removeAll` is true, also remove `signingkey` from `[user]` and `gpgsign` from `[commit]`. If the `[user]` or `[commit]` section becomes empty after key removal, remove the entire section header. Write the modified config back to the file.
+- [x] 3.2 Implement a helper `removeGitConfigKey(content, section, key string) string` in `internal/user/assign.go` (companion to existing `setGitConfigValue`). It should find the `[section]` and remove the line matching the key. If the section has no remaining keys, remove the section header line too.
+- [x] 3.3 Write tests for `DeleteLocal()` in `internal/user/assign_test.go`: test removing only name/email (default); test removing name/email/signingkey/gpgsign (`removeAll=true`); test that non-user sections are preserved; test that empty sections are cleaned up; test error when path is not a git repo.
+- [x] 3.4 Implement `runUserDelete()` in `userdelete.go`: validate args (need a repo identifier unless `--tag` is used — tag-based batch is Task 4.0), call `findRepositories()`, for each matched repo capture current config via `git.GetUserConfig()`, call `user.DeleteLocal(repo.Path, flagAll)`, then re-detect effective config via `git.GetUserConfig()` (which will now return global/includeIf) and update the repo's config.json fields.
+- [x] 3.5 Implement output formatting in `runUserDelete()`: in moderate mode, print `<repo-name>: removed local user config (now using <source>: "name" <email>)`. In `--verbose` mode, print full details of removed config and new effective config. In `--quiet` mode, print nothing. Print summary count at end for multiple repos.
+- [x] 3.6 Add `config.Save(cfg)` call after all repos are processed.
+- [x] 3.7 Write tests in `userdelete_test.go`: test single repo delete removes local config; test `--all` removes signing config; test config.json is updated with fallback user; test `--quiet` suppresses output; test error when no repos match.
 
 ### [ ] 4.0 Batch Update and Delete via Tags (`--tag`)
 

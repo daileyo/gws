@@ -360,3 +360,193 @@ func TestPreviewAssignLocal(t *testing.T) {
 		t.Errorf("Expected at least 2 changes, got %d", len(changes))
 	}
 }
+
+func TestRemoveGitConfigKey(t *testing.T) {
+	tests := []struct {
+		name           string
+		content        string
+		section        string
+		key            string
+		mustContain    []string
+		mustNotContain []string
+	}{
+		{
+			name:           "remove key from section",
+			content:        "[user]\n\tname = Test User\n\temail = test@test.com\n",
+			section:        "user",
+			key:            "name",
+			mustContain:    []string{"[user]", "email = test@test.com"},
+			mustNotContain: []string{"name = Test User"},
+		},
+		{
+			name:           "remove last key removes section header",
+			content:        "[core]\n\teditor = vim\n[user]\n\tname = Test User\n",
+			section:        "user",
+			key:            "name",
+			mustContain:    []string{"[core]", "editor = vim"},
+			mustNotContain: []string{"[user]", "name = Test User"},
+		},
+		{
+			name:           "remove key preserves other sections",
+			content:        "[core]\n\teditor = vim\n[user]\n\tname = Test\n\temail = t@t.com\n[commit]\n\tgpgsign = true\n",
+			section:        "user",
+			key:            "name",
+			mustContain:    []string{"[core]", "editor = vim", "[user]", "email = t@t.com", "[commit]", "gpgsign = true"},
+			mustNotContain: []string{"name = Test"},
+		},
+		{
+			name:           "remove nonexistent key is no-op",
+			content:        "[user]\n\tname = Test\n",
+			section:        "user",
+			key:            "email",
+			mustContain:    []string{"[user]", "name = Test"},
+			mustNotContain: []string{},
+		},
+		{
+			name:           "remove from nonexistent section is no-op",
+			content:        "[core]\n\teditor = vim\n",
+			section:        "user",
+			key:            "name",
+			mustContain:    []string{"[core]", "editor = vim"},
+			mustNotContain: []string{"[user]"},
+		},
+		{
+			name:           "case insensitive key match",
+			content:        "[user]\n\tName = Test User\n\temail = test@test.com\n",
+			section:        "user",
+			key:            "name",
+			mustContain:    []string{"[user]", "email = test@test.com"},
+			mustNotContain: []string{"Name = Test User"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := removeGitConfigKey(tt.content, tt.section, tt.key)
+			for _, expected := range tt.mustContain {
+				if !strings.Contains(result, expected) {
+					t.Errorf("Expected result to contain '%s', got:\n%s", expected, result)
+				}
+			}
+			for _, notExpected := range tt.mustNotContain {
+				if strings.Contains(result, notExpected) {
+					t.Errorf("Expected result NOT to contain '%s', got:\n%s", notExpected, result)
+				}
+			}
+		})
+	}
+}
+
+func TestDeleteLocal(t *testing.T) {
+	t.Run("remove name and email only", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		repoPath := filepath.Join(tmpDir, "test-repo")
+		os.MkdirAll(repoPath, 0755)
+
+		cmd := exec.Command("git", "init")
+		cmd.Dir = repoPath
+		cmd.Run()
+
+		// Set user config with signing
+		profile := config.Profile{
+			GitName:     "Test User",
+			Email:       "test@example.com",
+			SigningKey:  "KEY123",
+			SignCommits: true,
+		}
+		AssignLocal(repoPath, profile)
+
+		// Delete without --all
+		if err := DeleteLocal(repoPath, false); err != nil {
+			t.Fatalf("DeleteLocal failed: %v", err)
+		}
+
+		data, _ := os.ReadFile(filepath.Join(repoPath, ".git", "config"))
+		content := string(data)
+
+		if strings.Contains(content, "name = Test User") {
+			t.Error("user.name should have been removed")
+		}
+		if strings.Contains(content, "email = test@example.com") {
+			t.Error("user.email should have been removed")
+		}
+		// Signing should still be present
+		if !strings.Contains(content, "signingkey = KEY123") {
+			t.Error("signingkey should still be present")
+		}
+		if !strings.Contains(content, "gpgsign = true") {
+			t.Error("gpgsign should still be present")
+		}
+	})
+
+	t.Run("remove all including signing", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		repoPath := filepath.Join(tmpDir, "test-repo")
+		os.MkdirAll(repoPath, 0755)
+
+		cmd := exec.Command("git", "init")
+		cmd.Dir = repoPath
+		cmd.Run()
+
+		profile := config.Profile{
+			GitName:     "Test User",
+			Email:       "test@example.com",
+			SigningKey:  "KEY123",
+			SignCommits: true,
+		}
+		AssignLocal(repoPath, profile)
+
+		// Delete with --all
+		if err := DeleteLocal(repoPath, true); err != nil {
+			t.Fatalf("DeleteLocal failed: %v", err)
+		}
+
+		data, _ := os.ReadFile(filepath.Join(repoPath, ".git", "config"))
+		content := string(data)
+
+		if strings.Contains(content, "name = Test User") {
+			t.Error("user.name should have been removed")
+		}
+		if strings.Contains(content, "email = test@example.com") {
+			t.Error("user.email should have been removed")
+		}
+		if strings.Contains(content, "signingkey") {
+			t.Error("signingkey should have been removed")
+		}
+		if strings.Contains(content, "gpgsign") {
+			t.Error("gpgsign should have been removed")
+		}
+	})
+
+	t.Run("preserves non-user sections", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		repoPath := filepath.Join(tmpDir, "test-repo")
+		os.MkdirAll(repoPath, 0755)
+
+		cmd := exec.Command("git", "init")
+		cmd.Dir = repoPath
+		cmd.Run()
+
+		AssignLocal(repoPath, config.Profile{GitName: "Test", Email: "t@t.com"})
+
+		if err := DeleteLocal(repoPath, false); err != nil {
+			t.Fatalf("DeleteLocal failed: %v", err)
+		}
+
+		data, _ := os.ReadFile(filepath.Join(repoPath, ".git", "config"))
+		content := string(data)
+
+		// Core section should still exist
+		if !strings.Contains(content, "[core]") {
+			t.Error("[core] section should be preserved")
+		}
+	})
+
+	t.Run("error for non-git repo", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		err := DeleteLocal(tmpDir, false)
+		if err == nil {
+			t.Error("Expected error for non-git directory")
+		}
+	})
+}
