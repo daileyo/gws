@@ -296,6 +296,95 @@ func TestListProfiles(t *testing.T) {
 	_ = detected
 }
 
+func TestMatchProfileByUser(t *testing.T) {
+	profiles := []config.Profile{
+		{Name: "work", GitName: "John Work", Email: "john@company.com"},
+		{Name: "personal", GitName: "John Personal", Email: "john@personal.com"},
+	}
+
+	tests := []struct {
+		name      string
+		userName  string
+		email     string
+		profiles  []config.Profile
+		wantMatch bool
+		wantName  string
+	}{
+		{
+			name:      "exact email match",
+			userName:  "John Work",
+			email:     "john@company.com",
+			profiles:  profiles,
+			wantMatch: true,
+			wantName:  "work",
+		},
+		{
+			name:      "email match with different name",
+			userName:  "Different Name",
+			email:     "john@company.com",
+			profiles:  profiles,
+			wantMatch: true,
+			wantName:  "work",
+		},
+		{
+			name:      "case-insensitive email match",
+			userName:  "",
+			email:     "John@Company.COM",
+			profiles:  profiles,
+			wantMatch: true,
+			wantName:  "work",
+		},
+		{
+			name:      "name match when no email",
+			userName:  "John Personal",
+			email:     "",
+			profiles:  profiles,
+			wantMatch: true,
+			wantName:  "personal",
+		},
+		{
+			name:      "no match",
+			userName:  "Unknown User",
+			email:     "unknown@example.com",
+			profiles:  profiles,
+			wantMatch: false,
+		},
+		{
+			name:      "empty profiles list",
+			userName:  "John Work",
+			email:     "john@company.com",
+			profiles:  []config.Profile{},
+			wantMatch: false,
+		},
+		{
+			name:      "nil profiles",
+			userName:  "John Work",
+			email:     "john@company.com",
+			profiles:  nil,
+			wantMatch: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := MatchProfileByUser(tt.profiles, tt.userName, tt.email)
+			if tt.wantMatch {
+				if result == nil {
+					t.Error("Expected a match, got nil")
+					return
+				}
+				if result.Name != tt.wantName {
+					t.Errorf("Expected profile name '%s', got '%s'", tt.wantName, result.Name)
+				}
+			} else {
+				if result != nil {
+					t.Errorf("Expected no match, got profile '%s'", result.Name)
+				}
+			}
+		})
+	}
+}
+
 // Helper function
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsString(s, substr))

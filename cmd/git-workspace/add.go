@@ -76,9 +76,9 @@ func runAdd(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read repository metadata: %w", err)
 	}
 
-	// Detect git user configuration
+	// Detect git user configuration and auto-link to profiles
 	singleRepo := []config.Repository{*newRepo}
-	detectUserForRepos(singleRepo)
+	detectUserForRepos(singleRepo, cfg.Profiles)
 	*newRepo = singleRepo[0]
 
 	// Create symlink in workspace if the repo is outside the workspace directory
@@ -168,8 +168,8 @@ func runAddRecursive() error {
 		return nil
 	}
 
-	// Detect git user configuration for new repos
-	detectUserForRepos(newRepos)
+	// Detect git user configuration and auto-link to profiles
+	detectUserForRepos(newRepos, cfg.Profiles)
 
 	// Save updated config
 	cfg.Repositories = append(cfg.Repositories, newRepos...)

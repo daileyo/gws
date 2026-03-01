@@ -57,7 +57,7 @@ func runRefresh(_ *cobra.Command, _ []string) error {
 
 	// Detect git user configuration
 	fmt.Println("Detecting git user configuration...")
-	userDetectedCount := detectUserForRepos(result.Repositories)
+	userDetectedCount := detectUserForRepos(result.Repositories, cfg.Profiles)
 
 	// Update configuration
 	cfg.Repositories = result.Repositories
