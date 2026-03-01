@@ -46,28 +46,18 @@ func runRefresh(_ *cobra.Command, _ []string) error {
 		oldRepoMap[repo.Path] = repo
 	}
 
-	// Merge tags from old repos to new repos and detect user configuration
-	fmt.Println("Detecting git user configuration...")
-	userDetectedCount := 0
+	// Merge tags from old repos to new repos
 	for i := range result.Repositories {
 		newRepo := &result.Repositories[i]
 		if oldRepo, exists := oldRepoMap[newRepo.Path]; exists {
 			// Preserve tags from old repo
 			newRepo.Tags = oldRepo.Tags
 		}
-
-		// Detect git user configuration for this repository
-		userCfg, err := git.GetUserConfig(newRepo.Path)
-		if err == nil && userCfg != nil {
-			newRepo.User = userCfg.Name
-			newRepo.Email = userCfg.Email
-			newRepo.SigningEnabled = userCfg.SignCommits
-			newRepo.UserSource = userCfg.Source
-			if userCfg.Name != "" || userCfg.Email != "" {
-				userDetectedCount++
-			}
-		}
 	}
+
+	// Detect git user configuration
+	fmt.Println("Detecting git user configuration...")
+	userDetectedCount := detectUserForRepos(result.Repositories)
 
 	// Update configuration
 	cfg.Repositories = result.Repositories

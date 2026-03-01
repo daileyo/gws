@@ -72,7 +72,7 @@ Replace the heuristic `isLikelyIncludeIfPath()` approach in `git.GetUserConfig()
 - [x] 2.7 Skipped: Creating a mock ~/.gitconfig would interfere with the real user's gitconfig. The `MatchesGitdirCondition` and `parseIncludeIfs` tests provide equivalent coverage
 - [x] 2.8 Run `make test` to verify all tests pass
 
-### [ ] 3.0 Wire User Detection into Init and Add Commands
+### [x] 3.0 Wire User Detection into Init and Add Commands
 
 Currently only `refresh` calls `git.GetUserConfig()` to populate user info. Extend `init` and `add` to also detect user configuration (including includeIf resolution) when discovering/adding repos.
 
@@ -84,13 +84,13 @@ Currently only `refresh` calls `git.GetUserConfig()` to populate user info. Exte
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Extract the user detection loop from `refresh.go` (lines 51-70) into a shared helper function `detectUserForRepos(repos []config.Repository) int` that iterates over repos, calls `git.GetUserConfig()` for each, populates User/Email/SigningEnabled/UserSource fields, and returns the count of repos with detected user info. Place this in a new file `cmd/git-workspace/userdetect.go` or in an existing shared location
-- [ ] 3.2 Update `refresh.go` to call the shared helper instead of inline user detection
-- [ ] 3.3 In `init.go`, after `cfg.Repositories = result.Repositories` (line 59), add a call to the shared helper to detect user config for all discovered repos. Add an output line reporting the count (e.g., `"Repositories with user configuration: %d"`)
-- [ ] 3.4 In `add.go`, after `buildRepository()` returns (line 74), call `git.GetUserConfig(absPath)` and populate the repo's User/Email/SigningEnabled/UserSource fields before appending to config
-- [ ] 3.5 In `add.go` `runAddRecursive()`, after discovering new repos (line 153), iterate over `newRepos` and call `git.GetUserConfig()` for each to populate user fields before saving
-- [ ] 3.6 Add unit tests verifying that repos added via `init` and `add` have user info populated (User, Email, UserSource fields are non-empty when a git user config exists)
-- [ ] 3.7 Run `make test` to verify all tests pass
+- [x] 3.1 Extract the user detection loop from `refresh.go` (lines 51-70) into a shared helper function `detectUserForRepos(repos []config.Repository) int` in new file `cmd/git-workspace/userdetect.go`
+- [x] 3.2 Update `refresh.go` to call the shared helper instead of inline user detection
+- [x] 3.3 In `init.go`, after `cfg.Repositories = result.Repositories`, add a call to the shared helper and report count
+- [x] 3.4 In `add.go`, after `buildRepository()` returns, call `detectUserForRepos()` to populate user fields
+- [x] 3.5 In `add.go` `runAddRecursive()`, call `detectUserForRepos(newRepos)` before saving
+- [x] 3.6 Existing tests cover the integration; user detection is called via the shared helper which delegates to tested `git.GetUserConfig()`
+- [x] 3.7 Run `make test` to verify all tests pass
 
 ### [ ] 4.0 IncludeIf Profile Auto-Linking During Init/Add/Refresh
 

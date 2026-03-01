@@ -58,12 +58,18 @@ func runInit(_ *cobra.Command, _ []string) error {
 	cfg := config.New(absPath)
 	cfg.Repositories = result.Repositories
 
+	// Detect git user configuration for discovered repos
+	userDetectedCount := detectUserForRepos(cfg.Repositories)
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}
 
 	fmt.Printf("Initialized workspace at: %s\n", absPath)
 	fmt.Printf("Found %d %s.\n", result.Count, pluralize(result.Count, "repository", "repositories"))
+	if userDetectedCount > 0 {
+		fmt.Printf("Repositories with user configuration: %d\n", userDetectedCount)
+	}
 
 	return nil
 }
