@@ -86,6 +86,42 @@ func GetUserConfig(repoPath string) (*UserConfig, error) {
 	return userConfig, nil
 }
 
+// GetNonLocalUserConfig reads the git user configuration for a repository,
+// skipping the local .git/config. This returns the underlying global or
+// includeIf configuration, which is used when local config should not be persisted.
+func GetNonLocalUserConfig(repoPath string) (*UserConfig, error) {
+	userConfig := &UserConfig{
+		Source: config.UserSourceUnknown,
+	}
+
+	// Try global config
+	globalCfg, err := loadGlobalConfig()
+	if err == nil && globalCfg != nil {
+		userConfig.Name = globalCfg.Name
+		userConfig.Email = globalCfg.Email
+		userConfig.SigningKey = globalCfg.SigningKey
+		userConfig.SignCommits = globalCfg.SignCommits
+		userConfig.Source = config.UserSourceGlobal
+	}
+
+	// Check if an includeIf directive applies
+	if userConfig.Source == config.UserSourceGlobal {
+		if includeIfCfg, matched := checkIncludeIfMatch(repoPath); matched && includeIfCfg != nil {
+			userConfig.Name = includeIfCfg.Name
+			userConfig.Email = includeIfCfg.Email
+			if includeIfCfg.SigningKey != "" {
+				userConfig.SigningKey = includeIfCfg.SigningKey
+			}
+			if includeIfCfg.SignCommits {
+				userConfig.SignCommits = includeIfCfg.SignCommits
+			}
+			userConfig.Source = config.UserSourceIncludeIf
+		}
+	}
+
+	return userConfig, nil
+}
+
 // GlobalUserConfig represents user config from global gitconfig
 type GlobalUserConfig struct {
 	Name        string

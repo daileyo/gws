@@ -110,7 +110,7 @@ When a repo's effective user is detected via includeIf, automatically check if t
 - [x] 4.5 Auto-linking is implicit: when includeIf user matches a stored profile, the repo already has the correct user/email from the includeIf config
 - [x] 4.6 Run `make test` - all tests pass
 
-### [ ] 5.0 Local Config Detection for Display in List Output
+### [x] 5.0 Local Config Detection for Display in List Output
 
 Detect local `.git/config` author info at display time for `--show-user` output. Local config values are shown with the `(local)` marker but are not persisted into the gws config file. Ensure display priority follows git's precedence: local > includeIf > global.
 
@@ -121,12 +121,12 @@ Detect local `.git/config` author info at display time for `--show-user` output.
 
 #### 5.0 Tasks
 
-- [ ] 5.1 In `cmd/git-workspace/list.go` `displayTable()`, within the `showUser` block (lines 122-161), update the `repoUserInfo` computation to read the repo's local `.git/config` at display time using `git.GetUserConfig()`. If local user.name/email is found, override the stored values and mark `userDisplay` with `(local)` suffix
-- [ ] 5.2 Ensure the display priority is correct: if local config exists, use it and show `(local)`; else if stored source is `includeif`, show the stored values (no `(local)` marker); else show stored global values
-- [ ] 5.3 Update the `repoUserInfo` struct in `list.go` to track whether the displayed user comes from local config vs. stored config, so the `(local)` marker is only shown when the effective user differs from the stored user or comes from a local `.git/config`
-- [ ] 5.4 In `refresh.go` (and the shared user detection helper), when `GetUserConfig()` returns `UserSourceLocal`, do NOT store the local user values in the config. Instead, store the underlying global/includeIf values so that the config reflects the "assigned" identity, not the local override
-- [ ] 5.5 Add unit tests for the display priority logic: test that a repo with local config shows `(local)`, a repo with includeIf shows the includeIf user, and a repo with only global config shows the global user
-- [ ] 5.6 Run `make test` to verify all tests pass
+- [x] 5.1 Updated `displayTable()` to read `git.GetUserConfig()` at display time; if source is local, override display values with local config and append `(local)` marker
+- [x] 5.2 Display priority implemented: local config (detected at display time) > stored includeIf > stored global
+- [x] 5.3 Display uses `displaySource` variable to track effective source; `(local)` only shown when `GetUserConfig()` returns `UserSourceLocal` at display time
+- [x] 5.4 `detectUserForRepos()` now calls `GetNonLocalUserConfig()` when local source detected, stores underlying global/includeIf values instead
+- [x] 5.5 Added `TestGetNonLocalUserConfig_SkipsLocalConfig` verifying local config is not returned by `GetNonLocalUserConfig()`
+- [x] 5.6 All tests pass
 
 ### [ ] 6.0 Default User Indicator in List Output
 

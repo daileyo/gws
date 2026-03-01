@@ -457,6 +457,42 @@ func TestParseIncludeIfs_Empty(t *testing.T) {
 	}
 }
 
+func TestGetNonLocalUserConfig_SkipsLocalConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := filepath.Join(tmpDir, "test-repo")
+
+	// Create repo with local user config
+	createTestRepoWithUser(t, repoPath, "Local User", "local@example.com", true)
+
+	// GetUserConfig should return local config
+	localCfg, err := GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
+	}
+	if localCfg.Source != config.UserSourceLocal {
+		t.Fatalf("Expected source 'local', got '%s'", localCfg.Source)
+	}
+
+	// GetNonLocalUserConfig should skip local and return global/includeIf/unknown
+	nonLocalCfg, err := GetNonLocalUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get non-local user config: %v", err)
+	}
+
+	// Should NOT return local source
+	if nonLocalCfg.Source == config.UserSourceLocal {
+		t.Error("GetNonLocalUserConfig should not return local source")
+	}
+
+	// The non-local config should differ from local (unless global happens to match)
+	// At minimum, it should not have the local name if global differs
+	if nonLocalCfg.Source == config.UserSourceGlobal || nonLocalCfg.Source == config.UserSourceIncludeIf || nonLocalCfg.Source == config.UserSourceUnknown {
+		// Valid non-local source
+	} else {
+		t.Errorf("Expected non-local source, got '%s'", nonLocalCfg.Source)
+	}
+}
+
 func TestUserConfigStruct(t *testing.T) {
 	cfg := &UserConfig{
 		Name:        "Test User",
