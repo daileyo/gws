@@ -2,11 +2,184 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/git"
+	"github.com/daileyo/gws/internal/user"
 )
 
+// resolveProfile resolves the target profile from args and inline flags.
+// If a profile name is provided, it looks up stored then auto-detected profiles.
+// If inline --git-name/--git-email are provided, they override the profile values.
+// Returns an error if neither a profile name nor inline email is provided.
+func resolveProfile(cfg *config.Config, args []string) (config.Profile, error) {
+	var profile config.Profile
+	hasProfileName := false
+
+	// Check for profile name in positional args
+	// Args layout: [repo-identifier] [profile-name] or just [profile-name] when using --tag
+	profileName := ""
+	if len(filterTags) > 0 {
+		// With --tag, first arg is profile name (no repo identifier needed)
+		if len(args) > 0 {
+			profileName = args[0]
+		}
+	} else {
+		// Without --tag, second arg is profile name (first is repo identifier)
+		if len(args) > 1 {
+			profileName = args[1]
+		}
+	}
+
+	if profileName != "" {
+		// Look up stored profile first
+		p, err := user.GetProfile(cfg, profileName)
+		if err != nil {
+			// Try auto-detected profiles
+			detected, detectErr := user.DetectProfiles()
+			if detectErr == nil {
+				for i := range detected {
+					if strings.EqualFold(detected[i].Name, profileName) {
+						p = &detected[i]
+						break
+					}
+				}
+			}
+			if p == nil {
+				return profile, fmt.Errorf("profile '%s' not found", profileName)
+			}
+		}
+		profile = *p
+		hasProfileName = true
+	}
+
+	// Apply inline overrides
+	if flagInlineName != "" {
+		profile.GitName = flagInlineName
+	}
+	if flagInlineEmail != "" {
+		profile.Email = flagInlineEmail
+	}
+
+	// Validate we have enough info
+	if !hasProfileName && flagInlineEmail == "" {
+		return profile, fmt.Errorf("provide a profile name or --git-email (and optionally --git-name)")
+	}
+
+	// If only inline values with no git name, use email prefix as name
+	if profile.GitName == "" && profile.Email != "" {
+		parts := strings.SplitN(profile.Email, "@", 2)
+		profile.GitName = parts[0]
+	}
+
+	return profile, nil
+}
+
 // runUserUpdate handles the --user --update/-u flag logic
-func runUserUpdate(_ *cobra.Command, _ []string) error {
-	return fmt.Errorf("not yet implemented")
+func runUserUpdate(_ *cobra.Command, args []string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	// Resolve target profile
+	profile, err := resolveProfile(cfg, args)
+	if err != nil {
+		return err
+	}
+
+	// Find target repositories
+	var repos []*config.Repository
+	if len(filterTags) > 0 {
+		// Tag-based batch mode (Task 4.0 will fully implement)
+		return fmt.Errorf("tag-based batch update not yet implemented")
+	}
+
+	// Single/multi repo by identifier
+	if len(args) == 0 {
+		return fmt.Errorf("provide a repository name or path")
+	}
+	repoIdentifier := args[0]
+	repos = findRepositories(cfg, repoIdentifier)
+	if len(repos) == 0 {
+		return fmt.Errorf("no repositories found matching: %s", repoIdentifier)
+	}
+
+	// Process each matching repo
+	updatedCount := 0
+	for _, repo := range repos {
+		// Capture current config for comparison
+		var oldName, oldEmail string
+		oldCfg, _ := git.GetUserConfig(repo.Path)
+		if oldCfg != nil {
+			oldName = oldCfg.Name
+			oldEmail = oldCfg.Email
+		}
+
+		// Apply the profile to repo's local .git/config
+		if err := user.AssignLocal(repo.Path, profile); err != nil {
+			if !flagQuiet {
+				fmt.Fprintf(os.Stderr, "  %s: failed to update: %s\n", repo.Name, err)
+			}
+			continue
+		}
+
+		// Update config.json fields
+		repo.User = profile.GitName
+		repo.Email = profile.Email
+		repo.SigningEnabled = profile.SignCommits
+		repo.UserSource = config.UserSourceLocal
+
+		updatedCount++
+
+		// Output
+		if flagQuiet {
+			continue
+		}
+
+		if flagVerbose {
+			fmt.Printf("%s:\n", repo.Name)
+			fmt.Printf("  user.name:  %q → %q\n", oldName, profile.GitName)
+			fmt.Printf("  user.email: %q → %q\n", oldEmail, profile.Email)
+			if profile.SigningKey != "" {
+				fmt.Printf("  signingkey: %s\n", profile.SigningKey)
+			}
+			if profile.SignCommits {
+				fmt.Printf("  gpgsign:    true\n")
+			}
+			fmt.Printf("  path:       %s\n", repo.Path)
+		} else {
+			// Moderate output
+			var changes []string
+			if oldName != profile.GitName {
+				changes = append(changes, fmt.Sprintf("user.name %q → %q", oldName, profile.GitName))
+			}
+			if oldEmail != profile.Email {
+				changes = append(changes, fmt.Sprintf("user.email %q → %q", oldEmail, profile.Email))
+			}
+			if len(changes) > 0 {
+				fmt.Printf("%s: %s\n", repo.Name, strings.Join(changes, ", "))
+			} else {
+				fmt.Printf("%s: no changes (already configured)\n", repo.Name)
+			}
+		}
+	}
+
+	// Save config.json
+	if updatedCount > 0 {
+		if err := config.Save(cfg); err != nil {
+			return fmt.Errorf("failed to save configuration: %w", err)
+		}
+	}
+
+	// Summary for multiple repos
+	if !flagQuiet && len(repos) > 1 {
+		fmt.Printf("\nUpdated %d %s\n", updatedCount, pluralize(updatedCount, "repository", "repositories"))
+	}
+
+	return nil
 }

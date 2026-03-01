@@ -32,7 +32,7 @@
 
 ## Tasks
 
-### [~] 1.0 CLI Flag Infrastructure and Dispatch
+### [x] 1.0 CLI Flag Infrastructure and Dispatch
 
 Register the new `--user`, `--update/-u`, `--delete/-D`, `--all`, `--verbose` flags on the root command. Add validation logic (mutual exclusivity, flag dependencies) and dispatch skeleton. Update the help template to display the new flags in a grouped section. Extend `--quiet` to work with `--user` operations (it already exists but is restricted to navigation).
 
@@ -54,7 +54,7 @@ Register the new `--user`, `--update/-u`, `--delete/-D`, `--all`, `--verbose` fl
 - [x] 1.7 Update the help template in `init()`: add a new "User Operations" section using a new `cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "name", "email"}))`. Add the section to `SetUsageTemplate` between "Commands" and "List Filters".
 - [x] 1.8 Write tests in `cmd/git-workspace/main_test.go` (or a new test file) that verify: `--update` without `--user` returns error; `--delete` without `--user` returns error; `--user --update --delete` returns error; `--all` without `--delete` returns error; `--user` is mutually exclusive with other command flags.
 
-### [ ] 2.0 Single Repository User Update (`--user -u`)
+### [~] 2.0 Single Repository User Update (`--user -u`)
 
 Implement the `runUserUpdate()` handler that sets local git user config on one or more matching repositories. Support both named profiles and inline `--name`/`--email` values (with inline taking precedence). Display moderate output by default, with `--verbose` for full detail and `--quiet` for silent operation. Update `config.json` after successful operations.
 
@@ -67,11 +67,11 @@ Implement the `runUserUpdate()` handler that sets local git user config on one o
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Implement `resolveProfile()` in `userupdate.go`: given args and inline flags, resolve the target profile. If a profile name is provided as a positional arg, look it up via `user.GetProfile()` then fall back to auto-detected profiles via `user.DetectProfiles()`. If inline `--name`/`--email` are provided, create an ad-hoc `config.Profile` from them. If both profile name and inline values are provided, start from the named profile and override with inline values. Return error if neither profile name nor inline email is provided.
-- [ ] 2.2 Implement `runUserUpdate()` in `userupdate.go`: validate args (need at least a repo identifier unless `--tag` is used — tag-based batch is Task 4.0), call `findRepositories()` to match repos, call `resolveProfile()` to get the target profile, then for each matched repo call `user.AssignLocal(repo.Path, profile)` and update the repo's config.json fields (User, Email, SigningEnabled, UserSource = "local").
-- [ ] 2.3 Implement output formatting in `runUserUpdate()`: before calling `AssignLocal`, capture current config via `git.GetUserConfig()`. After update, compare old vs new. In default (moderate) mode, print `<repo-name>: user.name "old" → "new", user.email "old" → "new"`. In `--verbose` mode, print full before/after including signing config. In `--quiet` mode, print nothing. When multiple repos are updated, print a summary count at the end (e.g., `Updated 3 repositories`).
-- [ ] 2.4 Add `config.Save(cfg)` call after all repos are updated to persist config.json changes.
-- [ ] 2.5 Write tests in `userupdate_test.go`: test profile resolution (named profile, inline values, profile + inline override); test single repo update writes to `.git/config`; test multiple repo match updates all; test `--quiet` suppresses output; test error when no profile or inline values provided; test error when no repos match identifier.
+- [x] 2.1 Implement `resolveProfile()` in `userupdate.go`: given args and inline flags, resolve the target profile. If a profile name is provided as a positional arg, look it up via `user.GetProfile()` then fall back to auto-detected profiles via `user.DetectProfiles()`. If inline `--name`/`--email` are provided, create an ad-hoc `config.Profile` from them. If both profile name and inline values are provided, start from the named profile and override with inline values. Return error if neither profile name nor inline email is provided.
+- [x] 2.2 Implement `runUserUpdate()` in `userupdate.go`: validate args (need at least a repo identifier unless `--tag` is used — tag-based batch is Task 4.0), call `findRepositories()` to match repos, call `resolveProfile()` to get the target profile, then for each matched repo call `user.AssignLocal(repo.Path, profile)` and update the repo's config.json fields (User, Email, SigningEnabled, UserSource = "local").
+- [x] 2.3 Implement output formatting in `runUserUpdate()`: before calling `AssignLocal`, capture current config via `git.GetUserConfig()`. After update, compare old vs new. In default (moderate) mode, print `<repo-name>: user.name "old" → "new", user.email "old" → "new"`. In `--verbose` mode, print full before/after including signing config. In `--quiet` mode, print nothing. When multiple repos are updated, print a summary count at the end (e.g., `Updated 3 repositories`).
+- [x] 2.4 Add `config.Save(cfg)` call after all repos are updated to persist config.json changes.
+- [x] 2.5 Write tests in `userupdate_test.go`: test profile resolution (named profile, inline values, profile + inline override); test single repo update writes to `.git/config`; test multiple repo match updates all; test `--quiet` suppresses output; test error when no profile or inline values provided; test error when no repos match identifier.
 
 ### [ ] 3.0 Single Repository User Delete (`--user --delete`)
 

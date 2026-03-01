@@ -51,8 +51,10 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "git-workspace",
-	Short: "Git Workspace - Discover, organize, and navigate git repositories",
+	Use:              "git-workspace",
+	Short:            "Git Workspace - Discover, organize, and navigate git repositories",
+	Args:             cobra.ArbitraryArgs,
+	TraverseChildren: true,
 	Long: `git-workspace is a lightweight, cross-platform CLI tool for discovering, organizing,
 and navigating git repositories on your local system. It provides an intelligent
 repository index and navigation layer with powerful search and filtering capabilities.
