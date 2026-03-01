@@ -331,28 +331,129 @@ func TestExtractValue(t *testing.T) {
 	}
 }
 
-func TestIsLikelyIncludeIfPath(t *testing.T) {
+func TestMatchesGitdirCondition(t *testing.T) {
+	home, _ := os.UserHomeDir()
+
 	tests := []struct {
-		path     string
-		expected bool
+		name      string
+		repoPath  string
+		condition string
+		expected  bool
 	}{
-		{"/home/user/work/project", true},
-		{"/home/user/personal/myrepo", true},
-		{"/home/user/gws/ado/repo", true},
-		{"/home/user/gws/gh/repo", true},
-		{"/home/user/github/repo", true},
-		{"/home/user/gitlab/repo", true},
-		{"/home/user/random/repo", false},
-		{"/tmp/test-repo", false},
+		{
+			name:      "exact directory match with trailing slash",
+			repoPath:  "/home/user/work/my-project",
+			condition: "gitdir:/home/user/work/",
+			expected:  true,
+		},
+		{
+			name:      "nested repo under matching directory",
+			repoPath:  "/home/user/work/team/my-project",
+			condition: "gitdir:/home/user/work/",
+			expected:  true,
+		},
+		{
+			name:      "trailing ** glob",
+			repoPath:  "/home/user/work/deep/nested/repo",
+			condition: "gitdir:/home/user/work/**",
+			expected:  true,
+		},
+		{
+			name:      "non-matching path",
+			repoPath:  "/home/user/personal/my-project",
+			condition: "gitdir:/home/user/work/",
+			expected:  false,
+		},
+		{
+			name:      "tilde expansion",
+			repoPath:  filepath.Join(home, "work", "my-project"),
+			condition: "gitdir:~/work/",
+			expected:  true,
+		},
+		{
+			name:      "tilde expansion non-match",
+			repoPath:  filepath.Join(home, "personal", "my-project"),
+			condition: "gitdir:~/work/",
+			expected:  false,
+		},
+		{
+			name:      "case-insensitive gitdir/i match",
+			repoPath:  "/home/user/Work/my-project",
+			condition: "gitdir/i:/home/user/work/",
+			expected:  true,
+		},
+		{
+			name:      "case-sensitive gitdir does not match different case",
+			repoPath:  "/home/user/Work/my-project",
+			condition: "gitdir:/home/user/work/",
+			expected:  false,
+		},
+		{
+			name:      "not a gitdir condition",
+			repoPath:  "/home/user/work/repo",
+			condition: "onbranch:main",
+			expected:  false,
+		},
+		{
+			name:      "directory without trailing slash",
+			repoPath:  "/home/user/work/my-project",
+			condition: "gitdir:/home/user/work",
+			expected:  true,
+		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.path, func(t *testing.T) {
-			result := isLikelyIncludeIfPath(tt.path)
+		t.Run(tt.name, func(t *testing.T) {
+			result := MatchesGitdirCondition(tt.repoPath, tt.condition)
 			if result != tt.expected {
-				t.Errorf("Expected %v for path '%s', got %v", tt.expected, tt.path, result)
+				t.Errorf("MatchesGitdirCondition(%q, %q) = %v, want %v",
+					tt.repoPath, tt.condition, result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestParseIncludeIfs(t *testing.T) {
+	home, _ := os.UserHomeDir()
+
+	content := `[user]
+	name = Default User
+	email = default@example.com
+[includeIf "gitdir:~/work/"]
+	path = ~/.gitconfig-work
+[includeIf "gitdir:~/personal/"]
+	path = ~/.gitconfig-personal
+[core]
+	editor = vim
+`
+	entries := parseIncludeIfs(content, home)
+
+	if len(entries) != 2 {
+		t.Fatalf("Expected 2 includeIf entries, got %d", len(entries))
+	}
+
+	if entries[0].condition != "gitdir:~/work/" {
+		t.Errorf("Expected condition 'gitdir:~/work/', got '%s'", entries[0].condition)
+	}
+	expectedPath := filepath.Clean(filepath.Join(home, ".gitconfig-work"))
+	if entries[0].path != expectedPath {
+		t.Errorf("Expected path '%s', got '%s'", expectedPath, entries[0].path)
+	}
+
+	if entries[1].condition != "gitdir:~/personal/" {
+		t.Errorf("Expected condition 'gitdir:~/personal/', got '%s'", entries[1].condition)
+	}
+}
+
+func TestParseIncludeIfs_Empty(t *testing.T) {
+	content := `[user]
+	name = Default User
+	email = default@example.com
+`
+	entries := parseIncludeIfs(content, "/home/test")
+
+	if len(entries) != 0 {
+		t.Errorf("Expected 0 includeIf entries, got %d", len(entries))
 	}
 }
 

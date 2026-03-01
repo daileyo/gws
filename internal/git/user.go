@@ -68,10 +68,17 @@ func GetUserConfig(repoPath string) (*UserConfig, error) {
 		}
 	}
 
-	// If still no user found, check if this might be an includeIf scenario
-	// by checking if the path matches common patterns
+	// If using global config, check if an includeIf directive applies to this repo
 	if userConfig.Source == config.UserSourceGlobal {
-		if isLikelyIncludeIfPath(repoPath) {
+		if includeIfCfg, matched := checkIncludeIfMatch(repoPath); matched && includeIfCfg != nil {
+			userConfig.Name = includeIfCfg.Name
+			userConfig.Email = includeIfCfg.Email
+			if includeIfCfg.SigningKey != "" {
+				userConfig.SigningKey = includeIfCfg.SigningKey
+			}
+			if includeIfCfg.SignCommits {
+				userConfig.SignCommits = includeIfCfg.SignCommits
+			}
 			userConfig.Source = config.UserSourceIncludeIf
 		}
 	}
@@ -229,31 +236,162 @@ func getSigningFromRawConfig(repoPath string) (signingKey string, signCommits bo
 	return cfg.SigningKey, cfg.SignCommits
 }
 
-// isLikelyIncludeIfPath checks if the repo path matches common includeIf patterns
-// This is a heuristic - we look for paths that contain directory patterns
-// commonly used with includeIf (e.g., ~/work/, ~/personal/, etc.)
-func isLikelyIncludeIfPath(repoPath string) bool {
-	// Common directory patterns that suggest includeIf usage
-	patterns := []string{
-		"/work/",
-		"/personal/",
-		"/ado/",
-		"/gh/",
-		"/github/",
-		"/gitlab/",
-		"/bitbucket/",
-		"/horizon/",
-		"/gws/",
+// MatchesGitdirCondition evaluates whether a repo path matches a gitdir includeIf
+// condition string (e.g., "gitdir:~/work/" matches "/home/user/work/my-repo").
+// Supports gitdir: and gitdir/i: (case-insensitive) prefixes, trailing ** globs,
+// and ~/ home directory expansion.
+func MatchesGitdirCondition(repoPath string, condition string) bool {
+	// Extract the prefix and pattern
+	var pattern string
+	caseInsensitive := false
+
+	lower := strings.ToLower(condition)
+	if strings.HasPrefix(lower, "gitdir/i:") {
+		pattern = condition[len("gitdir/i:"):]
+		caseInsensitive = true
+	} else if strings.HasPrefix(lower, "gitdir:") {
+		pattern = condition[len("gitdir:"):]
+	} else {
+		return false // Not a gitdir condition
 	}
 
-	lowerPath := strings.ToLower(repoPath)
-	for _, pattern := range patterns {
-		if strings.Contains(lowerPath, pattern) {
-			return true
+	// Expand ~ in pattern
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+	if strings.HasPrefix(pattern, "~/") {
+		pattern = filepath.Join(home, pattern[2:])
+	}
+
+	// Clean and normalize
+	pattern = filepath.Clean(pattern)
+	repoPathClean := filepath.Clean(repoPath)
+
+	if caseInsensitive {
+		pattern = strings.ToLower(pattern)
+		repoPathClean = strings.ToLower(repoPathClean)
+	}
+
+	// Remove trailing ** if present (means "match anything below this dir")
+	pattern = strings.TrimSuffix(pattern, "/**")
+	pattern = strings.TrimSuffix(pattern, "**")
+
+	// Ensure pattern ends with separator for directory matching
+	if !strings.HasSuffix(pattern, string(filepath.Separator)) {
+		pattern += string(filepath.Separator)
+	}
+
+	// Check if repo path starts with the pattern directory
+	if !strings.HasSuffix(repoPathClean, string(filepath.Separator)) {
+		repoPathClean += string(filepath.Separator)
+	}
+
+	return strings.HasPrefix(repoPathClean, pattern)
+}
+
+// includeIfEntry represents a parsed includeIf directive from gitconfig
+type includeIfEntry struct {
+	condition string
+	path      string
+}
+
+// checkIncludeIfMatch checks if any includeIf directive in ~/.gitconfig matches
+// the given repo path. Returns the user config from the matched included config
+// and whether a match was found.
+func checkIncludeIfMatch(repoPath string) (*UserConfig, bool) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, false
+	}
+
+	gitconfigPath := filepath.Join(home, ".gitconfig")
+	data, err := os.ReadFile(gitconfigPath)
+	if err != nil {
+		return nil, false
+	}
+
+	entries := parseIncludeIfs(string(data), home)
+	for _, entry := range entries {
+		if !MatchesGitdirCondition(repoPath, entry.condition) {
+			continue
+		}
+
+		// Read and parse the included config file
+		includedData, err := os.ReadFile(entry.path)
+		if err != nil {
+			continue
+		}
+
+		includedCfg := parseGitConfig(string(includedData))
+		if includedCfg.Name == "" && includedCfg.Email == "" {
+			continue
+		}
+
+		return &UserConfig{
+			Name:        includedCfg.Name,
+			Email:       includedCfg.Email,
+			SigningKey:  includedCfg.SigningKey,
+			SignCommits: includedCfg.SignCommits,
+			Source:      config.UserSourceIncludeIf,
+		}, true
+	}
+
+	return nil, false
+}
+
+// parseIncludeIfs extracts includeIf directives from gitconfig content
+func parseIncludeIfs(content string, home string) []includeIfEntry {
+	var entries []includeIfEntry
+	lines := strings.Split(content, "\n")
+	var currentCondition string
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
+			continue
+		}
+
+		// Check for [includeIf "condition"] section
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			sectionLine := strings.Trim(line, "[]")
+			lower := strings.ToLower(sectionLine)
+			if strings.HasPrefix(lower, "includeif ") {
+				// Extract quoted condition
+				quoted := sectionLine[10:] // Skip "includeIf "
+				currentCondition = strings.Trim(strings.TrimSpace(quoted), "\"'")
+			} else {
+				currentCondition = ""
+			}
+			continue
+		}
+
+		// If we're in an includeIf section, look for path =
+		if currentCondition != "" {
+			key, value := parseIncludeIfKeyValue(line)
+			if strings.ToLower(key) == "path" {
+				// Expand ~ in path
+				if strings.HasPrefix(value, "~/") {
+					value = filepath.Join(home, value[2:])
+				}
+				entries = append(entries, includeIfEntry{
+					condition: currentCondition,
+					path:      filepath.Clean(value),
+				})
+			}
 		}
 	}
 
-	return false
+	return entries
+}
+
+// parseIncludeIfKeyValue parses a "key = value" line for includeIf sections
+func parseIncludeIfKeyValue(line string) (string, string) {
+	parts := strings.SplitN(line, "=", 2)
+	if len(parts) != 2 {
+		return "", ""
+	}
+	return strings.TrimSpace(parts[0]), strings.Trim(strings.TrimSpace(parts[1]), "\"'")
 }
 
 // GetEffectiveUserConfig reads the effective git user for a repo by running git config
