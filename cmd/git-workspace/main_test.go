@@ -71,7 +71,7 @@ func TestCommandFlagsRegistered(t *testing.T) {
 		{"list", "l"},
 		{"init", "i"},
 		{"add-tag", "d"},
-		{"remove-tag", "u"},
+		{"remove-tag", "x"},
 		{"refresh", "r"},
 		{"print-workspace", "w"},
 		{"go", "g"},
@@ -104,6 +104,7 @@ func TestFilterFlagsRegistered(t *testing.T) {
 		{"path", "p"},
 		{"output", "o"},
 		{"status", "s"},
+		{"show-user", ""},
 	}
 
 	for _, f := range flags {

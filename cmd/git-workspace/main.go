@@ -216,7 +216,7 @@ func init() {
 	rootCmd.Flags().Lookup("add").NoOptDefVal = "."
 	rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories found in the current directory (use with --add)")
 	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
-	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "u", false, "Remove a tag from repositories (args: <repo> <tag>)")
+	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "x", false, "Remove a tag from repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")
 	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Print workspace path (for shell integration)")
 	rootCmd.Flags().StringVarP(&flagGo, "go", "g", "", "Navigate to a repository by name (prints path)")
@@ -229,7 +229,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match)")
 	rootCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 	rootCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
-	rootCmd.Flags().BoolVar(&showUser, "user", false, "Show git user info (USER, EMAIL, SIGN columns)")
+	rootCmd.Flags().BoolVar(&showUser, "show-user", false, "Show git user info (USER, EMAIL, SIGN columns)")
 
 	// Register template helpers for grouped flag display
 	flagGroup := func(names []string) func(*cobra.Command) string {
@@ -244,7 +244,7 @@ func init() {
 		}
 	}
 	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add", "add-tag", "remove-tag", "refresh", "print-workspace"}))
-	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "user"}))
+	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "show-user"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
 
 	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
@@ -297,7 +297,7 @@ Other:
 
 // hasFilterFlags checks if any filter flag has been explicitly set by the user
 func hasFilterFlags(cmd *cobra.Command) bool {
-	filterFlagNames := []string{"type", "tag", "name", "path", "status", "user"}
+	filterFlagNames := []string{"type", "tag", "name", "path", "status", "show-user"}
 	for _, name := range filterFlagNames {
 		if cmd.Flags().Changed(name) {
 			return true
