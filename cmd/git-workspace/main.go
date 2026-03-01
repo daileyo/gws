@@ -30,6 +30,13 @@ var (
 	flagPrintWorkspace bool
 	flagGo             string
 	flagQuiet          bool
+	flagUser           bool
+	flagUpdate         bool
+	flagDelete         bool
+	flagAll            bool
+	flagVerbose        bool
+	flagInlineName     string
+	flagInlineEmail    string
 )
 
 // Filter flags (for --list)
@@ -103,14 +110,43 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if flagGo != "" {
 			activeCount++
 		}
-
-		if activeCount > 1 {
-			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go)")
+		if flagUser {
+			activeCount++
 		}
 
-		// Validate filter flags require --list
-		if !flagList && hasFilterFlags(cmd) {
-			return fmt.Errorf("filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set")
+		if activeCount > 1 {
+			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go, --user)")
+		}
+
+		// Validate --user flag dependencies
+		if flagUpdate && !flagUser {
+			return fmt.Errorf("--update/-u requires --user to be set")
+		}
+		if flagDelete && !flagUser {
+			return fmt.Errorf("--delete/-D requires --user to be set")
+		}
+		if flagUser && !flagUpdate && !flagDelete {
+			return fmt.Errorf("--user requires either --update/-u or --delete/-D")
+		}
+		if flagUpdate && flagDelete {
+			return fmt.Errorf("--update and --delete are mutually exclusive")
+		}
+		if flagAll && !flagDelete {
+			return fmt.Errorf("--all requires --delete/-D to be set")
+		}
+		if (flagInlineName != "" || flagInlineEmail != "") && !flagUpdate {
+			return fmt.Errorf("--git-name and --git-email require --user --update to be set")
+		}
+		if flagVerbose && !flagUser {
+			return fmt.Errorf("--verbose requires --user to be set")
+		}
+
+		// Validate filter flags: --tag is allowed with --list or --user; other filters require --list
+		if !flagList && hasNonTagFilterFlags(cmd) {
+			return fmt.Errorf("filter flags (--type, --name, --path, --output, --status) require --list/-l to be set")
+		}
+		if !flagList && !flagUser && cmd.Flags().Changed("tag") {
+			return fmt.Errorf("--tag requires --list/-l or --user to be set")
 		}
 
 		// Validate --recursive requires --add
@@ -118,9 +154,9 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return fmt.Errorf("--recursive/-v requires --add/-a to be set")
 		}
 
-		// Validate --quiet only applies to navigation
-		if flagQuiet && flagGo == "" && len(args) == 0 {
-			return fmt.Errorf("--quiet/-q can only be used with navigation (--go or positional argument)")
+		// Validate --quiet applies to navigation and user operations
+		if flagQuiet && flagGo == "" && len(args) == 0 && !flagUser {
+			return fmt.Errorf("--quiet/-q can only be used with navigation or --user operations")
 		}
 
 		// Validate --go and positional args are not both provided
@@ -175,6 +211,13 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return runRefresh(cmd, args)
 		}
 
+		if flagUser {
+			if flagUpdate {
+				return runUserUpdate(cmd, args)
+			}
+			return runUserDelete(cmd, args)
+		}
+
 		// Navigation via --go flag
 		if flagGo != "" {
 			cfg, err := config.Load()
@@ -222,6 +265,15 @@ func init() {
 	rootCmd.Flags().StringVarP(&flagGo, "go", "g", "", "Navigate to a repository by name (prints path)")
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
 
+	// User operation flags
+	rootCmd.Flags().BoolVar(&flagUser, "user", false, "Enable user operations (requires --update or --delete)")
+	rootCmd.Flags().BoolVarP(&flagUpdate, "update", "u", false, "Update local git user config for repositories (requires --user)")
+	rootCmd.Flags().BoolVarP(&flagDelete, "delete", "D", false, "Delete local git user config from repositories (requires --user)")
+	rootCmd.Flags().BoolVar(&flagAll, "all", false, "Also remove signing config when deleting (requires --delete)")
+	rootCmd.Flags().BoolVar(&flagVerbose, "verbose", false, "Show detailed output for user operations")
+	rootCmd.Flags().StringVar(&flagInlineName, "git-name", "", "Inline git user.name for --user --update")
+	rootCmd.Flags().StringVar(&flagInlineEmail, "git-email", "", "Inline git user.email for --user --update")
+
 	// Filter flags (apply when --list is active)
 	rootCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
 	rootCmd.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
@@ -244,6 +296,7 @@ func init() {
 		}
 	}
 	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add", "add-tag", "remove-tag", "refresh", "print-workspace"}))
+	cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "git-name", "git-email"}))
 	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "show-user"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
 
@@ -283,6 +336,9 @@ Commands:
   gws completion [bash|zsh|fish|powershell]    Generate shell completion script
   gws shell-init [zsh|bash]                    Output shell integration code to eval
 
+User Operations (require --user):
+{{userFlagUsages . | trimRightSpace}}
+
 List Filters (require --list / -l):
 {{filterFlagUsages . | trimRightSpace}}
 
@@ -304,6 +360,20 @@ func hasFilterFlags(cmd *cobra.Command) bool {
 		}
 	}
 	// Check output only if it was explicitly changed from default
+	if cmd.Flags().Changed("output") {
+		return true
+	}
+	return false
+}
+
+// hasNonTagFilterFlags checks if any filter flag other than --tag has been set
+func hasNonTagFilterFlags(cmd *cobra.Command) bool {
+	nonTagFilterNames := []string{"type", "name", "path", "status", "show-user"}
+	for _, name := range nonTagFilterNames {
+		if cmd.Flags().Changed(name) {
+			return true
+		}
+	}
 	if cmd.Flags().Changed("output") {
 		return true
 	}
