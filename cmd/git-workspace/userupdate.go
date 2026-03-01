@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/filter"
 	"github.com/daileyo/gws/internal/git"
 	"github.com/daileyo/gws/internal/user"
 )
@@ -95,18 +96,30 @@ func runUserUpdate(_ *cobra.Command, args []string) error {
 	// Find target repositories
 	var repos []*config.Repository
 	if len(filterTags) > 0 {
-		// Tag-based batch mode (Task 4.0 will fully implement)
-		return fmt.Errorf("tag-based batch update not yet implemented")
-	}
-
-	// Single/multi repo by identifier
-	if len(args) == 0 {
-		return fmt.Errorf("provide a repository name or path")
-	}
-	repoIdentifier := args[0]
-	repos = findRepositories(cfg, repoIdentifier)
-	if len(repos) == 0 {
-		return fmt.Errorf("no repositories found matching: %s", repoIdentifier)
+		// Tag-based batch mode: filter repos by tag(s)
+		matched := filter.Apply(cfg.Repositories, filter.Criteria{Tags: filterTags})
+		if len(matched) == 0 {
+			return fmt.Errorf("no repositories found with tag(s): %s", strings.Join(filterTags, ", "))
+		}
+		// Convert to pointers into cfg.Repositories so in-place updates persist
+		for i := range cfg.Repositories {
+			for _, m := range matched {
+				if cfg.Repositories[i].Name == m.Name && cfg.Repositories[i].Path == m.Path {
+					repos = append(repos, &cfg.Repositories[i])
+					break
+				}
+			}
+		}
+	} else {
+		// Single/multi repo by identifier
+		if len(args) == 0 {
+			return fmt.Errorf("provide a repository name or path")
+		}
+		repoIdentifier := args[0]
+		repos = findRepositories(cfg, repoIdentifier)
+		if len(repos) == 0 {
+			return fmt.Errorf("no repositories found matching: %s", repoIdentifier)
+		}
 	}
 
 	// Process each matching repo

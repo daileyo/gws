@@ -341,6 +341,140 @@ func TestRunUserUpdate_NoArgs(t *testing.T) {
 	}
 }
 
+func TestRunUserUpdate_BatchByTag(t *testing.T) {
+	repo1Path := createTestGitRepo(t)
+	repo2Path := createTestGitRepo(t)
+	repo3Path := createTestGitRepo(t)
+
+	cfg := &config.Config{
+		Profiles: []config.Profile{
+			{Name: "work", GitName: "Work User", Email: "work@company.com"},
+		},
+		Repositories: []config.Repository{
+			{Name: "repo-a", Path: repo1Path, Tags: []string{"work"}},
+			{Name: "repo-b", Path: repo2Path, Tags: []string{"work", "backend"}},
+			{Name: "repo-c", Path: repo3Path, Tags: []string{"personal"}},
+		},
+	}
+
+	origLoad := setupTestConfig(t, cfg)
+	defer origLoad()
+
+	origQuiet := flagQuiet
+	defer func() {
+		flagQuiet = origQuiet
+		flagInlineName = ""
+		flagInlineEmail = ""
+		filterTags = []string{}
+	}()
+
+	flagQuiet = true
+	filterTags = []string{"work"}
+
+	err := runUserUpdate(nil, []string{"work"})
+	if err != nil {
+		t.Fatalf("runUserUpdate batch failed: %v", err)
+	}
+
+	// Verify tagged repos were updated
+	for _, repoPath := range []string{repo1Path, repo2Path} {
+		gitConfigPath := filepath.Join(repoPath, ".git", "config")
+		data, err := os.ReadFile(gitConfigPath)
+		if err != nil {
+			t.Fatalf("Failed to read git config for %s: %v", repoPath, err)
+		}
+		content := string(data)
+		if !strings.Contains(content, "Work User") {
+			t.Errorf("Expected user.name 'Work User' in git config for %s", repoPath)
+		}
+	}
+
+	// Verify non-tagged repo was NOT updated
+	gitConfigPath := filepath.Join(repo3Path, ".git", "config")
+	data, err := os.ReadFile(gitConfigPath)
+	if err != nil {
+		t.Fatalf("Failed to read git config: %v", err)
+	}
+	if strings.Contains(string(data), "Work User") {
+		t.Error("repo-c should not have been updated (no 'work' tag)")
+	}
+}
+
+func TestRunUserUpdate_BatchByMultipleTags(t *testing.T) {
+	repo1Path := createTestGitRepo(t)
+	repo2Path := createTestGitRepo(t)
+
+	cfg := &config.Config{
+		Profiles: []config.Profile{
+			{Name: "work", GitName: "Work User", Email: "work@company.com"},
+		},
+		Repositories: []config.Repository{
+			{Name: "repo-a", Path: repo1Path, Tags: []string{"work", "backend"}},
+			{Name: "repo-b", Path: repo2Path, Tags: []string{"work"}},
+		},
+	}
+
+	origLoad := setupTestConfig(t, cfg)
+	defer origLoad()
+
+	origQuiet := flagQuiet
+	defer func() {
+		flagQuiet = origQuiet
+		flagInlineName = ""
+		flagInlineEmail = ""
+		filterTags = []string{}
+	}()
+
+	flagQuiet = true
+	filterTags = []string{"work", "backend"} // AND logic
+
+	err := runUserUpdate(nil, []string{"work"})
+	if err != nil {
+		t.Fatalf("runUserUpdate batch failed: %v", err)
+	}
+
+	// Only repo-a has both tags
+	data1, _ := os.ReadFile(filepath.Join(repo1Path, ".git", "config"))
+	if !strings.Contains(string(data1), "Work User") {
+		t.Error("repo-a should have been updated (has both tags)")
+	}
+
+	data2, _ := os.ReadFile(filepath.Join(repo2Path, ".git", "config"))
+	if strings.Contains(string(data2), "Work User") {
+		t.Error("repo-b should not have been updated (missing 'backend' tag)")
+	}
+}
+
+func TestRunUserUpdate_BatchNoTagMatch(t *testing.T) {
+	cfg := &config.Config{
+		Profiles: []config.Profile{
+			{Name: "work", GitName: "Work User", Email: "work@company.com"},
+		},
+		Repositories: []config.Repository{
+			{Name: "repo-a", Path: "/nonexistent", Tags: []string{"personal"}},
+		},
+	}
+
+	origLoad := setupTestConfig(t, cfg)
+	defer origLoad()
+
+	defer func() {
+		flagInlineName = ""
+		flagInlineEmail = ""
+		filterTags = []string{}
+	}()
+
+	filterTags = []string{"work"}
+
+	err := runUserUpdate(nil, []string{"work"})
+	if err == nil {
+		t.Fatal("expected error for no matching tags")
+	}
+	if !strings.Contains(err.Error(), "no repositories found with tag(s)") {
+		t.Errorf("unexpected error: %s", err.Error())
+	}
+}
+
 // setupTestConfig saves a config to a temp location and patches config.Load
 // to return it. Returns a cleanup function to restore the original.
 func setupTestConfig(t *testing.T, cfg *config.Config) func() {

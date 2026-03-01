@@ -233,6 +233,120 @@ func TestRunUserDelete_ConfigJsonUpdated(t *testing.T) {
 	}
 }
 
+func TestRunUserDelete_BatchByTag(t *testing.T) {
+	repo1Path := createTestGitRepoWithUser(t, "Work User", "work@company.com")
+	repo2Path := createTestGitRepoWithUser(t, "Work User", "work@company.com")
+	repo3Path := createTestGitRepoWithUser(t, "Personal User", "personal@test.com")
+
+	cfg := &config.Config{
+		Repositories: []config.Repository{
+			{Name: "repo-a", Path: repo1Path, User: "Work User", Email: "work@company.com", UserSource: config.UserSourceLocal, Tags: []string{"work"}},
+			{Name: "repo-b", Path: repo2Path, User: "Work User", Email: "work@company.com", UserSource: config.UserSourceLocal, Tags: []string{"work", "backend"}},
+			{Name: "repo-c", Path: repo3Path, User: "Personal User", Email: "personal@test.com", UserSource: config.UserSourceLocal, Tags: []string{"personal"}},
+		},
+	}
+
+	origLoad := setupTestConfig(t, cfg)
+	defer origLoad()
+
+	origQuiet := flagQuiet
+	origAll := flagAll
+	defer func() {
+		flagQuiet = origQuiet
+		flagAll = origAll
+		filterTags = []string{}
+	}()
+
+	flagQuiet = true
+	filterTags = []string{"work"}
+
+	err := runUserDelete(nil, []string{})
+	if err != nil {
+		t.Fatalf("runUserDelete batch failed: %v", err)
+	}
+
+	// Verify tagged repos had local config removed
+	for _, repoPath := range []string{repo1Path, repo2Path} {
+		gitConfigPath := filepath.Join(repoPath, ".git", "config")
+		data, _ := os.ReadFile(gitConfigPath)
+		content := string(data)
+		if strings.Contains(content, "name = Work User") {
+			t.Errorf("Expected user.name removed from %s", repoPath)
+		}
+	}
+
+	// Verify non-tagged repo was NOT touched
+	gitConfigPath := filepath.Join(repo3Path, ".git", "config")
+	data, _ := os.ReadFile(gitConfigPath)
+	if !strings.Contains(string(data), "name = Personal User") {
+		t.Error("repo-c should still have local user config (no 'work' tag)")
+	}
+}
+
+func TestRunUserDelete_BatchNoTagMatch(t *testing.T) {
+	cfg := &config.Config{
+		Repositories: []config.Repository{
+			{Name: "repo-a", Path: "/nonexistent", Tags: []string{"personal"}, UserSource: config.UserSourceLocal},
+		},
+	}
+
+	origLoad := setupTestConfig(t, cfg)
+	defer origLoad()
+
+	origQuiet := flagQuiet
+	defer func() {
+		flagQuiet = origQuiet
+		filterTags = []string{}
+	}()
+
+	filterTags = []string{"work"}
+
+	err := runUserDelete(nil, []string{})
+	if err == nil {
+		t.Fatal("expected error for no matching tags")
+	}
+	if !strings.Contains(err.Error(), "no repositories found with tag(s)") {
+		t.Errorf("unexpected error: %s", err.Error())
+	}
+}
+
+func TestRunUserDelete_BatchQuietSuppressesOutput(t *testing.T) {
+	repoPath := createTestGitRepoWithUser(t, "Work User", "work@company.com")
+
+	cfg := &config.Config{
+		Repositories: []config.Repository{
+			{Name: "repo-a", Path: repoPath, User: "Work User", Email: "work@company.com", UserSource: config.UserSourceLocal, Tags: []string{"work"}},
+		},
+	}
+
+	origLoad := setupTestConfig(t, cfg)
+	defer origLoad()
+
+	origQuiet := flagQuiet
+	origAll := flagAll
+	defer func() {
+		flagQuiet = origQuiet
+		flagAll = origAll
+		filterTags = []string{}
+	}()
+
+	flagQuiet = true
+	filterTags = []string{"work"}
+
+	// Should succeed with no output (quiet mode)
+	err := runUserDelete(nil, []string{})
+	if err != nil {
+		t.Fatalf("runUserDelete batch quiet failed: %v", err)
+	}
+
+	// Verify config was still updated
+	gitConfigPath := filepath.Join(repoPath, ".git", "config")
+	data, _ := os.ReadFile(gitConfigPath)
+	if strings.Contains(string(data), "name = Work User") {
+		t.Error("Expected user.name removed")
+	}
+}
+
 // Ensure createTestGitRepo helper is available (defined in userupdate_test.go)
 // If running tests in isolation, this needs to be in the same package.
 var _ = exec.Command // ensure exec import is used

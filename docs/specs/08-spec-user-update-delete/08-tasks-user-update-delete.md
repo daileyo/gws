@@ -73,7 +73,7 @@ Implement the `runUserUpdate()` handler that sets local git user config on one o
 - [x] 2.4 Add `config.Save(cfg)` call after all repos are updated to persist config.json changes.
 - [x] 2.5 Write tests in `userupdate_test.go`: test profile resolution (named profile, inline values, profile + inline override); test single repo update writes to `.git/config`; test multiple repo match updates all; test `--quiet` suppresses output; test error when no profile or inline values provided; test error when no repos match identifier.
 
-### [~] 3.0 Single Repository User Delete (`--user --delete`)
+### [x] 3.0 Single Repository User Delete (`--user --delete`)
 
 Implement `DeleteLocal()` in `internal/user/assign.go` to remove user config keys from `.git/config`. Implement the `runUserDelete()` handler. By default, remove only `[user]` name and email; with `--all`, also remove signing config. After deletion, re-detect the effective user config and update `config.json` so the repo shows its fallback (global/includeIf) user.
 
@@ -94,7 +94,7 @@ Implement `DeleteLocal()` in `internal/user/assign.go` to remove user config key
 - [x] 3.6 Add `config.Save(cfg)` call after all repos are processed.
 - [x] 3.7 Write tests in `userdelete_test.go`: test single repo delete removes local config; test `--all` removes signing config; test config.json is updated with fallback user; test `--quiet` suppresses output; test error when no repos match.
 
-### [ ] 4.0 Batch Update and Delete via Tags (`--tag`)
+### [x] 4.0 Batch Update and Delete via Tags (`--tag`)
 
 Extend `--tag` flag validation to allow its use with `--user` operations (currently restricted to `--list`). Implement batch update (`gws --user -u --tag <tag> <profile>`) and batch delete (`gws --user --delete --tag <tag>`) that apply to all repos matching the tag filter. Display per-repo summary with `--verbose`/`--quiet` support.
 
@@ -107,8 +107,8 @@ Extend `--tag` flag validation to allow its use with `--user` operations (curren
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Update the `hasFilterFlags()` function in `main.go` to NOT include `--tag` when `--user` is active. The `--tag` flag should be allowed with both `--list` and `--user` operations. Update the validation error message to reflect this (e.g., "filter flags (--type, --name, --path, --output, --status) require --list/-l").
-- [ ] 4.2 Update `runUserUpdate()` to handle tag-based batch mode: when `filterTags` is non-empty, load all repos from config, apply `filter.Apply(repos, filter.Criteria{Tags: filterTags})` to get matching repos, then process all matching repos. The repo identifier positional arg is not required when `--tag` is used. Validate that either a repo identifier or `--tag` is provided (not neither).
-- [ ] 4.3 Update `runUserDelete()` with the same tag-based batch logic: when `filterTags` is non-empty, filter repos by tag and process all matches. Validate that either a repo identifier or `--tag` is provided.
-- [ ] 4.4 Handle the edge case where `--tag` returns zero matching repos: print a clear message like `No repositories found with tag(s): <tags>` and return without error.
-- [ ] 4.5 Write tests for batch operations: test `--user -u --tag <tag> <profile>` updates all tagged repos; test `--user --delete --tag <tag>` deletes from all tagged repos; test multiple `--tag` values use AND logic; test no repos match tag; test `--tag` with `--quiet` suppresses output.
+- [x] 4.1 Update the `hasFilterFlags()` function in `main.go` to NOT include `--tag` when `--user` is active. The `--tag` flag should be allowed with both `--list` and `--user` operations. Update the validation error message to reflect this (e.g., "filter flags (--type, --name, --path, --output, --status) require --list/-l").
+- [x] 4.2 Update `runUserUpdate()` to handle tag-based batch mode: when `filterTags` is non-empty, load all repos from config, apply `filter.Apply(repos, filter.Criteria{Tags: filterTags})` to get matching repos, then process all matching repos. The repo identifier positional arg is not required when `--tag` is used. Validate that either a repo identifier or `--tag` is provided (not neither).
+- [x] 4.3 Update `runUserDelete()` with the same tag-based batch logic: when `filterTags` is non-empty, filter repos by tag and process all matches. Validate that either a repo identifier or `--tag` is provided.
+- [x] 4.4 Handle the edge case where `--tag` returns zero matching repos: print a clear message like `No repositories found with tag(s): <tags>` and return without error.
+- [x] 4.5 Write tests for batch operations: test `--user -u --tag <tag> <profile>` updates all tagged repos; test `--user --delete --tag <tag>` deletes from all tagged repos; test multiple `--tag` values use AND logic; test no repos match tag; test `--tag` with `--quiet` suppresses output.
