@@ -37,6 +37,7 @@ var (
 	flagVerbose        bool
 	flagInlineName     string
 	flagInlineEmail    string
+	flagListUsers      bool
 )
 
 // Filter flags (for --list)
@@ -112,12 +113,12 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if flagGo != "" {
 			activeCount++
 		}
-		if flagUser {
+		if flagUser || flagListUsers {
 			activeCount++
 		}
 
 		if activeCount > 1 {
-			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go, --user)")
+			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go, --user, --list-users)")
 		}
 
 		// Validate --user flag dependencies
@@ -126,9 +127,6 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		}
 		if flagDelete && !flagUser {
 			return fmt.Errorf("--delete/-D requires --user to be set")
-		}
-		if flagUser && !flagUpdate && !flagDelete {
-			return fmt.Errorf("--user requires either --update/-u or --delete/-D")
 		}
 		if flagUpdate && flagDelete {
 			return fmt.Errorf("--update and --delete are mutually exclusive")
@@ -213,11 +211,19 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return runRefresh(cmd, args)
 		}
 
+		if flagListUsers {
+			return runListUsers(cmd, args)
+		}
+
 		if flagUser {
 			if flagUpdate {
 				return runUserUpdate(cmd, args)
 			}
-			return runUserDelete(cmd, args)
+			if flagDelete {
+				return runUserDelete(cmd, args)
+			}
+			// --user alone: list profiles
+			return runListUsers(cmd, args)
 		}
 
 		// Navigation via --go flag
@@ -268,13 +274,14 @@ func init() {
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
 
 	// User operation flags
-	rootCmd.Flags().BoolVar(&flagUser, "user", false, "Enable user operations (requires --update or --delete)")
+	rootCmd.Flags().BoolVar(&flagUser, "user", false, "List profiles, or use with --update/-u or --delete/-D")
 	rootCmd.Flags().BoolVarP(&flagUpdate, "update", "u", false, "Update local git user config for repositories (requires --user)")
 	rootCmd.Flags().BoolVarP(&flagDelete, "delete", "D", false, "Delete local git user config from repositories (requires --user)")
 	rootCmd.Flags().BoolVar(&flagAll, "all", false, "Also remove signing config when deleting (requires --delete)")
 	rootCmd.Flags().BoolVar(&flagVerbose, "verbose", false, "Show detailed output for user operations")
 	rootCmd.Flags().StringVar(&flagInlineName, "git-name", "", "Inline git user.name for --user --update")
 	rootCmd.Flags().StringVar(&flagInlineEmail, "git-email", "", "Inline git user.email for --user --update")
+	rootCmd.Flags().BoolVar(&flagListUsers, "list-users", false, "List all available user profiles")
 
 	// Filter flags (apply when --list is active)
 	rootCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
@@ -298,7 +305,7 @@ func init() {
 		}
 	}
 	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add", "add-tag", "remove-tag", "refresh", "print-workspace"}))
-	cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "git-name", "git-email"}))
+	cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users"}))
 	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "show-user"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
 
@@ -338,7 +345,17 @@ Commands:
   gws completion [bash|zsh|fish|powershell]    Generate shell completion script
   gws shell-init [zsh|bash]                    Output shell integration code to eval
 
-User Operations (require --user):
+User Operations:
+  gws --user                                        # List available user profiles
+  gws --list-users                                  # Same as above
+  gws --user -u <repo> <profile>                    # Set local user from a stored profile
+  gws --user -u <repo> --git-email user@email.com   # Set local user from inline values
+  gws --user -u --tag <tag> <profile>               # Batch update all repos with tag
+  gws --user -D <repo>                              # Remove local user config (use default)
+  gws --user -D <repo> --all                        # Also remove signing config
+  gws --user -D --tag <tag>                         # Batch delete from all repos with tag
+
+  Flags:
 {{userFlagUsages . | trimRightSpace}}
 
 List Filters (require --list / -l):

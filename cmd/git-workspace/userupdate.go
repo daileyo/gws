@@ -13,6 +13,38 @@ import (
 	"github.com/daileyo/gws/internal/user"
 )
 
+// runListUsers handles --user (alone) and --list-users: displays available profiles
+func runListUsers(_ *cobra.Command, _ []string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	stored, detected := user.ListProfiles(cfg)
+
+	if len(stored) == 0 && len(detected) == 0 {
+		fmt.Println("No profiles found.")
+		fmt.Println("\nAdd a profile with: gws user add <name> --email <email>")
+		return nil
+	}
+
+	if len(stored) > 0 {
+		fmt.Printf("Stored Profiles (%d):\n\n", len(stored))
+		displayProfileTable(stored)
+	}
+
+	if len(detected) > 0 {
+		if len(stored) > 0 {
+			fmt.Println()
+		}
+		fmt.Printf("Auto-Detected Profiles (%d):\n\n", len(detected))
+		displayProfileTable(detected)
+		fmt.Println("\n(Auto-detected from ~/.gitconfig includeIf directives)")
+	}
+
+	return nil
+}
+
 // resolveProfile resolves the target profile from args and inline flags.
 // If a profile name is provided, it looks up stored then auto-detected profiles.
 // If inline --git-name/--git-email are provided, they override the profile values.
@@ -68,7 +100,11 @@ func resolveProfile(cfg *config.Config, args []string) (config.Profile, error) {
 
 	// Validate we have enough info
 	if !hasProfileName && flagInlineEmail == "" {
-		return profile, fmt.Errorf("provide a profile name or --git-email (and optionally --git-name)")
+		hint := "\n\nUse 'gws --user' to see available profiles."
+		if len(filterTags) > 0 {
+			return profile, fmt.Errorf("usage: gws --user -u --tag <tag> <profile>\n       gws --user -u --tag <tag> --git-email <email> [--git-name <name>]" + hint)
+		}
+		return profile, fmt.Errorf("usage: gws --user -u <repo> <profile>\n       gws --user -u <repo> --git-email <email> [--git-name <name>]" + hint)
 	}
 
 	// If only inline values with no git name, use email prefix as name
@@ -113,7 +149,7 @@ func runUserUpdate(_ *cobra.Command, args []string) error {
 	} else {
 		// Single/multi repo by identifier
 		if len(args) == 0 {
-			return fmt.Errorf("provide a repository name or path")
+			return fmt.Errorf("usage: gws --user -u <repo> <profile>\n       gws --user -u <repo> --git-email <email> [--git-name <name>]")
 		}
 		repoIdentifier := args[0]
 		repos = findRepositories(cfg, repoIdentifier)

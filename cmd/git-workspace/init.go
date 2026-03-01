@@ -61,6 +61,9 @@ func runInit(_ *cobra.Command, _ []string) error {
 	// Detect git user configuration for discovered repos
 	userDetectedCount := detectUserForRepos(cfg.Repositories)
 
+	// Sync profiles from detected repo users
+	syncProfilesFromRepos(cfg)
+
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}

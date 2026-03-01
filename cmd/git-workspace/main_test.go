@@ -157,7 +157,7 @@ func TestMutualExclusivity(t *testing.T) {
 	}
 
 	expected := "only one command flag can be used at a time"
-	if err.Error() != "only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go, --user)" {
+	if !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
 	}
 }
@@ -227,17 +227,19 @@ func TestUserFlagValidation(t *testing.T) {
 		}
 	})
 
-	t.Run("user without update or delete returns error", func(t *testing.T) {
+	t.Run("list-users is mutually exclusive with list", func(t *testing.T) {
 		defer resetUserFlags()
-		flagUser = true
+		flagListUsers = true
+		flagList = true
 
 		err := rootCmd.RunE(rootCmd, []string{})
 		if err == nil {
 			t.Fatal("Expected error")
 		}
-		if err.Error() != "--user requires either --update/-u or --delete/-D" {
+		if !strings.Contains(err.Error(), "only one command flag") {
 			t.Errorf("Unexpected error: %s", err.Error())
 		}
+		flagListUsers = false
 	})
 
 	t.Run("user update and delete are mutually exclusive", func(t *testing.T) {

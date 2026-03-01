@@ -62,6 +62,9 @@ func runRefresh(_ *cobra.Command, _ []string) error {
 	// Update configuration
 	cfg.Repositories = result.Repositories
 
+	// Sync profiles from detected repo users
+	syncProfilesFromRepos(cfg)
+
 	// Save configuration
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("failed to save configuration: %w", err)

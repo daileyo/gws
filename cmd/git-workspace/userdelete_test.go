@@ -189,8 +189,8 @@ func TestRunUserDelete_NoArgs(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for no args")
 	}
-	if !strings.Contains(err.Error(), "provide a repository name or path") {
-		t.Errorf("unexpected error: %s", err.Error())
+	if !strings.Contains(err.Error(), "usage:") {
+		t.Errorf("expected usage hint in error, got: %s", err.Error())
 	}
 }
 

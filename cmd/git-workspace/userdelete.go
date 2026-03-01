@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
-
-	"strings"
 
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
@@ -41,7 +40,7 @@ func runUserDelete(_ *cobra.Command, args []string) error {
 	} else {
 		// Single/multi repo by identifier
 		if len(args) == 0 {
-			return fmt.Errorf("provide a repository name or path")
+			return fmt.Errorf("usage: gws --user -D <repo>\n       gws --user -D --tag <tag>")
 		}
 		repoIdentifier := args[0]
 		repos = findRepositories(cfg, repoIdentifier)
