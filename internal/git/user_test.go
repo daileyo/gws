@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -490,6 +491,90 @@ func TestGetNonLocalUserConfig_SkipsLocalConfig(t *testing.T) {
 		// Valid non-local source
 	} else {
 		t.Errorf("Expected non-local source, got '%s'", nonLocalCfg.Source)
+	}
+}
+
+func TestGetGlobalDefaultUser(t *testing.T) {
+	// GetGlobalDefaultUser should return the global user from ~/.gitconfig
+	// We can't control the system gitconfig in tests, so just verify it doesn't error
+	cfg, err := GetGlobalDefaultUser()
+	if err != nil {
+		// Not an error if no global config exists
+		t.Logf("GetGlobalDefaultUser returned error (may be expected): %v", err)
+	}
+	if cfg != nil {
+		t.Logf("Global default user: name=%q email=%q", cfg.Name, cfg.Email)
+	}
+}
+
+func TestGetGlobalDefaultUser_ParsesGitconfig(t *testing.T) {
+	// Test that loadGlobalConfig properly parses a gitconfig with [include]
+	// by testing the underlying parseGitConfigWithIncludes
+	tmpDir := t.TempDir()
+
+	// Create a gitconfig with include directive
+	includedConfig := filepath.Join(tmpDir, ".gitconfig-default")
+	if err := os.WriteFile(includedConfig, []byte(`[user]
+	name = Included User
+	email = included@example.com
+`), 0644); err != nil {
+		t.Fatalf("Failed to write included config: %v", err)
+	}
+
+	mainConfig := filepath.Join(tmpDir, ".gitconfig")
+	mainContent := fmt.Sprintf(`[include]
+	path = %s
+`, includedConfig)
+	if err := os.WriteFile(mainConfig, []byte(mainContent), 0644); err != nil {
+		t.Fatalf("Failed to write main config: %v", err)
+	}
+
+	cfg, err := parseGitConfigWithIncludes(mainConfig, tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to parse gitconfig: %v", err)
+	}
+
+	if cfg.Name != "Included User" {
+		t.Errorf("Expected name 'Included User', got '%s'", cfg.Name)
+	}
+	if cfg.Email != "included@example.com" {
+		t.Errorf("Expected email 'included@example.com', got '%s'", cfg.Email)
+	}
+}
+
+func TestGetGlobalDefaultUser_NoUserSection(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create a gitconfig with no [user] section
+	configPath := filepath.Join(tmpDir, ".gitconfig")
+	if err := os.WriteFile(configPath, []byte(`[core]
+	editor = vim
+`), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	cfg, err := parseGitConfigWithIncludes(configPath, tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to parse gitconfig: %v", err)
+	}
+
+	if cfg.Name != "" {
+		t.Errorf("Expected empty name, got '%s'", cfg.Name)
+	}
+	if cfg.Email != "" {
+		t.Errorf("Expected empty email, got '%s'", cfg.Email)
+	}
+}
+
+func TestGetGlobalDefaultUser_MissingFile(t *testing.T) {
+	cfg, err := parseGitConfigWithIncludes("/nonexistent/.gitconfig", "/nonexistent")
+
+	// Should return nil config without error for missing file
+	if err != nil {
+		t.Errorf("Expected no error for missing file, got: %v", err)
+	}
+	if cfg != nil {
+		t.Errorf("Expected nil config for missing file, got: %+v", cfg)
 	}
 }
 

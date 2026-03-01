@@ -122,6 +122,13 @@ func GetNonLocalUserConfig(repoPath string) (*UserConfig, error) {
 	return userConfig, nil
 }
 
+// GetGlobalDefaultUser reads the global default user identity from ~/.gitconfig.
+// This reads the [user] section and follows [include] directives but NOT [includeIf],
+// returning the "default" user identity used when no local or includeIf override applies.
+func GetGlobalDefaultUser() (*GlobalUserConfig, error) {
+	return loadGlobalConfig()
+}
+
 // GlobalUserConfig represents user config from global gitconfig
 type GlobalUserConfig struct {
 	Name        string

@@ -92,6 +92,12 @@ func displayTable(repos []config.Repository, statusCache *git.Cache) {
 	}
 	userInfoMap := make(map[string]repoUserInfo)
 
+	// Get global default user for marking repos using the default identity
+	var globalDefaultUser *git.GlobalUserConfig
+	if showUser {
+		globalDefaultUser, _ = git.GetGlobalDefaultUser()
+	}
+
 	for _, repo := range repos {
 		if len(repo.Name) > maxNameLen {
 			maxNameLen = len(repo.Name)
@@ -149,6 +155,9 @@ func displayTable(repos []config.Repository, statusCache *git.Cache) {
 				info.userDisplay = "-"
 			} else if displaySource == config.UserSourceLocal {
 				info.userDisplay += " (local)"
+			} else if displaySource == config.UserSourceGlobal && globalDefaultUser != nil &&
+				globalDefaultUser.Name != "" && displayUser == globalDefaultUser.Name {
+				info.userDisplay += " *"
 			}
 
 			info.email = displayEmail
