@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -331,28 +332,249 @@ func TestExtractValue(t *testing.T) {
 	}
 }
 
-func TestIsLikelyIncludeIfPath(t *testing.T) {
+func TestMatchesGitdirCondition(t *testing.T) {
+	home, _ := os.UserHomeDir()
+
 	tests := []struct {
-		path     string
-		expected bool
+		name      string
+		repoPath  string
+		condition string
+		expected  bool
 	}{
-		{"/home/user/work/project", true},
-		{"/home/user/personal/myrepo", true},
-		{"/home/user/gws/ado/repo", true},
-		{"/home/user/gws/gh/repo", true},
-		{"/home/user/github/repo", true},
-		{"/home/user/gitlab/repo", true},
-		{"/home/user/random/repo", false},
-		{"/tmp/test-repo", false},
+		{
+			name:      "exact directory match with trailing slash",
+			repoPath:  "/home/user/work/my-project",
+			condition: "gitdir:/home/user/work/",
+			expected:  true,
+		},
+		{
+			name:      "nested repo under matching directory",
+			repoPath:  "/home/user/work/team/my-project",
+			condition: "gitdir:/home/user/work/",
+			expected:  true,
+		},
+		{
+			name:      "trailing ** glob",
+			repoPath:  "/home/user/work/deep/nested/repo",
+			condition: "gitdir:/home/user/work/**",
+			expected:  true,
+		},
+		{
+			name:      "non-matching path",
+			repoPath:  "/home/user/personal/my-project",
+			condition: "gitdir:/home/user/work/",
+			expected:  false,
+		},
+		{
+			name:      "tilde expansion",
+			repoPath:  filepath.Join(home, "work", "my-project"),
+			condition: "gitdir:~/work/",
+			expected:  true,
+		},
+		{
+			name:      "tilde expansion non-match",
+			repoPath:  filepath.Join(home, "personal", "my-project"),
+			condition: "gitdir:~/work/",
+			expected:  false,
+		},
+		{
+			name:      "case-insensitive gitdir/i match",
+			repoPath:  "/home/user/Work/my-project",
+			condition: "gitdir/i:/home/user/work/",
+			expected:  true,
+		},
+		{
+			name:      "case-sensitive gitdir does not match different case",
+			repoPath:  "/home/user/Work/my-project",
+			condition: "gitdir:/home/user/work/",
+			expected:  false,
+		},
+		{
+			name:      "not a gitdir condition",
+			repoPath:  "/home/user/work/repo",
+			condition: "onbranch:main",
+			expected:  false,
+		},
+		{
+			name:      "directory without trailing slash",
+			repoPath:  "/home/user/work/my-project",
+			condition: "gitdir:/home/user/work",
+			expected:  true,
+		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.path, func(t *testing.T) {
-			result := isLikelyIncludeIfPath(tt.path)
+		t.Run(tt.name, func(t *testing.T) {
+			result := MatchesGitdirCondition(tt.repoPath, tt.condition)
 			if result != tt.expected {
-				t.Errorf("Expected %v for path '%s', got %v", tt.expected, tt.path, result)
+				t.Errorf("MatchesGitdirCondition(%q, %q) = %v, want %v",
+					tt.repoPath, tt.condition, result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestParseIncludeIfs(t *testing.T) {
+	home, _ := os.UserHomeDir()
+
+	content := `[user]
+	name = Default User
+	email = default@example.com
+[includeIf "gitdir:~/work/"]
+	path = ~/.gitconfig-work
+[includeIf "gitdir:~/personal/"]
+	path = ~/.gitconfig-personal
+[core]
+	editor = vim
+`
+	entries := parseIncludeIfs(content, home)
+
+	if len(entries) != 2 {
+		t.Fatalf("Expected 2 includeIf entries, got %d", len(entries))
+	}
+
+	if entries[0].condition != "gitdir:~/work/" {
+		t.Errorf("Expected condition 'gitdir:~/work/', got '%s'", entries[0].condition)
+	}
+	expectedPath := filepath.Clean(filepath.Join(home, ".gitconfig-work"))
+	if entries[0].path != expectedPath {
+		t.Errorf("Expected path '%s', got '%s'", expectedPath, entries[0].path)
+	}
+
+	if entries[1].condition != "gitdir:~/personal/" {
+		t.Errorf("Expected condition 'gitdir:~/personal/', got '%s'", entries[1].condition)
+	}
+}
+
+func TestParseIncludeIfs_Empty(t *testing.T) {
+	content := `[user]
+	name = Default User
+	email = default@example.com
+`
+	entries := parseIncludeIfs(content, "/home/test")
+
+	if len(entries) != 0 {
+		t.Errorf("Expected 0 includeIf entries, got %d", len(entries))
+	}
+}
+
+func TestGetNonLocalUserConfig_SkipsLocalConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	repoPath := filepath.Join(tmpDir, "test-repo")
+
+	// Create repo with local user config
+	createTestRepoWithUser(t, repoPath, "Local User", "local@example.com", true)
+
+	// GetUserConfig should return local config
+	localCfg, err := GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
+	}
+	if localCfg.Source != config.UserSourceLocal {
+		t.Fatalf("Expected source 'local', got '%s'", localCfg.Source)
+	}
+
+	// GetNonLocalUserConfig should skip local and return global/includeIf/unknown
+	nonLocalCfg, err := GetNonLocalUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get non-local user config: %v", err)
+	}
+
+	// Should NOT return local source
+	if nonLocalCfg.Source == config.UserSourceLocal {
+		t.Error("GetNonLocalUserConfig should not return local source")
+	}
+
+	// The non-local config should differ from local (unless global happens to match)
+	// At minimum, it should not have the local name if global differs
+	if nonLocalCfg.Source == config.UserSourceGlobal || nonLocalCfg.Source == config.UserSourceIncludeIf || nonLocalCfg.Source == config.UserSourceUnknown {
+		// Valid non-local source
+	} else {
+		t.Errorf("Expected non-local source, got '%s'", nonLocalCfg.Source)
+	}
+}
+
+func TestGetGlobalDefaultUser(t *testing.T) {
+	// GetGlobalDefaultUser should return the global user from ~/.gitconfig
+	// We can't control the system gitconfig in tests, so just verify it doesn't error
+	cfg, err := GetGlobalDefaultUser()
+	if err != nil {
+		// Not an error if no global config exists
+		t.Logf("GetGlobalDefaultUser returned error (may be expected): %v", err)
+	}
+	if cfg != nil {
+		t.Logf("Global default user: name=%q email=%q", cfg.Name, cfg.Email)
+	}
+}
+
+func TestGetGlobalDefaultUser_ParsesGitconfig(t *testing.T) {
+	// Test that loadGlobalConfig properly parses a gitconfig with [include]
+	// by testing the underlying parseGitConfigWithIncludes
+	tmpDir := t.TempDir()
+
+	// Create a gitconfig with include directive
+	includedConfig := filepath.Join(tmpDir, ".gitconfig-default")
+	if err := os.WriteFile(includedConfig, []byte(`[user]
+	name = Included User
+	email = included@example.com
+`), 0644); err != nil {
+		t.Fatalf("Failed to write included config: %v", err)
+	}
+
+	mainConfig := filepath.Join(tmpDir, ".gitconfig")
+	mainContent := fmt.Sprintf(`[include]
+	path = %s
+`, includedConfig)
+	if err := os.WriteFile(mainConfig, []byte(mainContent), 0644); err != nil {
+		t.Fatalf("Failed to write main config: %v", err)
+	}
+
+	cfg, err := parseGitConfigWithIncludes(mainConfig, tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to parse gitconfig: %v", err)
+	}
+
+	if cfg.Name != "Included User" {
+		t.Errorf("Expected name 'Included User', got '%s'", cfg.Name)
+	}
+	if cfg.Email != "included@example.com" {
+		t.Errorf("Expected email 'included@example.com', got '%s'", cfg.Email)
+	}
+}
+
+func TestGetGlobalDefaultUser_NoUserSection(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create a gitconfig with no [user] section
+	configPath := filepath.Join(tmpDir, ".gitconfig")
+	if err := os.WriteFile(configPath, []byte(`[core]
+	editor = vim
+`), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	cfg, err := parseGitConfigWithIncludes(configPath, tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to parse gitconfig: %v", err)
+	}
+
+	if cfg.Name != "" {
+		t.Errorf("Expected empty name, got '%s'", cfg.Name)
+	}
+	if cfg.Email != "" {
+		t.Errorf("Expected empty email, got '%s'", cfg.Email)
+	}
+}
+
+func TestGetGlobalDefaultUser_MissingFile(t *testing.T) {
+	cfg, err := parseGitConfigWithIncludes("/nonexistent/.gitconfig", "/nonexistent")
+
+	// Should return nil config without error for missing file
+	if err != nil {
+		t.Errorf("Expected no error for missing file, got: %v", err)
+	}
+	if cfg != nil {
+		t.Errorf("Expected nil config for missing file, got: %+v", cfg)
 	}
 }
 

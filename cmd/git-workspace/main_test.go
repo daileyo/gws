@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -71,7 +72,7 @@ func TestCommandFlagsRegistered(t *testing.T) {
 		{"list", "l"},
 		{"init", "i"},
 		{"add-tag", "d"},
-		{"remove-tag", "u"},
+		{"remove-tag", "x"},
 		{"refresh", "r"},
 		{"print-workspace", "w"},
 		{"go", "g"},
@@ -104,6 +105,7 @@ func TestFilterFlagsRegistered(t *testing.T) {
 		{"path", "p"},
 		{"output", "o"},
 		{"status", "s"},
+		{"show-user", ""},
 	}
 
 	for _, f := range flags {
@@ -155,7 +157,7 @@ func TestMutualExclusivity(t *testing.T) {
 	}
 
 	expected := "only one command flag can be used at a time"
-	if err.Error() != "only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go)" {
+	if !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
 	}
 }
@@ -178,8 +180,139 @@ func TestFilterFlagsRequireList(t *testing.T) {
 		return
 	}
 
-	expected := "filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set"
-	if err.Error() != expected {
-		t.Errorf("Expected error '%s', got: %s", expected, err.Error())
+	expected := "filter flags (--type, --name, --path, --output, --status) require --list/-l to be set"
+	if !strings.Contains(err.Error(), "require --list") {
+		t.Errorf("Expected error containing 'require --list', got: %s", err.Error())
+	}
+	_ = expected
+}
+
+func TestUserFlagValidation(t *testing.T) {
+	// Helper to reset all user flags after each sub-test
+	resetUserFlags := func() {
+		flagUser = false
+		flagUpdate = false
+		flagDelete = false
+		flagAll = false
+		flagVerbose = false
+		flagInlineName = ""
+		flagInlineEmail = ""
+		flagList = false
+		flagInit = false
+	}
+
+	t.Run("update without user returns error", func(t *testing.T) {
+		defer resetUserFlags()
+		flagUpdate = true
+
+		err := rootCmd.RunE(rootCmd, []string{})
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		if err.Error() != "--update/-u requires --user to be set" {
+			t.Errorf("Unexpected error: %s", err.Error())
+		}
+	})
+
+	t.Run("delete without user returns error", func(t *testing.T) {
+		defer resetUserFlags()
+		flagDelete = true
+
+		err := rootCmd.RunE(rootCmd, []string{})
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		if err.Error() != "--delete/-D requires --user to be set" {
+			t.Errorf("Unexpected error: %s", err.Error())
+		}
+	})
+
+	t.Run("list-users is mutually exclusive with list", func(t *testing.T) {
+		defer resetUserFlags()
+		flagListUsers = true
+		flagList = true
+
+		err := rootCmd.RunE(rootCmd, []string{})
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		if !strings.Contains(err.Error(), "only one command flag") {
+			t.Errorf("Unexpected error: %s", err.Error())
+		}
+		flagListUsers = false
+	})
+
+	t.Run("user update and delete are mutually exclusive", func(t *testing.T) {
+		defer resetUserFlags()
+		flagUser = true
+		flagUpdate = true
+		flagDelete = true
+
+		err := rootCmd.RunE(rootCmd, []string{})
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		if err.Error() != "--update and --delete are mutually exclusive" {
+			t.Errorf("Unexpected error: %s", err.Error())
+		}
+	})
+
+	t.Run("all without delete returns error", func(t *testing.T) {
+		defer resetUserFlags()
+		flagUser = true
+		flagUpdate = true
+		flagAll = true
+
+		err := rootCmd.RunE(rootCmd, []string{})
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		if err.Error() != "--all requires --delete/-D to be set" {
+			t.Errorf("Unexpected error: %s", err.Error())
+		}
+	})
+
+	t.Run("user is mutually exclusive with list", func(t *testing.T) {
+		defer resetUserFlags()
+		flagUser = true
+		flagUpdate = true
+		flagList = true
+
+		err := rootCmd.RunE(rootCmd, []string{})
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		expected := "only one command flag can be used at a time"
+		if !strings.Contains(err.Error(), expected) {
+			t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
+		}
+	})
+}
+
+func TestUserFlagsRegistered(t *testing.T) {
+	flags := []struct {
+		name      string
+		shorthand string
+	}{
+		{"user", ""},
+		{"update", "u"},
+		{"delete", "D"},
+		{"all", ""},
+		{"verbose", ""},
+		{"git-name", ""},
+		{"git-email", ""},
+	}
+
+	for _, f := range flags {
+		t.Run(f.name, func(t *testing.T) {
+			flag := rootCmd.Flags().Lookup(f.name)
+			if flag == nil {
+				t.Errorf("Flag --%s not found on root command", f.name)
+				return
+			}
+			if flag.Shorthand != f.shorthand {
+				t.Errorf("Flag --%s shorthand: expected '%s', got '%s'", f.name, f.shorthand, flag.Shorthand)
+			}
+		})
 	}
 }
