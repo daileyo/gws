@@ -26,7 +26,8 @@ Examples:
   gws tag remove my-repo work       # Remove the "work" tag
   gws tag -d my-repo work           # Same, using short flag
   gws tag                           # Show this help`,
-	Args: cobra.ArbitraryArgs,
+	Args:              cobra.ArbitraryArgs,
+	ValidArgsFunction: completeRepoThenNone,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Mutual exclusivity: -a and -d cannot both be set
 		if tagFlagAdd && tagFlagDelete {
@@ -62,7 +63,8 @@ The repository can be specified by name (partial match, case-insensitive) or exa
 Examples:
   gws tag add my-repo work
   gws tag add api backend`,
-	Args: cobra.ExactArgs(2),
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: completeRepoThenNone,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runAddTag(args[0], args[1])
 	},
@@ -78,7 +80,8 @@ The repository can be specified by name (partial match, case-insensitive) or exa
 Examples:
   gws tag remove my-repo work
   gws tag remove api backend`,
-	Args: cobra.ExactArgs(2),
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: completeRepoThenTags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runRemoveTag(args[0], args[1])
 	},
@@ -119,6 +122,62 @@ Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
 
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `)
+}
+
+// completeRepoThenNone completes repo names for the first arg, nothing for the second.
+func completeRepoThenNone(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) >= 1 {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return completeRepoNames(toComplete)
+}
+
+// completeRepoThenTags completes repo names for the first arg, existing tags for the second.
+func completeRepoThenTags(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return completeRepoNames(toComplete)
+	}
+	if len(args) == 1 {
+		return completeRepoTags(args[0], toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+// completeRepoNames returns repo names matching the prefix.
+func completeRepoNames(toComplete string) ([]string, cobra.ShellCompDirective) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	seen := make(map[string]bool)
+	var names []string
+	for _, repo := range cfg.Repositories {
+		if strings.HasPrefix(strings.ToLower(repo.Name), strings.ToLower(toComplete)) && !seen[repo.Name] {
+			seen[repo.Name] = true
+			names = append(names, repo.Name)
+		}
+	}
+	return names, cobra.ShellCompDirectiveNoFileComp
+}
+
+// completeRepoTags returns existing tags for repos matching the identifier.
+func completeRepoTags(repoIdentifier, toComplete string) ([]string, cobra.ShellCompDirective) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	repos := findRepositories(cfg, repoIdentifier)
+	seen := make(map[string]bool)
+	var tags []string
+	for _, repo := range repos {
+		for _, tag := range repo.Tags {
+			if strings.HasPrefix(strings.ToLower(tag), strings.ToLower(toComplete)) && !seen[tag] {
+				seen[tag] = true
+				tags = append(tags, tag)
+			}
+		}
+	}
+	return tags, cobra.ShellCompDirectiveNoFileComp
 }
 
 // runAddTag adds a tag to all repositories matching the identifier.
