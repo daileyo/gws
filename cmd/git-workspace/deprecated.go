@@ -25,13 +25,22 @@ var (
 	depRemoveTag bool
 
 	// Deprecated filter flags (for compound usage like `gws --list --type github`).
-	// filterTags is shared with user operations (which still use --tag on root).
 	depFilterType   string
 	depFilterName   string
 	depFilterPath   string
 	depOutputFormat string
 	depShowStatus   bool
 	depShowUser     bool
+
+	// Deprecated user flags (migrated to user subcommand in spec 11).
+	depUser        bool
+	depUpdate      bool
+	depDelete      bool
+	depAll         bool
+	depVerbose     bool
+	depInlineName  string
+	depInlineEmail string
+	depListUsers   bool
 )
 
 // registerDeprecatedFlags registers hidden flags on rootCmd that provide
@@ -59,11 +68,22 @@ func registerDeprecatedFlags(root *cobra.Command) {
 	root.Flags().BoolVarP(&depShowStatus, "status", "s", false, "Show git status")
 	root.Flags().BoolVar(&depShowUser, "show-user", false, "Show git user info")
 
+	// Deprecated user flags (migrated to user subcommand in spec 11)
+	root.Flags().BoolVar(&depUser, "user", false, "List profiles, or use with --update/-u or --delete/-D")
+	root.Flags().BoolVarP(&depUpdate, "update", "u", false, "Update local git user config for repositories (requires --user)")
+	root.Flags().BoolVarP(&depDelete, "delete", "D", false, "Delete local git user config from repositories (requires --user)")
+	root.Flags().BoolVar(&depAll, "all", false, "Also remove signing config when deleting (requires --delete)")
+	root.Flags().BoolVar(&depVerbose, "verbose", false, "Show detailed output for user operations")
+	root.Flags().StringVar(&depInlineName, "git-name", "", "Inline git user.name for --user --update")
+	root.Flags().StringVar(&depInlineEmail, "git-email", "", "Inline git user.email for --user --update")
+	root.Flags().BoolVar(&depListUsers, "list-users", false, "List all available user profiles")
+
 	// Hide all deprecated flags from help output
 	hiddenFlags := []string{
 		"list", "init", "add", "recursive", "refresh", "print-workspace", "go",
 		"add-tag", "remove-tag",
 		"type", "tag", "name", "path", "output", "status", "show-user",
+		"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users",
 	}
 	for _, name := range hiddenFlags {
 		_ = root.Flags().MarkHidden(name)
@@ -87,6 +107,14 @@ var depWarnings = map[string]string{
 	"output":          "gws list --output",
 	"status":          "gws list --status",
 	"show-user":       "gws list --show-user",
+	"user":            "gws user list",
+	"update":          "gws user assign <repo> <profile>",
+	"delete":          "gws user assign (remove local config)",
+	"all":             "gws user assign (with --all)",
+	"list-users":      "gws user list",
+	"git-name":        "gws user add --name",
+	"git-email":       "gws user add --email",
+	"verbose":         "gws user --verbose",
 }
 
 // emitDeprecationWarnings prints warnings for all deprecated flags that were set.
@@ -133,7 +161,7 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 	if depRemoveTag {
 		activeCount++
 	}
-	if flagUser || flagListUsers {
+	if depUser || depListUsers {
 		activeCount++
 	}
 
@@ -142,12 +170,12 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 	}
 
 	// No deprecated command flag set — check if filter-only flags were used without --list
-	if !depList && !flagUser && hasDeprecatedFilterFlags(cmd) {
+	if !depList && !depUser && hasDeprecatedFilterFlags(cmd) {
 		return true, fmt.Errorf("filter flags (--type, --name, --path, --output, --status, --show-user) require --list/-l or 'gws list'")
 	}
 
 	// --tag on root requires --list or --user
-	if !depList && !flagUser && cmd.Flags().Changed("tag") {
+	if !depList && !depUser && cmd.Flags().Changed("tag") {
 		return true, fmt.Errorf("--tag requires --list/-l or --user to be set")
 	}
 
@@ -242,6 +270,45 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 			return true, fmt.Errorf("failed to load workspace configuration: %w", err)
 		}
 		return true, runNavigate(depGo, flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
+	}
+
+	// Validate deprecated user flag dependencies
+	if depUpdate && !depUser {
+		return true, fmt.Errorf("--update/-u requires --user to be set")
+	}
+	if depDelete && !depUser {
+		return true, fmt.Errorf("--delete/-D requires --user to be set")
+	}
+	if depUpdate && depDelete {
+		return true, fmt.Errorf("--update and --delete are mutually exclusive")
+	}
+	if depAll && !depDelete {
+		return true, fmt.Errorf("--all requires --delete/-D to be set")
+	}
+	if (depInlineName != "" || depInlineEmail != "") && !depUpdate {
+		return true, fmt.Errorf("--git-name and --git-email require --user --update to be set")
+	}
+	if depVerbose && !depUser {
+		return true, fmt.Errorf("--verbose requires --user to be set")
+	}
+
+	// Dispatch deprecated --list-users
+	if depListUsers {
+		emitDeprecationWarnings(cmd)
+		return true, runListUsers(cmd, args)
+	}
+
+	// Dispatch deprecated --user (with optional --update or --delete)
+	if depUser {
+		emitDeprecationWarnings(cmd)
+		if depUpdate {
+			return true, runUserUpdate(cmd, args)
+		}
+		if depDelete {
+			return true, runUserDelete(cmd, args)
+		}
+		// --user alone: list profiles
+		return true, runListUsers(cmd, args)
 	}
 
 	return false, nil

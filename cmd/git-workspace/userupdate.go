@@ -91,15 +91,15 @@ func resolveProfile(cfg *config.Config, args []string) (config.Profile, error) {
 	}
 
 	// Apply inline overrides
-	if flagInlineName != "" {
-		profile.GitName = flagInlineName
+	if depInlineName != "" {
+		profile.GitName = depInlineName
 	}
-	if flagInlineEmail != "" {
-		profile.Email = flagInlineEmail
+	if depInlineEmail != "" {
+		profile.Email = depInlineEmail
 	}
 
 	// Validate we have enough info
-	if !hasProfileName && flagInlineEmail == "" {
+	if !hasProfileName && depInlineEmail == "" {
 		hint := "\n\nUse 'gws --user' to see available profiles."
 		if len(filterTags) > 0 {
 			return profile, fmt.Errorf("usage: gws --user -u --tag <tag> <profile>\n       gws --user -u --tag <tag> --git-email <email> [--git-name <name>]" + hint)
@@ -190,7 +190,7 @@ func runUserUpdate(_ *cobra.Command, args []string) error {
 			continue
 		}
 
-		if flagVerbose {
+		if depVerbose {
 			fmt.Printf("%s:\n", repo.Name)
 			fmt.Printf("  user.name:  %q → %q\n", oldName, profile.GitName)
 			fmt.Printf("  user.email: %q → %q\n", oldEmail, profile.Email)

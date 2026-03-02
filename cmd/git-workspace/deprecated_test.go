@@ -13,6 +13,7 @@ func TestDeprecatedFlagsAreHidden(t *testing.T) {
 		"list", "init", "add", "recursive", "refresh", "print-workspace", "go",
 		"add-tag", "remove-tag",
 		"type", "tag", "name", "path", "output", "status", "show-user",
+		"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users",
 	}
 
 	for _, name := range deprecatedFlags {
@@ -126,6 +127,8 @@ func TestDeprecatedNoFlagsSet(t *testing.T) {
 	origRefresh := depRefresh
 	origPW := depPrintWorkspace
 	origGo := depGo
+	origUser := depUser
+	origListUsers := depListUsers
 	defer func() {
 		depList = origList
 		depInit = origInit
@@ -133,6 +136,8 @@ func TestDeprecatedNoFlagsSet(t *testing.T) {
 		depRefresh = origRefresh
 		depPrintWorkspace = origPW
 		depGo = origGo
+		depUser = origUser
+		depListUsers = origListUsers
 	}()
 
 	depList = false
@@ -141,6 +146,8 @@ func TestDeprecatedNoFlagsSet(t *testing.T) {
 	depRefresh = false
 	depPrintWorkspace = false
 	depGo = ""
+	depUser = false
+	depListUsers = false
 
 	handled, _ := handleDeprecatedFlags(rootCmd, []string{})
 	if handled {
@@ -198,6 +205,103 @@ func TestDeprecatedAddTagDispatch(t *testing.T) {
 	}
 }
 
+func TestDeprecatedUserEmitsWarning(t *testing.T) {
+	origUser := depUser
+	defer func() {
+		depUser = origUser
+		rootCmd.Flags().Lookup("user").Changed = false
+	}()
+
+	depUser = true
+	rootCmd.Flags().Lookup("user").Changed = true
+
+	// Capture stderr
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	emitDeprecationWarnings(rootCmd)
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("Failed to read from pipe: %v", err)
+	}
+	output := buf.String()
+
+	if !strings.Contains(output, "Warning: --user is deprecated") {
+		t.Errorf("Expected deprecation warning for --user, got: %s", output)
+	}
+	if !strings.Contains(output, "gws user list") {
+		t.Errorf("Expected suggestion to use 'gws user list', got: %s", output)
+	}
+}
+
+func TestDeprecatedUserUpdateRequiresUser(t *testing.T) {
+	origUpdate := depUpdate
+	origUser := depUser
+	defer func() {
+		depUpdate = origUpdate
+		depUser = origUser
+	}()
+
+	depUpdate = true
+	depUser = false
+
+	handled, err := handleDeprecatedFlags(rootCmd, []string{})
+	if !handled {
+		t.Fatal("Expected handleDeprecatedFlags to handle the error")
+	}
+	if err == nil || err.Error() != "--update/-u requires --user to be set" {
+		t.Errorf("Expected update requires user error, got: %v", err)
+	}
+}
+
+func TestDeprecatedUserDeleteRequiresUser(t *testing.T) {
+	origDelete := depDelete
+	origUser := depUser
+	defer func() {
+		depDelete = origDelete
+		depUser = origUser
+	}()
+
+	depDelete = true
+	depUser = false
+
+	handled, err := handleDeprecatedFlags(rootCmd, []string{})
+	if !handled {
+		t.Fatal("Expected handleDeprecatedFlags to handle the error")
+	}
+	if err == nil || err.Error() != "--delete/-D requires --user to be set" {
+		t.Errorf("Expected delete requires user error, got: %v", err)
+	}
+}
+
+func TestDeprecatedUserUpdateDeleteMutualExclusivity(t *testing.T) {
+	origUser := depUser
+	origUpdate := depUpdate
+	origDelete := depDelete
+	defer func() {
+		depUser = origUser
+		depUpdate = origUpdate
+		depDelete = origDelete
+	}()
+
+	depUser = true
+	depUpdate = true
+	depDelete = true
+
+	handled, err := handleDeprecatedFlags(rootCmd, []string{})
+	if !handled {
+		t.Fatal("Expected handleDeprecatedFlags to handle the error")
+	}
+	if err == nil || err.Error() != "--update and --delete are mutually exclusive" {
+		t.Errorf("Expected mutual exclusivity error, got: %v", err)
+	}
+}
+
 func TestDepWarningsMap(t *testing.T) {
 	// Verify all expected deprecation mappings exist
 	expected := map[string]string{
@@ -210,6 +314,9 @@ func TestDepWarningsMap(t *testing.T) {
 		"go":              "gws <repo-name>",
 		"add-tag":         "gws tag add <repo> <tag>",
 		"remove-tag":      "gws tag remove <repo> <tag>",
+		"user":            "gws user list",
+		"update":          "gws user assign <repo> <profile>",
+		"list-users":      "gws user list",
 	}
 
 	for flag, newForm := range expected {
