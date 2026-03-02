@@ -117,10 +117,16 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 
 		// Tag operations (remain on root until spec 10)
 		if flagAddTag {
-			return runTag(cmd, args)
+			if len(args) != 2 {
+				return fmt.Errorf("--add-tag requires exactly 2 arguments: <repository> <tag>")
+			}
+			return runAddTag(args[0], args[1])
 		}
 		if flagRemoveTag {
-			return runUntag(cmd, args)
+			if len(args) != 2 {
+				return fmt.Errorf("--remove-tag requires exactly 2 arguments: <repository> <tag>")
+			}
+			return runRemoveTag(args[0], args[1])
 		}
 
 		// User operations (remain on root until spec 11)
