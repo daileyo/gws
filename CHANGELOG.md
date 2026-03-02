@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.1](https://github.com/daileyo/gws/compare/v2.9.0...v2.9.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* path-first validation and symlink-aware workspace scan in refresh ([74af9f0](https://github.com/daileyo/gws/commit/74af9f0355ba72dda6036108911eeaf548de8383))
+
 ## [2.9.0](https://github.com/daileyo/gws/compare/v2.8.0...v2.9.0) (2026-03-02)
 
 
