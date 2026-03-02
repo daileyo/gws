@@ -76,7 +76,7 @@ Add comprehensive tests for the new short-flag interface: flag registration, mut
 - [x] 2.4 Add a test `TestUserProfileCompletion` in `user_test.go` that verifies the completion function returns profile names.
 - [x] 2.5 Run `go vet ./... && go test ./... -count=1` to verify all tests pass with no regressions.
 
-### [ ] 3.0 Deprecate root-level user flags to deprecated.go
+### [x] 3.0 Deprecate root-level user flags to deprecated.go
 
 Move the root-level user flag variables (`flagUser`, `flagUpdate`, `flagDelete`, `flagAll`, `flagListUsers`, `flagVerbose`, `flagInlineName`, `flagInlineEmail`) and their registrations from `main.go` to `deprecated.go`. Register them as hidden flags with deprecation warnings. Add dispatch logic in `handleDeprecatedFlags()` for the compound flag combinations (`--user` alone → `user list`, `--user --update` → `runUserUpdate`, `--user --delete` → `runUserDelete`, `--list-users` → `runListUsers`). Remove the user flag routing from root `RunE` and the user flag section from the root usage template.
 
@@ -90,20 +90,20 @@ Move the root-level user flag variables (`flagUser`, `flagUpdate`, `flagDelete`,
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Move user flag variables from `main.go` to `deprecated.go`: rename `flagUser` → `depUser`, `flagUpdate` → `depUpdate`, `flagDelete` → `depDelete`, `flagAll` → `depAll`, `flagListUsers` → `depListUsers`, `flagVerbose` → `depVerbose`, `flagInlineName` → `depInlineName`, `flagInlineEmail` → `depInlineEmail`. Add them to the deprecated var block with a comment section for spec 11.
-- [ ] 3.2 Move the user flag registrations from `main.go`'s `init()` to `registerDeprecatedFlags()` in `deprecated.go`. Register them using the same flag names and shorthands. Add them to the `hiddenFlags` slice so they are hidden from `--help`.
-- [ ] 3.3 Add deprecation warning mappings to the `depWarnings` map for all user flags: `"user"` → `"gws user list"`, `"update"` → `"gws user assign <repo> <profile>"`, `"delete"` → `"gws user assign (then remove local config)"`, `"all"` → `"gws user assign (with --all)"`, `"list-users"` → `"gws user list"`, `"git-name"` → `"gws user add --name"`, `"git-email"` → `"gws user add --email"`, `"verbose"` → `"gws user --verbose"`.
-- [ ] 3.4 Add user flag dispatch logic to `handleDeprecatedFlags()`:
+- [x] 3.1 Move user flag variables from `main.go` to `deprecated.go`: rename `flagUser` → `depUser`, `flagUpdate` → `depUpdate`, `flagDelete` → `depDelete`, `flagAll` → `depAll`, `flagListUsers` → `depListUsers`, `flagVerbose` → `depVerbose`, `flagInlineName` → `depInlineName`, `flagInlineEmail` → `depInlineEmail`. Add them to the deprecated var block with a comment section for spec 11.
+- [x] 3.2 Move the user flag registrations from `main.go`'s `init()` to `registerDeprecatedFlags()` in `deprecated.go`. Register them using the same flag names and shorthands. Add them to the `hiddenFlags` slice so they are hidden from `--help`.
+- [x] 3.3 Add deprecation warning mappings to the `depWarnings` map for all user flags: `"user"` → `"gws user list"`, `"update"` → `"gws user assign <repo> <profile>"`, `"delete"` → `"gws user assign (then remove local config)"`, `"all"` → `"gws user assign (with --all)"`, `"list-users"` → `"gws user list"`, `"git-name"` → `"gws user add --name"`, `"git-email"` → `"gws user add --email"`, `"verbose"` → `"gws user --verbose"`.
+- [x] 3.4 Add user flag dispatch logic to `handleDeprecatedFlags()`:
   - Include `depUser || depListUsers` in the mutual exclusivity count (replace the existing `flagUser || flagListUsers` reference).
   - Add user flag dependency validation (same checks currently in root `RunE`): `--update` requires `--user`, `--delete` requires `--user`, `--update`/`--delete` mutually exclusive, `--all` requires `--delete`, `--git-name`/`--git-email` require `--user --update`, `--verbose` requires `--user`, `--quiet` with `--user` validation.
   - Dispatch: `depListUsers` → `emitDeprecationWarnings` + `runListUsers(cmd, args)`. `depUser` alone → `emitDeprecationWarnings` + `runListUsers(cmd, args)`. `depUser + depUpdate` → `emitDeprecationWarnings` + `runUserUpdate(cmd, args)`. `depUser + depDelete` → `emitDeprecationWarnings` + `runUserDelete(cmd, args)`.
-- [ ] 3.5 Remove user flag routing from root `RunE` in `main.go`: remove the `flagUpdate && !flagUser` check, `flagDelete && !flagUser` check, `flagUpdate && flagDelete` check, `flagAll && !flagDelete` check, inline name/email checks, `flagVerbose` check, `flagQuiet` user check, the `flagTagAlias` block, `flagListUsers` dispatch, and `flagUser` dispatch block. Keep navigation and default workspace info logic.
-- [ ] 3.6 Remove the user flag group template functions from `main.go`'s `init()` (`userFlagUsages`). Update the root usage template to remove the "User Operations" section. Keep the "Navigation" and "Other" sections.
-- [ ] 3.7 Update `main_test.go`: move user flag validation tests (`TestUserFlagValidation`, `TestUserFlagsRegistered`) to `deprecated_test.go` with updated variable names. Update `TestAliasFlagsAreHidden` to include the newly hidden user flags. Update `TestTagRequiresListOrUser` to use `depUser` instead of `flagUser`.
-- [ ] 3.8 Update `userupdate.go` and `userdelete.go` to reference the renamed variables: `flagQuiet` → `depQuiet` (if moved) or keep `flagQuiet` since it's still a root navigation flag. Update references to `flagVerbose` → `depVerbose`, `flagAll` → `depAll`, `flagInlineName` → `depInlineName`, `flagInlineEmail` → `depInlineEmail`.
-- [ ] 3.9 Update `userupdate_test.go` and `userdelete_test.go` to use the renamed deprecated variable names.
-- [ ] 3.10 Add deprecated user flag tests to `deprecated_test.go`: `TestDeprecatedUserFlagsAreHidden`, `TestDeprecatedUserEmitsWarning`, `TestDeprecatedUserListUsersDispatch`.
-- [ ] 3.11 Run `go vet ./... && go test ./... -count=1` to verify all tests pass. Fix any issues.
+- [x] 3.5 Remove user flag routing from root `RunE` in `main.go`: remove the `flagUpdate && !flagUser` check, `flagDelete && !flagUser` check, `flagUpdate && flagDelete` check, `flagAll && !flagDelete` check, inline name/email checks, `flagVerbose` check, `flagQuiet` user check, the `flagTagAlias` block, `flagListUsers` dispatch, and `flagUser` dispatch block. Keep navigation and default workspace info logic.
+- [x] 3.6 Remove the user flag group template functions from `main.go`'s `init()` (`userFlagUsages`). Update the root usage template to remove the "User Operations" section. Keep the "Navigation" and "Other" sections.
+- [x] 3.7 Update `main_test.go`: move user flag validation tests (`TestUserFlagValidation`, `TestUserFlagsRegistered`) to `deprecated_test.go` with updated variable names. Update `TestAliasFlagsAreHidden` to include the newly hidden user flags. Update `TestTagRequiresListOrUser` to use `depUser` instead of `flagUser`.
+- [x] 3.8 Update `userupdate.go` and `userdelete.go` to reference the renamed variables: `flagQuiet` → `depQuiet` (if moved) or keep `flagQuiet` since it's still a root navigation flag. Update references to `flagVerbose` → `depVerbose`, `flagAll` → `depAll`, `flagInlineName` → `depInlineName`, `flagInlineEmail` → `depInlineEmail`.
+- [x] 3.9 Update `userupdate_test.go` and `userdelete_test.go` to use the renamed deprecated variable names.
+- [x] 3.10 Add deprecated user flag tests to `deprecated_test.go`: `TestDeprecatedUserFlagsAreHidden`, `TestDeprecatedUserEmitsWarning`, `TestDeprecatedUserListUsersDispatch`.
+- [x] 3.11 Run `go vet ./... && go test ./... -count=1` to verify all tests pass. Fix any issues.
 
 ### [ ] 4.0 Clean up shared state and update help text
 

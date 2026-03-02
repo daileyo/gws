@@ -55,10 +55,10 @@ func TestRunUserDelete_SingleRepo(t *testing.T) {
 	defer origLoad()
 
 	origQuiet := flagQuiet
-	origAll := flagAll
+	origAll := depAll
 	defer func() {
 		flagQuiet = origQuiet
-		flagAll = origAll
+		depAll = origAll
 		filterTags = []string{}
 	}()
 
@@ -97,15 +97,15 @@ func TestRunUserDelete_WithAll(t *testing.T) {
 	defer origLoad()
 
 	origQuiet := flagQuiet
-	origAll := flagAll
+	origAll := depAll
 	defer func() {
 		flagQuiet = origQuiet
-		flagAll = origAll
+		depAll = origAll
 		filterTags = []string{}
 	}()
 
 	flagQuiet = true
-	flagAll = true
+	depAll = true
 
 	err := runUserDelete(nil, []string{"test-repo"})
 	if err != nil {
@@ -209,7 +209,7 @@ func TestRunUserDelete_ConfigJsonUpdated(t *testing.T) {
 	origQuiet := flagQuiet
 	defer func() {
 		flagQuiet = origQuiet
-		flagAll = false
+		depAll = false
 		filterTags = []string{}
 	}()
 
@@ -250,10 +250,10 @@ func TestRunUserDelete_BatchByTag(t *testing.T) {
 	defer origLoad()
 
 	origQuiet := flagQuiet
-	origAll := flagAll
+	origAll := depAll
 	defer func() {
 		flagQuiet = origQuiet
-		flagAll = origAll
+		depAll = origAll
 		filterTags = []string{}
 	}()
 
@@ -323,10 +323,10 @@ func TestRunUserDelete_BatchQuietSuppressesOutput(t *testing.T) {
 	defer origLoad()
 
 	origQuiet := flagQuiet
-	origAll := flagAll
+	origAll := depAll
 	defer func() {
 		flagQuiet = origQuiet
-		flagAll = origAll
+		depAll = origAll
 		filterTags = []string{}
 	}()
 
