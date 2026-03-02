@@ -135,7 +135,7 @@
 
 ---
 
-### [ ] 3.0 Path Output Formatting, Shell Completion, Help Text, and CI
+### [x] 3.0 Path Output Formatting, Shell Completion, Help Text, and CI
 
 #### 3.0 Proof Artifact(s)
 
