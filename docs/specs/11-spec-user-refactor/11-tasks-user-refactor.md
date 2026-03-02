@@ -105,7 +105,7 @@ Move the root-level user flag variables (`flagUser`, `flagUpdate`, `flagDelete`,
 - [x] 3.10 Add deprecated user flag tests to `deprecated_test.go`: `TestDeprecatedUserFlagsAreHidden`, `TestDeprecatedUserEmitsWarning`, `TestDeprecatedUserListUsersDispatch`.
 - [x] 3.11 Run `go vet ./... && go test ./... -count=1` to verify all tests pass. Fix any issues.
 
-### [ ] 4.0 Clean up shared state and update help text
+### [x] 4.0 Clean up shared state and update help text
 
 Update `filterTags` comment in `main.go` to reflect that it's shared between `list.go` and `deprecated.go` (no longer used by user ops on root). Remove the `flagTagAlias` routing from root `RunE` if not already removed. Verify `assign` and `sync` work unchanged. Run final quality gates.
 
@@ -119,9 +119,9 @@ Update `filterTags` comment in `main.go` to reflect that it's shared between `li
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Update the `filterTags` comment in `main.go` to reflect its current usage: shared between `list.go` (list subcommand `--tag`/`-t`) and `deprecated.go` (root `--tag` for backward compat with `--list` and deprecated user operations).
-- [ ] 4.2 Verify the `--tag` flag on root (registered in `deprecated.go`) still works correctly for `gws --list --tag work` (deprecated list with tag filter) and `gws --user -u --tag work dev-profile` (deprecated user update with tag batch).
-- [ ] 4.3 Verify `gws user assign <repo> <profile>` and `gws user sync` work unchanged (no regressions from the refactor).
-- [ ] 4.4 Verify `gws user --help` displays the short-flag aliases (`-a`, `-d`, `-l`, `-s`) alongside the word-form sub-subcommands.
-- [ ] 4.5 Verify `gws --help` shows a clean output with no user flags visible (all hidden in deprecated layer).
-- [ ] 4.6 Run `go vet ./... && go test ./... -count=1` as final quality gate. Verify all tests pass across all packages.
+- [x] 4.1 Update the `filterTags` comment in `main.go` to reflect its current usage: shared between `list.go` (list subcommand `--tag`/`-t`) and `deprecated.go` (root `--tag` for backward compat with `--list` and deprecated user operations).
+- [x] 4.2 Verify the `--tag` flag on root (registered in `deprecated.go`) still works correctly for `gws --list --tag work` (deprecated list with tag filter) and `gws --user -u --tag work dev-profile` (deprecated user update with tag batch).
+- [x] 4.3 Verify `gws user assign <repo> <profile>` and `gws user sync` work unchanged (no regressions from the refactor).
+- [x] 4.4 Verify `gws user --help` displays the short-flag aliases (`-a`, `-d`, `-l`, `-s`) alongside the word-form sub-subcommands.
+- [x] 4.5 Verify `gws --help` shows a clean output with no user flags visible (all hidden in deprecated layer).
+- [x] 4.6 Run `go vet ./... && go test ./... -count=1` as final quality gate. Verify all tests pass across all packages.
