@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.8.0](https://github.com/daileyo/gws/compare/v2.7.0...v2.8.0) (2026-03-02)
+
+
+### Features
+
+* add short-flag aliases (-a, -d, -l, -s) to user subcommand ([56e8f0f](https://github.com/daileyo/gws/commit/56e8f0fa0f715d0cca45f1cb9e70b78153175bb0))
+* add short-flag tests and tab completion for user subcommand ([e14ce5d](https://github.com/daileyo/gws/commit/e14ce5d35f54020b928f34f83fdd63f199f8baf2))
+* clean up shared state and update help text ([b13864f](https://github.com/daileyo/gws/commit/b13864ff8177c2c5579293cf0061596219e4c8fe))
+* deprecate root-level user flags to deprecated.go ([0957660](https://github.com/daileyo/gws/commit/0957660d8f93b96f4959805eca0e7f0b43a5b98a))
+
+
+### Bug Fixes
+
+* prevent TestUserProfileCompletion from corrupting real config ([9a49d7e](https://github.com/daileyo/gws/commit/9a49d7ea534131d7bf5768539dfab5cd178b9083))
+
 ## [2.7.0](https://github.com/daileyo/gws/compare/v2.6.0...v2.7.0) (2026-03-02)
 
 
