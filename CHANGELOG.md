@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.6.0](https://github.com/daileyo/gws/compare/v2.5.0...v2.6.0) (2026-03-02)
+
+
+### Features
+
+* add deprecation layer for old flag forms ([47af8ea](https://github.com/daileyo/gws/commit/47af8ea36f2c3169e2923883ffb84feed9f5beb3))
+* create core subcommands (list, init, add, refresh, print-workspace) ([6ef1318](https://github.com/daileyo/gws/commit/6ef1318d8cf7b9e7b86273c444a1f2fe019d5763))
+* scope filter flags to list subcommand ([cccb7a5](https://github.com/daileyo/gws/commit/cccb7a53505d73fb708b6b3a3854c4044da54e5e))
+* update shell templates to route subcommand names to binary ([727c62b](https://github.com/daileyo/gws/commit/727c62b1dfb93a8c82aabc06da5c70bb95d2d47a))
+
+
+### Bug Fixes
+
+* resolve lint issues in main.go and deprecated_test.go ([cb06381](https://github.com/daileyo/gws/commit/cb06381755b83e878f5a5024233cc4dab79f958c))
+
 ## [2.5.0](https://github.com/daileyo/gws/compare/v2.4.1...v2.5.0) (2026-03-02)
 
 
