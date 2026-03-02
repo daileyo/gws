@@ -199,20 +199,15 @@ func TestUserAddFlagsOnUserCmd(t *testing.T) {
 
 func TestUserProfileCompletion(t *testing.T) {
 	// Set up a temporary workspace with profiles
-	tmpDir := t.TempDir()
-	t.Setenv("GWS_CONFIG_DIR", tmpDir)
-
 	cfg := &config.Config{
-		Workspace: tmpDir,
 		Profiles: []config.Profile{
 			{Name: "work", GitName: "Worker", Email: "work@example.com"},
 			{Name: "personal", GitName: "Personal", Email: "personal@example.com"},
 			{Name: "oss", GitName: "OSS", Email: "oss@example.com"},
 		},
 	}
-	if err := config.Save(cfg); err != nil {
-		t.Fatalf("Failed to save config: %v", err)
-	}
+	origLoad := setupTestConfig(t, cfg)
+	defer origLoad()
 
 	// Test completion with "w" prefix
 	names, _ := completeProfileNames("w")
