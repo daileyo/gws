@@ -70,7 +70,7 @@ func runUserDelete(_ *cobra.Command, args []string) error {
 		}
 
 		// Delete local config
-		if err := user.DeleteLocal(repo.Path, flagAll); err != nil {
+		if err := user.DeleteLocal(repo.Path, depAll); err != nil {
 			if !flagQuiet {
 				fmt.Fprintf(os.Stderr, "  %s: failed to delete: %s\n", repo.Name, err)
 			}
@@ -98,10 +98,10 @@ func runUserDelete(_ *cobra.Command, args []string) error {
 			continue
 		}
 
-		if flagVerbose {
+		if depVerbose {
 			fmt.Printf("%s:\n", repo.Name)
 			fmt.Printf("  removed: user.name %q, user.email %q (was %s)\n", oldName, oldEmail, oldSource)
-			if flagAll {
+			if depAll {
 				fmt.Printf("  removed: signing config\n")
 			}
 			if newCfg != nil && (newCfg.Name != "" || newCfg.Email != "") {
@@ -115,7 +115,7 @@ func runUserDelete(_ *cobra.Command, args []string) error {
 				nowUsing = fmt.Sprintf(" (now using %s: %q <%s>)", newCfg.Source, newCfg.Name, newCfg.Email)
 			}
 			suffix := ""
-			if flagAll {
+			if depAll {
 				suffix = " + signing config"
 			}
 			fmt.Printf("%s: removed local user config%s%s\n", repo.Name, suffix, nowUsing)

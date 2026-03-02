@@ -27,8 +27,8 @@ func createTestGitRepo(t *testing.T) string {
 
 func TestResolveProfile(t *testing.T) {
 	resetInlineFlags := func() {
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}
 
@@ -69,8 +69,8 @@ func TestResolveProfile(t *testing.T) {
 
 	t.Run("inline values only", func(t *testing.T) {
 		defer resetInlineFlags()
-		flagInlineName = "Inline User"
-		flagInlineEmail = "inline@example.com"
+		depInlineName = "Inline User"
+		depInlineEmail = "inline@example.com"
 		cfg := &config.Config{}
 
 		profile, err := resolveProfile(cfg, []string{"my-repo"})
@@ -87,7 +87,7 @@ func TestResolveProfile(t *testing.T) {
 
 	t.Run("inline email only uses email prefix as name", func(t *testing.T) {
 		defer resetInlineFlags()
-		flagInlineEmail = "john@example.com"
+		depInlineEmail = "john@example.com"
 		cfg := &config.Config{}
 
 		profile, err := resolveProfile(cfg, []string{"my-repo"})
@@ -101,7 +101,7 @@ func TestResolveProfile(t *testing.T) {
 
 	t.Run("profile name with inline overrides", func(t *testing.T) {
 		defer resetInlineFlags()
-		flagInlineName = "Override Name"
+		depInlineName = "Override Name"
 		cfg := &config.Config{
 			Profiles: []config.Profile{
 				{Name: "work", GitName: "Work User", Email: "work@company.com"},
@@ -170,12 +170,12 @@ func TestRunUserUpdate_SingleRepo(t *testing.T) {
 
 	// Reset flags
 	origQuiet := flagQuiet
-	origVerbose := flagVerbose
+	origVerbose := depVerbose
 	defer func() {
 		flagQuiet = origQuiet
-		flagVerbose = origVerbose
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depVerbose = origVerbose
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}()
 
@@ -216,14 +216,14 @@ func TestRunUserUpdate_InlineValues(t *testing.T) {
 	origQuiet := flagQuiet
 	defer func() {
 		flagQuiet = origQuiet
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}()
 
 	flagQuiet = true
-	flagInlineName = "Inline User"
-	flagInlineEmail = "inline@test.com"
+	depInlineName = "Inline User"
+	depInlineEmail = "inline@test.com"
 
 	err := runUserUpdate(nil, []string{"test-repo"})
 	if err != nil {
@@ -265,8 +265,8 @@ func TestRunUserUpdate_MultipleRepoMatch(t *testing.T) {
 	origQuiet := flagQuiet
 	defer func() {
 		flagQuiet = origQuiet
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}()
 
@@ -302,12 +302,12 @@ func TestRunUserUpdate_NoMatch(t *testing.T) {
 	defer origLoad()
 
 	defer func() {
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}()
 
-	flagInlineEmail = "test@test.com"
+	depInlineEmail = "test@test.com"
 
 	err := runUserUpdate(nil, []string{"nonexistent-repo"})
 	if err == nil {
@@ -325,12 +325,12 @@ func TestRunUserUpdate_NoArgs(t *testing.T) {
 	defer origLoad()
 
 	defer func() {
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}()
 
-	flagInlineEmail = "test@test.com"
+	depInlineEmail = "test@test.com"
 
 	err := runUserUpdate(nil, []string{})
 	if err == nil {
@@ -363,8 +363,8 @@ func TestRunUserUpdate_BatchByTag(t *testing.T) {
 	origQuiet := flagQuiet
 	defer func() {
 		flagQuiet = origQuiet
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}()
 
@@ -420,8 +420,8 @@ func TestRunUserUpdate_BatchByMultipleTags(t *testing.T) {
 	origQuiet := flagQuiet
 	defer func() {
 		flagQuiet = origQuiet
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}()
 
@@ -459,8 +459,8 @@ func TestRunUserUpdate_BatchNoTagMatch(t *testing.T) {
 	defer origLoad()
 
 	defer func() {
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depInlineName = ""
+		depInlineEmail = ""
 		filterTags = []string{}
 	}()
 

@@ -126,7 +126,8 @@ func TestSubcommandsRegistered(t *testing.T) {
 func TestAliasFlagsAreHidden(t *testing.T) {
 	hiddenFlags := []string{"list", "init", "add", "recursive", "refresh", "print-workspace", "go",
 		"add-tag", "remove-tag",
-		"type", "tag", "name", "path", "output", "status", "show-user", "tag-cmd"}
+		"type", "tag", "name", "path", "output", "status", "show-user", "tag-cmd",
+		"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users"}
 
 	for _, name := range hiddenFlags {
 		t.Run(name, func(t *testing.T) {
@@ -167,15 +168,15 @@ func TestMutualExclusivity(t *testing.T) {
 
 func TestTagRequiresListOrUser(t *testing.T) {
 	origList := depList
-	origUser := flagUser
+	origUser := depUser
 	defer func() {
 		depList = origList
-		flagUser = origUser
+		depUser = origUser
 		rootCmd.Flags().Lookup("tag").Changed = false
 	}()
 
 	depList = false
-	flagUser = false
+	depUser = false
 	rootCmd.Flags().Lookup("tag").Changed = true
 
 	err := rootCmd.RunE(rootCmd, []string{})
@@ -190,20 +191,20 @@ func TestTagRequiresListOrUser(t *testing.T) {
 
 func TestUserFlagValidation(t *testing.T) {
 	resetUserFlags := func() {
-		flagUser = false
-		flagUpdate = false
-		flagDelete = false
-		flagAll = false
-		flagVerbose = false
-		flagInlineName = ""
-		flagInlineEmail = ""
+		depUser = false
+		depUpdate = false
+		depDelete = false
+		depAll = false
+		depVerbose = false
+		depInlineName = ""
+		depInlineEmail = ""
 		depList = false
 		depInit = false
 	}
 
 	t.Run("update without user returns error", func(t *testing.T) {
 		defer resetUserFlags()
-		flagUpdate = true
+		depUpdate = true
 
 		err := rootCmd.RunE(rootCmd, []string{})
 		if err == nil {
@@ -216,7 +217,7 @@ func TestUserFlagValidation(t *testing.T) {
 
 	t.Run("delete without user returns error", func(t *testing.T) {
 		defer resetUserFlags()
-		flagDelete = true
+		depDelete = true
 
 		err := rootCmd.RunE(rootCmd, []string{})
 		if err == nil {
@@ -229,7 +230,7 @@ func TestUserFlagValidation(t *testing.T) {
 
 	t.Run("list-users is mutually exclusive with list", func(t *testing.T) {
 		defer resetUserFlags()
-		flagListUsers = true
+		depListUsers = true
 		depList = true
 
 		err := rootCmd.RunE(rootCmd, []string{})
@@ -239,14 +240,14 @@ func TestUserFlagValidation(t *testing.T) {
 		if !strings.Contains(err.Error(), "only one command can be used at a time") {
 			t.Errorf("Unexpected error: %s", err.Error())
 		}
-		flagListUsers = false
+		depListUsers = false
 	})
 
 	t.Run("user update and delete are mutually exclusive", func(t *testing.T) {
 		defer resetUserFlags()
-		flagUser = true
-		flagUpdate = true
-		flagDelete = true
+		depUser = true
+		depUpdate = true
+		depDelete = true
 
 		err := rootCmd.RunE(rootCmd, []string{})
 		if err == nil {
@@ -259,9 +260,9 @@ func TestUserFlagValidation(t *testing.T) {
 
 	t.Run("all without delete returns error", func(t *testing.T) {
 		defer resetUserFlags()
-		flagUser = true
-		flagUpdate = true
-		flagAll = true
+		depUser = true
+		depUpdate = true
+		depAll = true
 
 		err := rootCmd.RunE(rootCmd, []string{})
 		if err == nil {
@@ -274,8 +275,8 @@ func TestUserFlagValidation(t *testing.T) {
 
 	t.Run("user is mutually exclusive with list", func(t *testing.T) {
 		defer resetUserFlags()
-		flagUser = true
-		flagUpdate = true
+		depUser = true
+		depUpdate = true
 		depList = true
 
 		err := rootCmd.RunE(rootCmd, []string{})

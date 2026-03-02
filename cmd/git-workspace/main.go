@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/daileyo/gws/internal/config"
 )
@@ -18,22 +17,14 @@ var (
 	date    = "unknown"
 )
 
-// Command flags that remain on root (user — migrated in spec 11).
+// Root-level flags that are not deprecated.
 var (
-	flagTagAlias    bool
-	flagQuiet       bool
-	flagUser        bool
-	flagUpdate      bool
-	flagDelete      bool
-	flagAll         bool
-	flagVerbose     bool
-	flagInlineName  string
-	flagInlineEmail string
-	flagListUsers   bool
+	flagTagAlias bool
+	flagQuiet    bool
 )
 
-// filterTags is shared between the deprecated --tag flag on root (registered in deprecated.go)
-// and user operations (userupdate.go, userdelete.go). It will move to the user subcommand in spec 11.
+// filterTags is shared between the list subcommand (list.go --tag/-t) and
+// the deprecated root --tag flag (deprecated.go) for backward compatibility.
 var filterTags []string
 
 var rootCmd = &cobra.Command{
@@ -69,35 +60,15 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
   function cdgws() { cd "$(gws print-workspace)"; }
   alias gcd=cdgws`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Handle deprecated flags first (--list, --init, --add, --refresh, etc.)
+		// Handle deprecated flags first (--list, --init, --add, --refresh, --user, etc.)
 		handled, err := handleDeprecatedFlags(cmd, args)
 		if handled {
 			return err
 		}
 
-		// Validate --user flag dependencies
-		if flagUpdate && !flagUser {
-			return fmt.Errorf("--update/-u requires --user to be set")
-		}
-		if flagDelete && !flagUser {
-			return fmt.Errorf("--delete/-D requires --user to be set")
-		}
-		if flagUpdate && flagDelete {
-			return fmt.Errorf("--update and --delete are mutually exclusive")
-		}
-		if flagAll && !flagDelete {
-			return fmt.Errorf("--all requires --delete/-D to be set")
-		}
-		if (flagInlineName != "" || flagInlineEmail != "") && !flagUpdate {
-			return fmt.Errorf("--git-name and --git-email require --user --update to be set")
-		}
-		if flagVerbose && !flagUser {
-			return fmt.Errorf("--verbose requires --user to be set")
-		}
-
-		// Validate --quiet applies to navigation and user operations
-		if flagQuiet && len(args) == 0 && !flagUser {
-			return fmt.Errorf("--quiet/-q can only be used with navigation or --user operations")
+		// Validate --quiet applies to navigation only
+		if flagQuiet && len(args) == 0 {
+			return fmt.Errorf("--quiet/-q can only be used with navigation")
 		}
 
 		// All remaining commands require workspace to be initialized
@@ -118,21 +89,6 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if flagTagAlias {
 			tagCmd.SetArgs(args)
 			return tagCmd.Execute()
-		}
-
-		// User operations (remain on root until spec 11)
-		if flagListUsers {
-			return runListUsers(cmd, args)
-		}
-		if flagUser {
-			if flagUpdate {
-				return runUserUpdate(cmd, args)
-			}
-			if flagDelete {
-				return runUserDelete(cmd, args)
-			}
-			// --user alone: list profiles
-			return runListUsers(cmd, args)
 		}
 
 		// Navigation via positional argument
@@ -173,31 +129,6 @@ func init() {
 	// Navigation flags
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
 
-	// User operation flags (remain on root — migrated to user subcommand in spec 11)
-	rootCmd.Flags().BoolVar(&flagUser, "user", false, "List profiles, or use with --update/-u or --delete/-D")
-	rootCmd.Flags().BoolVarP(&flagUpdate, "update", "u", false, "Update local git user config for repositories (requires --user)")
-	rootCmd.Flags().BoolVarP(&flagDelete, "delete", "D", false, "Delete local git user config from repositories (requires --user)")
-	rootCmd.Flags().BoolVar(&flagAll, "all", false, "Also remove signing config when deleting (requires --delete)")
-	rootCmd.Flags().BoolVar(&flagVerbose, "verbose", false, "Show detailed output for user operations")
-	rootCmd.Flags().StringVar(&flagInlineName, "git-name", "", "Inline git user.name for --user --update")
-	rootCmd.Flags().StringVar(&flagInlineEmail, "git-email", "", "Inline git user.email for --user --update")
-	rootCmd.Flags().BoolVar(&flagListUsers, "list-users", false, "List all available user profiles")
-
-	// Register template helpers for grouped flag display
-	flagGroup := func(names []string) func(*cobra.Command) string {
-		return func(cmd *cobra.Command) string {
-			fs := pflag.NewFlagSet("", pflag.ContinueOnError)
-			for _, name := range names {
-				if f := cmd.Flags().Lookup(name); f != nil {
-					fs.AddFlag(f)
-				}
-			}
-			return fs.FlagUsages()
-		}
-	}
-	cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users"}))
-	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"quiet"}))
-
 	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
 	rootCmd.InitDefaultCompletionCmd()
 
@@ -232,19 +163,12 @@ func init() {
 Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 
-User Operations (migrating to subcommand in future release):
-  gws --user                                        # List available user profiles
-  gws --list-users                                  # Same as above
-  gws --user -u <repo> <profile>                    # Set local user from a stored profile
-  gws --user -D <repo>                              # Remove local user config
-
-  Flags:
-{{userFlagUsages . | trimRightSpace}}
-
 Navigation:
-{{navigationFlagUsages . | trimRightSpace}}
+  gws <repo-name>                                   # Navigate to repository by name
+  gws "api-*"                                       # Wildcard match with interactive selection
 
-Other:
+Flags:
+  -q, --quiet     Suppress verbose output, print only the path (navigation only)
   -h, --help      help for {{.Name}}
       --version   version for {{.Name}}
 `)
