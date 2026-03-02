@@ -173,6 +173,14 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 		return true, runAdd(depAdd, depRecursive)
 	}
 
+	// Validate arg counts before workspace check (fail fast on bad input)
+	if depAddTag && len(args) != 2 {
+		return true, fmt.Errorf("--add-tag requires exactly 2 arguments: <repository> <tag>")
+	}
+	if depRemoveTag && len(args) != 2 {
+		return true, fmt.Errorf("--remove-tag requires exactly 2 arguments: <repository> <tag>")
+	}
+
 	// These require workspace to exist
 	if depList || depRefresh || depPrintWorkspace || depGo != "" || depAddTag || depRemoveTag {
 		exists, err := config.Exists()
@@ -188,20 +196,14 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 		}
 	}
 
-	// Dispatch deprecated --add-tag
+	// Dispatch deprecated --add-tag (arg count already validated above)
 	if depAddTag {
-		if len(args) != 2 {
-			return true, fmt.Errorf("--add-tag requires exactly 2 arguments: <repository> <tag>")
-		}
 		emitDeprecationWarnings(cmd)
 		return true, runAddTag(args[0], args[1])
 	}
 
-	// Dispatch deprecated --remove-tag
+	// Dispatch deprecated --remove-tag (arg count already validated above)
 	if depRemoveTag {
-		if len(args) != 2 {
-			return true, fmt.Errorf("--remove-tag requires exactly 2 arguments: <repository> <tag>")
-		}
 		emitDeprecationWarnings(cmd)
 		return true, runRemoveTag(args[0], args[1])
 	}
