@@ -46,7 +46,9 @@ func TestDeprecatedListEmitsWarning(t *testing.T) {
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("Failed to read from pipe: %v", err)
+	}
 	output := buf.String()
 
 	if !strings.Contains(output, "Warning: --list is deprecated") {
