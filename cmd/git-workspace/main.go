@@ -20,17 +20,17 @@ var (
 
 // Command flags that remain on root (tag, user — migrated in specs 10/11).
 var (
-	flagAddTag    bool
-	flagRemoveTag bool
-	flagQuiet     bool
-	flagUser      bool
-	flagUpdate    bool
-	flagDelete    bool
-	flagAll       bool
-	flagVerbose   bool
+	flagAddTag      bool
+	flagRemoveTag   bool
+	flagQuiet       bool
+	flagUser        bool
+	flagUpdate      bool
+	flagDelete      bool
+	flagAll         bool
+	flagVerbose     bool
 	flagInlineName  string
 	flagInlineEmail string
-	flagListUsers bool
+	flagListUsers   bool
 )
 
 // filterTags is shared between the deprecated --tag flag on root (registered in deprecated.go)
