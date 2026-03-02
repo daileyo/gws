@@ -80,17 +80,32 @@ func TestCommandFlagsRegistered(t *testing.T) {
 }
 
 func TestTagFlagOnRoot(t *testing.T) {
+	// --tag (deprecated filter, no shorthand — shorthand moved to tag-cmd alias)
 	flag := rootCmd.Flags().Lookup("tag")
 	if flag == nil {
 		t.Fatal("--tag flag not found on root command")
 	}
+	if flag.Shorthand != "" {
+		t.Errorf("--tag shorthand: expected '' (removed), got '%s'", flag.Shorthand)
+	}
+}
+
+func TestTagCmdAliasOnRoot(t *testing.T) {
+	// -t on root is the alias for the tag subcommand
+	flag := rootCmd.Flags().Lookup("tag-cmd")
+	if flag == nil {
+		t.Fatal("--tag-cmd flag not found on root command")
+	}
 	if flag.Shorthand != "t" {
-		t.Errorf("--tag shorthand: expected 't', got '%s'", flag.Shorthand)
+		t.Errorf("--tag-cmd shorthand: expected 't', got '%s'", flag.Shorthand)
+	}
+	if !flag.Hidden {
+		t.Error("--tag-cmd should be hidden")
 	}
 }
 
 func TestSubcommandsRegistered(t *testing.T) {
-	expectedSubcommands := []string{"list", "init", "add", "refresh", "print-workspace"}
+	expectedSubcommands := []string{"list", "init", "add", "refresh", "print-workspace", "tag", "user"}
 
 	for _, name := range expectedSubcommands {
 		t.Run(name, func(t *testing.T) {
@@ -110,7 +125,7 @@ func TestSubcommandsRegistered(t *testing.T) {
 
 func TestAliasFlagsAreHidden(t *testing.T) {
 	hiddenFlags := []string{"list", "init", "add", "recursive", "refresh", "print-workspace", "go",
-		"type", "tag", "name", "path", "output", "status", "show-user"}
+		"type", "tag", "name", "path", "output", "status", "show-user", "tag-cmd"}
 
 	for _, name := range hiddenFlags {
 		t.Run(name, func(t *testing.T) {
