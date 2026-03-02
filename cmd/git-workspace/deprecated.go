@@ -44,7 +44,7 @@ func registerDeprecatedFlags(root *cobra.Command) {
 
 	// Deprecated filter flags (compound usage: gws --list --type github)
 	root.Flags().StringVarP(&depFilterType, "type", "y", "", "Filter by repository type")
-	root.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s)")
+	root.Flags().StringSliceVar(&filterTags, "tag", []string{}, "Filter by custom tag(s)")
 	root.Flags().StringVarP(&depFilterName, "name", "n", "", "Filter by repository name")
 	root.Flags().StringVarP(&depFilterPath, "path", "p", "", "Filter by repository path")
 	root.Flags().StringVarP(&depOutputFormat, "output", "o", "table", "Output format: table, json")
@@ -112,7 +112,10 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 		activeCount++
 	}
 
-	// Also count tag/user flags that remain on root (specs 10/11)
+	// Also count tag alias, tag flags, and user flags on root
+	if flagTagAlias {
+		activeCount++
+	}
 	if flagAddTag {
 		activeCount++
 	}

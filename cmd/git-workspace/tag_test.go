@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/daileyo/gws/internal/config"
@@ -280,5 +281,93 @@ func TestTagMultipleRepositories(t *testing.T) {
 
 	if webAppHasTag {
 		t.Error("web-app should not have backend tag")
+	}
+}
+
+func TestTagSubcommandsRegistered(t *testing.T) {
+	expected := []string{"add", "remove"}
+	for _, name := range expected {
+		t.Run(name, func(t *testing.T) {
+			found := false
+			for _, cmd := range tagCmd.Commands() {
+				if cmd.Name() == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Sub-subcommand '%s' should be registered on tagCmd", name)
+			}
+		})
+	}
+}
+
+func TestTagFlagsMutualExclusivity(t *testing.T) {
+	origAdd := tagFlagAdd
+	origDel := tagFlagDelete
+	defer func() {
+		tagFlagAdd = origAdd
+		tagFlagDelete = origDel
+	}()
+
+	tagFlagAdd = true
+	tagFlagDelete = true
+
+	err := tagCmd.RunE(tagCmd, []string{"repo", "tag"})
+	if err == nil {
+		t.Fatal("Expected error when both -a and -d are set")
+	}
+	if !strings.Contains(err.Error(), "mutually exclusive") {
+		t.Errorf("Expected mutual exclusivity error, got: %s", err.Error())
+	}
+}
+
+func TestTagFlagAdd(t *testing.T) {
+	origAdd := tagFlagAdd
+	defer func() { tagFlagAdd = origAdd }()
+
+	tagFlagAdd = true
+
+	// With wrong number of args should error
+	err := tagCmd.RunE(tagCmd, []string{"repo-only"})
+	if err == nil {
+		t.Fatal("Expected error with wrong number of args")
+	}
+	if !strings.Contains(err.Error(), "exactly 2 arguments") {
+		t.Errorf("Expected arg count error, got: %s", err.Error())
+	}
+}
+
+func TestTagFlagDelete(t *testing.T) {
+	origDel := tagFlagDelete
+	defer func() { tagFlagDelete = origDel }()
+
+	tagFlagDelete = true
+
+	// With wrong number of args should error
+	err := tagCmd.RunE(tagCmd, []string{})
+	if err == nil {
+		t.Fatal("Expected error with wrong number of args")
+	}
+	if !strings.Contains(err.Error(), "exactly 2 arguments") {
+		t.Errorf("Expected arg count error, got: %s", err.Error())
+	}
+}
+
+func TestTagNoOperationShowsHelp(t *testing.T) {
+	origAdd := tagFlagAdd
+	origDel := tagFlagDelete
+	defer func() {
+		tagFlagAdd = origAdd
+		tagFlagDelete = origDel
+	}()
+
+	tagFlagAdd = false
+	tagFlagDelete = false
+
+	// When neither flag nor subcommand is specified, RunE should show help (returns nil)
+	err := tagCmd.RunE(tagCmd, []string{})
+	if err != nil {
+		t.Errorf("Expected nil error (help display), got: %s", err.Error())
 	}
 }
