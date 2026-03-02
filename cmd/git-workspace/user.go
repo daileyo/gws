@@ -13,6 +13,14 @@ import (
 	"github.com/daileyo/gws/internal/user"
 )
 
+// User subcommand flags for short-flag invocation (user -a / -d / -l / -s).
+var (
+	userFlagAdd    bool
+	userFlagDelete bool
+	userFlagList   bool
+	userFlagShow   bool
+)
+
 var userCmd = &cobra.Command{
 	Use:   "user",
 	Short: "Manage git user profiles",
@@ -21,11 +29,69 @@ var userCmd = &cobra.Command{
 Profiles define git user.name, user.email, and optional signing configuration.
 They can be manually created or auto-detected from your ~/.gitconfig includeIf directives.
 
-Examples:
+Commands:
   gws user list                                    # List all profiles
   gws user add work --email work@company.com       # Add a new profile
   gws user show work                               # Show profile details
-  gws user remove work                             # Remove a profile`,
+  gws user remove work                             # Remove a profile
+  gws user assign my-repo work                     # Assign profile to repo
+  gws user sync                                    # Sync user info
+
+Short flags:
+  gws user -l                                      # List all profiles
+  gws user -a work --email work@company.com        # Add a new profile
+  gws user -s work                                 # Show profile details
+  gws user -d work                                 # Remove a profile`,
+	Args: cobra.ArbitraryArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Count active short flags for mutual exclusivity
+		activeCount := 0
+		if userFlagAdd {
+			activeCount++
+		}
+		if userFlagDelete {
+			activeCount++
+		}
+		if userFlagList {
+			activeCount++
+		}
+		if userFlagShow {
+			activeCount++
+		}
+
+		if activeCount > 1 {
+			return fmt.Errorf("only one of -a, -d, -l, -s can be used at a time")
+		}
+
+		// Dispatch based on short flag
+		if userFlagList {
+			return userListCmd.RunE(cmd, args)
+		}
+
+		if userFlagAdd {
+			if len(args) < 1 {
+				return fmt.Errorf("user -a requires a profile name: gws user -a <name> --email <email>")
+			}
+			return userAddCmd.RunE(cmd, args)
+		}
+
+		if userFlagShow {
+			if len(args) != 1 {
+				return fmt.Errorf("user -s requires exactly 1 argument: gws user -s <name>")
+			}
+			return userShowCmd.RunE(cmd, args)
+		}
+
+		if userFlagDelete {
+			if len(args) != 1 {
+				return fmt.Errorf("user -d requires exactly 1 argument: gws user -d <name>")
+			}
+			return userRemoveCmd.RunE(cmd, args)
+		}
+
+		// No sub-operation specified — show help
+		return cmd.Help()
+	},
 }
 
 var userListCmd = &cobra.Command{
@@ -462,7 +528,19 @@ func init() {
 	userCmd.AddCommand(userAssignCmd)
 	userCmd.AddCommand(userSyncCmd)
 
-	// Add flags for user add
+	// Short flags on the user command for quick invocation
+	userCmd.Flags().BoolVarP(&userFlagAdd, "add", "a", false, "Add a profile (equivalent to 'user add')")
+	userCmd.Flags().BoolVarP(&userFlagDelete, "delete", "d", false, "Remove a profile (equivalent to 'user remove')")
+	userCmd.Flags().BoolVarP(&userFlagList, "list", "l", false, "List all profiles (equivalent to 'user list')")
+	userCmd.Flags().BoolVarP(&userFlagShow, "show", "s", false, "Show profile details (equivalent to 'user show')")
+
+	// Add-related flags on userCmd so they work with -a (same backing vars as userAddCmd)
+	userCmd.Flags().StringVar(&addEmail, "email", "", "Email address for git commits (required with -a)")
+	userCmd.Flags().StringVar(&addGitName, "name", "", "Git user name (defaults to profile name)")
+	userCmd.Flags().StringVar(&addSigningKey, "signing-key", "", "GPG signing key ID")
+	userCmd.Flags().BoolVar(&addSignCommit, "sign-commits", false, "Enable commit signing")
+
+	// Add flags for user add subcommand
 	userAddCmd.Flags().StringVar(&addEmail, "email", "", "Email address for git commits (required)")
 	userAddCmd.Flags().StringVar(&addGitName, "name", "", "Git user name (defaults to profile name)")
 	userAddCmd.Flags().StringVar(&addSigningKey, "signing-key", "", "GPG signing key ID")
@@ -473,6 +551,32 @@ func init() {
 	userAssignCmd.Flags().BoolVar(&assignDryRun, "dry-run", false, "Preview changes without applying")
 
 	_ = userAddCmd.MarkFlagRequired("email")
+
+	// Reset to Cobra's default template so user help doesn't inherit root's custom template
+	userCmd.SetUsageTemplate(`Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`)
 }
 
 // displayProfileTable shows profiles in a formatted table
