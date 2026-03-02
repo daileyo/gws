@@ -137,4 +137,3 @@ func runUserDelete(_ *cobra.Command, args []string) error {
 
 	return nil
 }
-

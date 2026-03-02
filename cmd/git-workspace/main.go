@@ -370,21 +370,6 @@ Other:
 `)
 }
 
-// hasFilterFlags checks if any filter flag has been explicitly set by the user
-func hasFilterFlags(cmd *cobra.Command) bool {
-	filterFlagNames := []string{"type", "tag", "name", "path", "status", "show-user"}
-	for _, name := range filterFlagNames {
-		if cmd.Flags().Changed(name) {
-			return true
-		}
-	}
-	// Check output only if it was explicitly changed from default
-	if cmd.Flags().Changed("output") {
-		return true
-	}
-	return false
-}
-
 // hasNonTagFilterFlags checks if any filter flag other than --tag has been set
 func hasNonTagFilterFlags(cmd *cobra.Command) bool {
 	nonTagFilterNames := []string{"type", "name", "path", "status", "show-user"}
@@ -393,10 +378,7 @@ func hasNonTagFilterFlags(cmd *cobra.Command) bool {
 			return true
 		}
 	}
-	if cmd.Flags().Changed("output") {
-		return true
-	}
-	return false
+	return cmd.Flags().Changed("output")
 }
 
 func main() {

@@ -441,11 +441,15 @@ func TestDeleteLocal(t *testing.T) {
 	t.Run("remove name and email only", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		repoPath := filepath.Join(tmpDir, "test-repo")
-		os.MkdirAll(repoPath, 0755)
+		if err := os.MkdirAll(repoPath, 0755); err != nil {
+			t.Fatalf("failed to create repo directory: %v", err)
+		}
 
 		cmd := exec.Command("git", "init")
 		cmd.Dir = repoPath
-		cmd.Run()
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("git init failed: %v", err)
+		}
 
 		// Set user config with signing
 		profile := config.Profile{
@@ -454,7 +458,9 @@ func TestDeleteLocal(t *testing.T) {
 			SigningKey:  "KEY123",
 			SignCommits: true,
 		}
-		AssignLocal(repoPath, profile)
+		if err := AssignLocal(repoPath, profile); err != nil {
+			t.Fatalf("AssignLocal failed: %v", err)
+		}
 
 		// Delete without --all
 		if err := DeleteLocal(repoPath, false); err != nil {
@@ -482,11 +488,15 @@ func TestDeleteLocal(t *testing.T) {
 	t.Run("remove all including signing", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		repoPath := filepath.Join(tmpDir, "test-repo")
-		os.MkdirAll(repoPath, 0755)
+		if err := os.MkdirAll(repoPath, 0755); err != nil {
+			t.Fatalf("failed to create repo directory: %v", err)
+		}
 
 		cmd := exec.Command("git", "init")
 		cmd.Dir = repoPath
-		cmd.Run()
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("git init failed: %v", err)
+		}
 
 		profile := config.Profile{
 			GitName:     "Test User",
@@ -494,7 +504,9 @@ func TestDeleteLocal(t *testing.T) {
 			SigningKey:  "KEY123",
 			SignCommits: true,
 		}
-		AssignLocal(repoPath, profile)
+		if err := AssignLocal(repoPath, profile); err != nil {
+			t.Fatalf("AssignLocal failed: %v", err)
+		}
 
 		// Delete with --all
 		if err := DeleteLocal(repoPath, true); err != nil {
@@ -521,13 +533,19 @@ func TestDeleteLocal(t *testing.T) {
 	t.Run("preserves non-user sections", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		repoPath := filepath.Join(tmpDir, "test-repo")
-		os.MkdirAll(repoPath, 0755)
+		if err := os.MkdirAll(repoPath, 0755); err != nil {
+			t.Fatalf("failed to create repo directory: %v", err)
+		}
 
 		cmd := exec.Command("git", "init")
 		cmd.Dir = repoPath
-		cmd.Run()
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("git init failed: %v", err)
+		}
 
-		AssignLocal(repoPath, config.Profile{GitName: "Test", Email: "t@t.com"})
+		if err := AssignLocal(repoPath, config.Profile{GitName: "Test", Email: "t@t.com"}); err != nil {
+			t.Fatalf("AssignLocal failed: %v", err)
+		}
 
 		if err := DeleteLocal(repoPath, false); err != nil {
 			t.Fatalf("DeleteLocal failed: %v", err)

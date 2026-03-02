@@ -1,0 +1,37 @@
+ [31m94c9b2d[m feat:       add --list-users flag, --user profil.. [1;33m[1;32m31 seconds ago [1;33m[m [2;37m- daileyo        [m N [m[33m ([m[1;36mHEAD -> [m[2;33mfeat-git-users[m[33m)[m[m
+ [31m324a451[m feat:       implement batch update/delete via --.. [1;33m[1;32m2 hours ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m5117819[m feat:       implement --user --delete for local .. [1;33m[1;32m2 hours ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m00b193d[m feat:       implement --user --update for single.. [1;33m[1;32m2 hours ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m5fbd163[m feat:       add --user --update/--delete CLI fla.. [1;33m[1;32m3 hours ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m6c63b7c[m feat:       add default user indicator (*) in --.. [1;33m[1;32m14 hours ago   [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31md5681a4[m feat:       detect local git config at display t.. [1;33m[1;32m14 hours ago   [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m30db88d[m feat:       add includeIf profile auto-linking d.. [1;33m[1;32m14 hours ago   [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m724b0fc[m feat:       wire user detection into init and ad.. [1;33m[1;32m14 hours ago   [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31meff872d[m feat:       replace heuristic includeIf detectio.. [1;33m[1;32m14 hours ago   [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m2738095[m feat:       update CLI flags - rename --user to .. [1;33m[1;32m14 hours ago   [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m0c2c088[m fix:        correct license badge in docds         [1;33m[1;32m2 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m43852af[m chore:      set license                            [1;33m[1;32m2 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m444a397[m chore(main): release 2.4.0                         [1;33m[1;32m2 days ago     [1;33m[m [2;37m- github-action..[m N [m[m
+ [31mdb2931c[m docs:       add validation report for branding s.. [1;33m[1;32m2 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m82f5dd8[m feat:       add logo to mkdocs nav bar, favicon,.. [1;33m[1;32m2 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31md0732a7[m feat:       configure mkdocs theme with branded .. [1;33m[1;32m2 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m92694d4[m feat:       add logo and tagline to README         [1;33m[1;32m2 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m5a240a6[m feat:       add optimized logo variants for bran.. [1;33m[1;32m2 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31mcf2f5a7[m chore(main): release 2.3.0                         [1;33m[1;32m3 days ago     [1;33m[m [2;37m- github-action..[m N [m[m
+ [31mf0ff2c5[m feat:       update setup-hooks messaging and doc.. [1;33m[1;32m3 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m0daf783[m feat:       add commit-msg hook for conventional.. [1;33m[1;32m3 days ago     [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m9b3ff0f[m chore(main): release 2.2.0                         [1;33m[1;32m3 days ago     [1;33m[m [2;37m- github-action..[m N [m[m
+ [31md2b6712[m fix:        resolve linting issues                 [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[33m ([m[1;31morigin/feat-git-users[m[33m)[m[m
+ [31m4fd9fba[m chore:      add proof artifacts for task 6         [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m94d96cc[m feat(user): add assign and sync commands for rep.. [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m2d02879[m chore:      add proof artifacts for task 5         [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31mf6fca8e[m feat(user): add user profile management commands   [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31md4bc407[m chore:      add proof artifacts for task 4         [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m4cf3eaa[m feat(list): add --user flag to display git user .. [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m0002b87[m chore:      add proof artifacts for task 3         [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m8b37974[m feat(user): implement profile auto-detection fro.. [1;33m[1;32m4 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31ma274899[m chore:      chore: add proo fartifacts for task 2  [1;33m[1;32m6 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m6ceaad3[m feat(git): implement user detection from reposit.. [1;33m[1;32m6 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31mc2bb8cc[m chore:      add proof artifacts for task 1         [1;33m[1;32m6 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m11784b1[m feat(config): extend model with user profiles an.. [1;33m[1;32m6 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
+ [31m914cfe1[m chore:      complete questionaire and generate t.. [1;33m[1;32m6 weeks ago    [1;33m[m [2;37m- daileyo        [m N [m[m
