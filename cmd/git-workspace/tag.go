@@ -4,20 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/daileyo/gws/internal/config"
 )
 
-// runTag handles the --add-tag flag logic
-func runTag(_ *cobra.Command, args []string) error {
-	if len(args) != 2 {
-		return fmt.Errorf("--add-tag requires exactly 2 arguments: <repository> <tag>")
-	}
-
-	repoIdentifier := args[0]
-	tag := args[1]
-
+// runAddTag adds a tag to all repositories matching the identifier.
+func runAddTag(repoIdentifier, tag string) error {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
