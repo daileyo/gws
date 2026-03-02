@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/daileyo/gws/compare/v2.4.1...v2.5.0) (2026-03-02)
+
+
+### Features
+
+* add repo user update/delete commands and profile sync ([a067e0e](https://github.com/daileyo/gws/commit/a067e0e6782a35a59493d1ea12114eab15d2ea6c))
+
 ## [2.4.1](https://github.com/daileyo/gws/compare/v2.4.0...v2.4.1) (2026-02-27)
 
 
