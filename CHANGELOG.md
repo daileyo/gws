@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.7.0](https://github.com/daileyo/gws/compare/v2.6.0...v2.7.0) (2026-03-02)
+
+
+### Features
+
+* add tab completion for tag operations ([e8c3497](https://github.com/daileyo/gws/commit/e8c3497aca7f85f190437586ed9b5d73650f6326))
+* create tag subcommand with add/remove sub-operations ([1af4150](https://github.com/daileyo/gws/commit/1af41501077136577c26598a4bb818f1a4deebeb))
+* deprecate old tag flags and clean up root command ([d5639b9](https://github.com/daileyo/gws/commit/d5639b9f53fac05bc6786b9a9ea7ec6ea9875cfb))
+
+
+### Bug Fixes
+
+* resolve lint issues in main.go and deprecated_test.go ([2bf107c](https://github.com/daileyo/gws/commit/2bf107cd2792837380f5e605953869ea81c391dd))
+* validate deprecated tag flag args before workspace check ([b556d2e](https://github.com/daileyo/gws/commit/b556d2ef01686a06fe59c1d6f684fa283c1c0c86))
+
 ## [2.6.0](https://github.com/daileyo/gws/compare/v2.5.0...v2.6.0) (2026-03-02)
 
 
