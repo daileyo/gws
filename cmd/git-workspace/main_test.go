@@ -1,9 +1,54 @@
 package main
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/daileyo/gws/internal/config"
 )
+
+// TestMain guards against tests corrupting the real user config.
+// It snapshots ~/.gws/config.json before all tests and fails if
+// the content has changed after the suite finishes.
+func TestMain(m *testing.M) {
+	configPath, err := config.GetConfigPath()
+	if err != nil {
+		// If we can't resolve the path, just run tests without the guard.
+		os.Exit(m.Run())
+	}
+
+	var before []byte
+	existed := false
+	if data, err := os.ReadFile(configPath); err == nil {
+		before = data
+		existed = true
+	}
+
+	code := m.Run()
+
+	if existed {
+		after, err := os.ReadFile(configPath)
+		if err != nil {
+			os.Stderr.WriteString("FAIL: real config was deleted by tests: " + configPath + "\n")
+			os.Exit(1)
+		}
+		if !bytes.Equal(before, after) {
+			os.Stderr.WriteString("FAIL: real config was modified by tests: " + configPath + "\n")
+			os.Exit(1)
+		}
+	} else {
+		if _, err := os.Stat(configPath); err == nil {
+			os.Stderr.WriteString("FAIL: real config was created by tests: " + configPath + "\n")
+			// Clean up the file that shouldn't exist.
+			os.Remove(configPath)
+			os.Exit(1)
+		}
+	}
+
+	os.Exit(code)
+}
 
 func TestVersionVariablesAreDefined(t *testing.T) {
 	origVersion := version
