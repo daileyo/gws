@@ -3,15 +3,15 @@ package main
 import (
 	"fmt"
 	"os"
-
-	"github.com/spf13/cobra"
+	"path/filepath"
 
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 )
 
-// runInit handles the --init flag logic
-func runInit(_ *cobra.Command, _ []string) error {
+// runInit handles the init logic.
+// dir is the directory to initialize (empty string means current directory).
+func runInit(dir string) error {
 	// Guard: if a workspace is already initialized, notify and exit cleanly
 	exists, err := config.Exists()
 	if err != nil {
@@ -24,15 +24,23 @@ func runInit(_ *cobra.Command, _ []string) error {
 		}
 		fmt.Fprintf(os.Stderr, "Workspace already initialized at: %s\n", cfg.Workspace)
 		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "To add more repositories:  gws --add")
-		fmt.Fprintln(os.Stderr, "To re-scan the workspace:  gws --refresh")
+		fmt.Fprintln(os.Stderr, "To add more repositories:  gws add")
+		fmt.Fprintln(os.Stderr, "To re-scan the workspace:  gws refresh")
 		return nil
 	}
 
-	// Resolve workspace path to current working directory
-	absPath, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to resolve current directory: %w", err)
+	// Resolve workspace path
+	var absPath string
+	if dir == "" || dir == "." {
+		absPath, err = os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to resolve current directory: %w", err)
+		}
+	} else {
+		absPath, err = filepath.Abs(dir)
+		if err != nil {
+			return fmt.Errorf("failed to resolve directory path: %w", err)
+		}
 	}
 
 	// Scan for repositories

@@ -3,15 +3,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 	"github.com/daileyo/gws/internal/git"
 )
 
-// runRefresh handles the --refresh flag logic
-func runRefresh(_ *cobra.Command, _ []string) error {
+// runRefresh handles the refresh logic.
+func runRefresh() error {
 	// Load existing configuration
 	cfg, err := config.Load()
 	if err != nil {
