@@ -36,7 +36,7 @@
 - [x] 1.3 Update the call sites in `main.go` RunE: change `runTag(cmd, args)` to `runAddTag(args[0], args[1])` (with the existing arg count validation before the call) and `runUntag(cmd, args)` to `runRemoveTag(args[0], args[1])`. Add arg count validation: if `flagAddTag` or `flagRemoveTag` is set and `len(args) != 2`, return an error.
 - [x] 1.4 Verify `make test` and `make vet` pass with the refactored signatures.
 
-### [ ] 2.0 Create Tag Subcommand with Add/Remove Sub-Operations
+### [x] 2.0 Create Tag Subcommand with Add/Remove Sub-Operations
 
 #### 2.0 Proof Artifact(s)
 
@@ -50,15 +50,15 @@
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Create the `tagCmd` Cobra command in `tag.go` with `Use: "tag"`, `Short: "Manage repository tags"`. The `RunE` should check if `-a` or `-d` flags are set (see 2.4), and if neither is set and no sub-subcommand was invoked, display help (`cmd.Help()`). Register with `rootCmd.AddCommand(tagCmd)` in an `init()` function.
-- [ ] 2.2 Create the `tagAddCmd` sub-subcommand in `tag.go` with `Use: "add <repo> <tag>"`, `Args: cobra.ExactArgs(2)`. Its `RunE` calls `runAddTag(args[0], args[1])`. Register with `tagCmd.AddCommand(tagAddCmd)`.
-- [ ] 2.3 Create the `tagRemoveCmd` sub-subcommand in `tag.go` with `Use: "remove <repo> <tag>"`, `Args: cobra.ExactArgs(2)`. Its `RunE` calls `runRemoveTag(args[0], args[1])`. Register with `tagCmd.AddCommand(tagRemoveCmd)`.
-- [ ] 2.4 Register `-a` (bool, `tagFlagAdd`) and `-d` (bool, `tagFlagDelete`) flags on `tagCmd`. In `tagCmd.RunE`, if `-a` is set, validate `len(args) == 2` and call `runAddTag(args[0], args[1])`. If `-d` is set, validate `len(args) == 2` and call `runRemoveTag(args[0], args[1])`. Enforce mutual exclusivity: if both `-a` and `-d` are set, return an error.
-- [ ] 2.5 Set `tagCmd.Args = cobra.ArbitraryArgs` so that positional args can be passed when `-a` or `-d` flags are used (Cobra needs to accept args on the parent command for the flag-based invocation pattern).
-- [ ] 2.6 Remove the `-t` shorthand from the deprecated `--tag` filter flag registration in `deprecated.go`. Change `StringSliceVarP(&filterTags, "tag", "t", ...)` to `StringSliceVar(&filterTags, "tag", ...)` (no shorthand). This frees `-t` for the tag command alias.
-- [ ] 2.7 Register `-t` as a hidden boolean flag on the root command that serves as an alias for the `tag` subcommand. In root `RunE`, before the tag dispatch block, check if `-t` alias is set and delegate to `tagCmd` execution by calling `tagCmd.RunE(tagCmd, args)` (passing through remaining args). The `-t` flag variable can be named `flagTagAlias`.
-- [ ] 2.8 Write tests in `tag_test.go`: (a) `TestTagSubcommandsRegistered` — verify `add` and `remove` are registered on `tagCmd`, (b) `TestTagFlagAdd` — verify `-a` flag routes to add logic, (c) `TestTagFlagDelete` — verify `-d` flag routes to remove logic, (d) `TestTagMutualExclusivity` — verify `-a` and `-d` together error, (e) `TestTagNoOperationShowsHelp` — verify bare `gws tag` shows help, (f) `TestTagAliasFlag` — verify `-t` is registered and hidden on root.
-- [ ] 2.9 Verify `make ci` passes.
+- [x] 2.1 Create the `tagCmd` Cobra command in `tag.go` with `Use: "tag"`, `Short: "Manage repository tags"`. The `RunE` should check if `-a` or `-d` flags are set (see 2.4), and if neither is set and no sub-subcommand was invoked, display help (`cmd.Help()`). Register with `rootCmd.AddCommand(tagCmd)` in an `init()` function.
+- [x] 2.2 Create the `tagAddCmd` sub-subcommand in `tag.go` with `Use: "add <repo> <tag>"`, `Args: cobra.ExactArgs(2)`. Its `RunE` calls `runAddTag(args[0], args[1])`. Register with `tagCmd.AddCommand(tagAddCmd)`.
+- [x] 2.3 Create the `tagRemoveCmd` sub-subcommand in `tag.go` with `Use: "remove <repo> <tag>"`, `Args: cobra.ExactArgs(2)`. Its `RunE` calls `runRemoveTag(args[0], args[1])`. Register with `tagCmd.AddCommand(tagRemoveCmd)`.
+- [x] 2.4 Register `-a` (bool, `tagFlagAdd`) and `-d` (bool, `tagFlagDelete`) flags on `tagCmd`. In `tagCmd.RunE`, if `-a` is set, validate `len(args) == 2` and call `runAddTag(args[0], args[1])`. If `-d` is set, validate `len(args) == 2` and call `runRemoveTag(args[0], args[1])`. Enforce mutual exclusivity: if both `-a` and `-d` are set, return an error.
+- [x] 2.5 Set `tagCmd.Args = cobra.ArbitraryArgs` so that positional args can be passed when `-a` or `-d` flags are used (Cobra needs to accept args on the parent command for the flag-based invocation pattern).
+- [x] 2.6 Remove the `-t` shorthand from the deprecated `--tag` filter flag registration in `deprecated.go`. Change `StringSliceVarP(&filterTags, "tag", "t", ...)` to `StringSliceVar(&filterTags, "tag", ...)` (no shorthand). This frees `-t` for the tag command alias.
+- [x] 2.7 Register `-t` as a hidden boolean flag on the root command that serves as an alias for the `tag` subcommand. In root `RunE`, before the tag dispatch block, check if `-t` alias is set and delegate to `tagCmd` execution by calling `tagCmd.RunE(tagCmd, args)` (passing through remaining args). The `-t` flag variable can be named `flagTagAlias`.
+- [x] 2.8 Write tests in `tag_test.go`: (a) `TestTagSubcommandsRegistered` — verify `add` and `remove` are registered on `tagCmd`, (b) `TestTagFlagAdd` — verify `-a` flag routes to add logic, (c) `TestTagFlagDelete` — verify `-d` flag routes to remove logic, (d) `TestTagMutualExclusivity` — verify `-a` and `-d` together error, (e) `TestTagNoOperationShowsHelp` — verify bare `gws tag` shows help, (f) `TestTagAliasFlag` — verify `-t` is registered and hidden on root.
+- [x] 2.9 Verify `make ci` passes.
 
 ### [ ] 3.0 Add Tab Completion for Tag Operations
 
