@@ -266,3 +266,48 @@ func findRepositories(cfg *config.Config, identifier string) []*config.Repositor
 
 	return matched
 }
+
+// findRepositoriesWithFilters locates repositories matching the given filters.
+// repoFilter performs a partial, case-insensitive name match.
+// pathFilter performs a case-sensitive prefix match; falls back to substring if no prefix matches.
+// When both are non-empty, a repo must satisfy both conditions (AND logic).
+func findRepositoriesWithFilters(cfg *config.Config, repoFilter, pathFilter string) []*config.Repository {
+	candidates := make([]*config.Repository, 0, len(cfg.Repositories))
+	for i := range cfg.Repositories {
+		candidates = append(candidates, &cfg.Repositories[i])
+	}
+
+	// Apply name filter (partial, case-insensitive)
+	if repoFilter != "" {
+		var filtered []*config.Repository
+		for _, repo := range candidates {
+			if strings.Contains(strings.ToLower(repo.Name), strings.ToLower(repoFilter)) {
+				filtered = append(filtered, repo)
+			}
+		}
+		candidates = filtered
+	}
+
+	// Apply path filter (case-sensitive prefix, with substring fallback)
+	if pathFilter != "" {
+		var prefixMatches []*config.Repository
+		for _, repo := range candidates {
+			if strings.HasPrefix(repo.Path, pathFilter) {
+				prefixMatches = append(prefixMatches, repo)
+			}
+		}
+		if len(prefixMatches) > 0 {
+			candidates = prefixMatches
+		} else {
+			var substringMatches []*config.Repository
+			for _, repo := range candidates {
+				if strings.Contains(repo.Path, pathFilter) {
+					substringMatches = append(substringMatches, repo)
+				}
+			}
+			candidates = substringMatches
+		}
+	}
+
+	return candidates
+}
