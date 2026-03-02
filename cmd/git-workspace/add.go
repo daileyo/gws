@@ -7,11 +7,42 @@ import (
 	"strings"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/spf13/cobra"
 
 	"github.com/daileyo/gws/internal/classifier"
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 )
+
+// addRecursive is the --recursive flag for the add subcommand.
+var addRecursive bool
+
+// addCmd is the Cobra subcommand for adding repositories.
+var addCmd = &cobra.Command{
+	Use:   "add [path]",
+	Short: "Add a git repository to the workspace",
+	Long: `Add a git repository to the workspace. Defaults to the current directory if no path is given.
+Use --recursive to scan and add all git repositories found under the given path.
+
+Examples:
+  gws add                          # Add current directory
+  gws add ~/projects/my-repo       # Add a specific repo
+  gws add -v                       # Recursively add all repos in current directory
+  gws add ~/projects -v            # Recursively add all repos under a path`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		path := "."
+		if len(args) > 0 {
+			path = args[0]
+		}
+		return runAdd(path, addRecursive)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(addCmd)
+	addCmd.Flags().BoolVarP(&addRecursive, "recursive", "v", false, "Recursively add all git repositories found under the path")
+}
 
 // runAdd handles the add logic for adding a single repository.
 // path is the directory to add (use "." for current directory).

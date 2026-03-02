@@ -122,16 +122,39 @@ func TestFilterFlagsRegistered(t *testing.T) {
 	}
 }
 
-func TestNoSubcommandsRegistered(t *testing.T) {
-	// Verify old subcommands are not registered (clean break)
-	oldSubcommands := []string{"list", "init", "tag", "untag", "refresh", "version"}
+func TestSubcommandsRegistered(t *testing.T) {
+	// Verify core subcommands are registered on rootCmd
+	expectedSubcommands := []string{"list", "init", "add", "refresh", "print-workspace"}
 
-	for _, name := range oldSubcommands {
+	for _, name := range expectedSubcommands {
 		t.Run(name, func(t *testing.T) {
+			found := false
 			for _, cmd := range rootCmd.Commands() {
 				if cmd.Name() == name {
-					t.Errorf("Old subcommand '%s' should not be registered", name)
+					found = true
+					break
 				}
+			}
+			if !found {
+				t.Errorf("Subcommand '%s' should be registered on rootCmd", name)
+			}
+		})
+	}
+}
+
+func TestAliasFlagsAreHidden(t *testing.T) {
+	// Verify alias flags on root are hidden (users should use subcommands)
+	hiddenFlags := []string{"list", "init", "add", "recursive", "refresh", "print-workspace"}
+
+	for _, name := range hiddenFlags {
+		t.Run(name, func(t *testing.T) {
+			flag := rootCmd.Flags().Lookup(name)
+			if flag == nil {
+				t.Errorf("Alias flag --%s not found on root command", name)
+				return
+			}
+			if !flag.Hidden {
+				t.Errorf("Alias flag --%s should be hidden", name)
 			}
 		})
 	}
@@ -156,7 +179,7 @@ func TestMutualExclusivity(t *testing.T) {
 		return
 	}
 
-	expected := "only one command flag can be used at a time"
+	expected := "only one command can be used at a time"
 	if !strings.Contains(err.Error(), expected) {
 		t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
 	}
@@ -236,7 +259,7 @@ func TestUserFlagValidation(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error")
 		}
-		if !strings.Contains(err.Error(), "only one command flag") {
+		if !strings.Contains(err.Error(), "only one command can be used at a time") {
 			t.Errorf("Unexpected error: %s", err.Error())
 		}
 		flagListUsers = false
@@ -282,7 +305,7 @@ func TestUserFlagValidation(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error")
 		}
-		expected := "only one command flag can be used at a time"
+		expected := "only one command can be used at a time"
 		if !strings.Contains(err.Error(), expected) {
 			t.Errorf("Expected error containing '%s', got: %s", expected, err.Error())
 		}

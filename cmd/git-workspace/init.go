@@ -5,9 +5,35 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 )
+
+// initCmd is the Cobra subcommand for initializing a workspace.
+var initCmd = &cobra.Command{
+	Use:   "init [directory]",
+	Short: "Initialize a gws workspace",
+	Long: `Initialize a gws workspace in the specified directory (defaults to current directory).
+Scans for existing git repositories and creates the workspace configuration.
+
+Examples:
+  gws init                # Initialize in current directory
+  gws init ~/projects     # Initialize in a specific directory`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir := ""
+		if len(args) > 0 {
+			dir = args[0]
+		}
+		return runInit(dir)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(initCmd)
+}
 
 // runInit handles the init logic.
 // dir is the directory to initialize (empty string means current directory).
