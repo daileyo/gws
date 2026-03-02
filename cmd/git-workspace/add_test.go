@@ -49,13 +49,9 @@ func TestRunAdd_CurrentDirectory(t *testing.T) {
 	repoDir := filepath.Join(workspaceDir, "my-repo")
 	createInitTestRepo(t, repoDir)
 
-	// Set flagAdd to "." and CWD to the repo
-	origFlag := flagAdd
-	flagAdd = "."
-	defer func() { flagAdd = origFlag }()
 	withTempWorkdir(t, repoDir)
 
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(".", false); err != nil {
 		t.Fatalf("runAdd returned unexpected error: %v", err)
 	}
 
@@ -75,11 +71,7 @@ func TestRunAdd_ExplicitExternalPath(t *testing.T) {
 	workspaceDir := setupWorkspace(t)
 	repoDir := setupExternalRepo(t, "external-repo")
 
-	origFlag := flagAdd
-	flagAdd = repoDir
-	defer func() { flagAdd = origFlag }()
-
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(repoDir, false); err != nil {
 		t.Fatalf("runAdd returned unexpected error: %v", err)
 	}
 
@@ -120,11 +112,7 @@ func TestRunAdd_NonGitDirectory(t *testing.T) {
 
 	nonGitDir := t.TempDir()
 
-	origFlag := flagAdd
-	flagAdd = nonGitDir
-	defer func() { flagAdd = origFlag }()
-
-	err := runAdd(nil, nil)
+	err := runAdd(nonGitDir, false)
 	if err == nil {
 		t.Error("Expected error for non-git directory, got nil")
 	}
@@ -135,12 +123,8 @@ func TestRunAdd_AlreadyTracked(t *testing.T) {
 	repoDir := filepath.Join(workspaceDir, "my-repo")
 	createInitTestRepo(t, repoDir)
 
-	origFlag := flagAdd
-	flagAdd = repoDir
-	defer func() { flagAdd = origFlag }()
-
 	// First add
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(repoDir, false); err != nil {
 		t.Fatalf("First runAdd failed: %v", err)
 	}
 
@@ -151,7 +135,7 @@ func TestRunAdd_AlreadyTracked(t *testing.T) {
 	countAfterFirst := len(cfg.Repositories)
 
 	// Second add — should warn and skip, not error
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(repoDir, false); err != nil {
 		t.Errorf("Second runAdd should return nil for already-tracked repo, got: %v", err)
 	}
 
@@ -174,12 +158,8 @@ func TestRunAdd_SymlinkPathConflict(t *testing.T) {
 		t.Fatalf("Failed to create conflict file: %v", err)
 	}
 
-	origFlag := flagAdd
-	flagAdd = repoDir
-	defer func() { flagAdd = origFlag }()
-
 	// Should succeed (repo added to config) but skip symlink creation
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(repoDir, false); err != nil {
 		t.Errorf("runAdd should not error on symlink conflict, got: %v", err)
 	}
 
@@ -207,11 +187,7 @@ func TestRunAdd_NoWorkspace(t *testing.T) {
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
 
-	origFlag := flagAdd
-	flagAdd = "."
-	defer func() { flagAdd = origFlag }()
-
-	err := runAdd(nil, nil)
+	err := runAdd(".", false)
 	if err == nil {
 		t.Error("Expected error when no workspace initialized, got nil")
 	}
@@ -239,11 +215,7 @@ func TestRunAdd_ConfigMetadata(t *testing.T) {
 	repoDir := filepath.Join(workspaceDir, "typed-repo")
 	createInitTestRepo(t, repoDir) // createInitTestRepo sets origin to https://github.com/test/repo.git
 
-	origFlag := flagAdd
-	flagAdd = repoDir
-	defer func() { flagAdd = origFlag }()
-
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(repoDir, false); err != nil {
 		t.Fatalf("runAdd failed: %v", err)
 	}
 
@@ -278,17 +250,9 @@ func TestRunAddRecursive_MultipleRepos(t *testing.T) {
 		createInitTestRepo(t, filepath.Join(workspaceDir, name))
 	}
 
-	origFlag := flagAdd
-	origRecursive := flagRecursive
-	flagAdd = "."
-	flagRecursive = true
-	defer func() {
-		flagAdd = origFlag
-		flagRecursive = origRecursive
-	}()
 	withTempWorkdir(t, workspaceDir)
 
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(".", true); err != nil {
 		t.Fatalf("runAdd returned unexpected error: %v", err)
 	}
 
@@ -309,26 +273,15 @@ func TestRunAddRecursive_AllAlreadyTracked(t *testing.T) {
 		repoDir := filepath.Join(workspaceDir, name)
 		createInitTestRepo(t, repoDir)
 
-		origFlag := flagAdd
-		flagAdd = repoDir
-		if err := runAdd(nil, nil); err != nil {
+		if err := runAdd(repoDir, false); err != nil {
 			t.Fatalf("Initial add of %s failed: %v", name, err)
 		}
-		flagAdd = origFlag
 	}
 
 	// Now run recursive — all repos already tracked
-	origFlag := flagAdd
-	origRecursive := flagRecursive
-	flagAdd = "."
-	flagRecursive = true
-	defer func() {
-		flagAdd = origFlag
-		flagRecursive = origRecursive
-	}()
 	withTempWorkdir(t, workspaceDir)
 
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(".", true); err != nil {
 		t.Fatalf("runAdd returned unexpected error: %v", err)
 	}
 
@@ -346,18 +299,9 @@ func TestRunAddRecursive_NoRepos(t *testing.T) {
 
 	// CWD is an empty directory with no git repos
 	scanDir := t.TempDir()
-
-	origFlag := flagAdd
-	origRecursive := flagRecursive
-	flagAdd = "."
-	flagRecursive = true
-	defer func() {
-		flagAdd = origFlag
-		flagRecursive = origRecursive
-	}()
 	withTempWorkdir(t, scanDir)
 
-	if err := runAdd(nil, nil); err != nil {
+	if err := runAdd(".", true); err != nil {
 		t.Fatalf("runAdd returned unexpected error: %v", err)
 	}
 

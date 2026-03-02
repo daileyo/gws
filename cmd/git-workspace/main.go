@@ -166,10 +166,10 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 
 		// Dispatch to command handlers
 		if flagInit {
-			return runInit(cmd, args)
+			return runInit("")
 		}
 		if flagAdd != "" {
-			return runAdd(cmd, args)
+			return runAdd(flagAdd, flagRecursive)
 		}
 
 		// All other commands require workspace to be initialized
@@ -187,16 +187,19 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		}
 
 		if flagPrintWorkspace {
-			cfg, err := config.Load()
-			if err != nil {
-				return fmt.Errorf("failed to load workspace configuration: %w", err)
-			}
-			fmt.Println(cfg.Workspace)
-			return nil
+			return runPrintWorkspace()
 		}
 
 		if flagList {
-			return runList(cmd, args)
+			return runList(ListOptions{
+				FilterType:   filterType,
+				FilterTags:   filterTags,
+				FilterName:   filterName,
+				FilterPath:   filterPath,
+				OutputFormat: outputFormat,
+				ShowStatus:   showStatus,
+				ShowUser:     showUser,
+			})
 		}
 
 		if flagAddTag {
@@ -208,7 +211,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		}
 
 		if flagRefresh {
-			return runRefresh(cmd, args)
+			return runRefresh()
 		}
 
 		if flagListUsers {
@@ -368,6 +371,16 @@ Other:
   -h, --help      help for {{.Name}}
       --version   version for {{.Name}}
 `)
+}
+
+// runPrintWorkspace prints the workspace root path.
+func runPrintWorkspace() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load workspace configuration: %w", err)
+	}
+	fmt.Println(cfg.Workspace)
+	return nil
 }
 
 // hasNonTagFilterFlags checks if any filter flag other than --tag has been set
