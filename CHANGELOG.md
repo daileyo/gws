@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.9.0](https://github.com/daileyo/gws/compare/v2.8.0...v2.9.0) (2026-03-02)
+
+
+### Features
+
+* add --path and --repo targeting flags to tag add/remove ([dc775cc](https://github.com/daileyo/gws/commit/dc775cce594a5f5e2de480bc09aa9849ee47e68e))
+* add findRepositoriesWithFilters with path and repo filter logic ([868cab5](https://github.com/daileyo/gws/commit/868cab5c8f00b676dda63ed0e4c00780d196f751))
+* complete tag path targeting - proofs and ci verification ([35d53df](https://github.com/daileyo/gws/commit/35d53dfaf83a1623abc45e7deea0ccc2dc4c3047))
+
 ## [2.8.0](https://github.com/daileyo/gws/compare/v2.7.0...v2.8.0) (2026-03-02)
 
 
