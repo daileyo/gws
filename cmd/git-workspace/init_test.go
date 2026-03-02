@@ -84,7 +84,7 @@ func TestRunInit_HappyPath(t *testing.T) {
 		t.Fatalf("Failed to resolve symlinks for workspace dir: %v", err)
 	}
 
-	if err := runInit(nil, nil); err != nil {
+	if err := runInit(""); err != nil {
 		t.Fatalf("runInit returned unexpected error: %v", err)
 	}
 
@@ -110,7 +110,7 @@ func TestRunInit_AlreadyInitialized(t *testing.T) {
 	withTempWorkdir(t, workspaceDir)
 
 	// First init creates the workspace
-	if err := runInit(nil, nil); err != nil {
+	if err := runInit(""); err != nil {
 		t.Fatalf("First runInit failed: %v", err)
 	}
 
@@ -120,7 +120,7 @@ func TestRunInit_AlreadyInitialized(t *testing.T) {
 	}
 
 	// Second init should return nil (exit 0) without overwriting the config
-	if err := runInit(nil, nil); err != nil {
+	if err := runInit(""); err != nil {
 		t.Errorf("Second runInit should return nil (already-initialized guard), got: %v", err)
 	}
 
@@ -139,7 +139,7 @@ func TestRunInit_EmptyDirectory(t *testing.T) {
 	workspaceDir := t.TempDir() // no git repos inside
 	withTempWorkdir(t, workspaceDir)
 
-	if err := runInit(nil, nil); err != nil {
+	if err := runInit(""); err != nil {
 		t.Fatalf("runInit on empty directory returned unexpected error: %v", err)
 	}
 

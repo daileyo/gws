@@ -5,15 +5,24 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
 	"github.com/daileyo/gws/internal/git"
 )
 
-// runList handles the --list flag logic
-func runList(_ *cobra.Command, _ []string) error {
+// ListOptions holds all parameters for the list operation.
+type ListOptions struct {
+	FilterType   string
+	FilterTags   []string
+	FilterName   string
+	FilterPath   string
+	OutputFormat string
+	ShowStatus   bool
+	ShowUser     bool
+}
+
+// runList handles the list logic with explicit options.
+func runList(opts ListOptions) error {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -21,27 +30,27 @@ func runList(_ *cobra.Command, _ []string) error {
 	}
 
 	if len(cfg.Repositories) == 0 {
-		if outputFormat == "json" {
+		if opts.OutputFormat == "json" {
 			fmt.Println("[]")
 		} else {
-			fmt.Println("No repositories found. Run 'gws --init <directory>' to discover repositories.")
+			fmt.Println("No repositories found. Run 'gws init' to discover repositories.")
 		}
 		return nil
 	}
 
 	// Build filter criteria
 	criteria := filter.Criteria{
-		Type: filterType,
-		Tags: filterTags,
-		Name: filterName,
-		Path: filterPath,
+		Type: opts.FilterType,
+		Tags: opts.FilterTags,
+		Name: opts.FilterName,
+		Path: opts.FilterPath,
 	}
 
 	// Apply filters
 	filtered := filter.Apply(cfg.Repositories, criteria)
 
 	if len(filtered) == 0 {
-		if outputFormat == "json" {
+		if opts.OutputFormat == "json" {
 			fmt.Println("[]")
 		} else {
 			fmt.Println("No repositories match the specified filters.")
@@ -51,7 +60,7 @@ func runList(_ *cobra.Command, _ []string) error {
 
 	// Load git status cache if status display is enabled
 	var statusCache *git.Cache
-	if showStatus {
+	if opts.ShowStatus {
 		statusCache = git.NewCache(git.DefaultTTL)
 		cachePath, err := git.GetCachePath()
 		if err == nil {
@@ -60,18 +69,18 @@ func runList(_ *cobra.Command, _ []string) error {
 	}
 
 	// Display results based on format
-	switch outputFormat {
+	switch opts.OutputFormat {
 	case "json":
 		return displayJSON(filtered)
 	default:
-		displayTable(filtered, statusCache)
+		displayTable(filtered, statusCache, opts.ShowUser)
 	}
 
 	return nil
 }
 
 // displayTable shows repositories in a formatted table
-func displayTable(repos []config.Repository, statusCache *git.Cache) {
+func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bool) {
 	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize(len(repos), "repository", "repositories"))
 
 	// Calculate column widths

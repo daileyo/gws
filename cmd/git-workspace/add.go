@@ -7,16 +7,17 @@ import (
 	"strings"
 
 	gogit "github.com/go-git/go-git/v5"
-	"github.com/spf13/cobra"
 
 	"github.com/daileyo/gws/internal/classifier"
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 )
 
-// runAdd handles the --add flag logic for adding a single repository.
-func runAdd(_ *cobra.Command, _ []string) error {
-	if flagRecursive {
+// runAdd handles the add logic for adding a single repository.
+// path is the directory to add (use "." for current directory).
+// recursive controls whether to scan recursively.
+func runAdd(path string, recursive bool) error {
+	if recursive {
 		return runAddRecursive()
 	}
 
@@ -28,12 +29,12 @@ func runAdd(_ *cobra.Command, _ []string) error {
 	if !exists {
 		fmt.Fprintln(os.Stderr, "Error: workspace not initialized")
 		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Run gws --init first to create a workspace.")
+		fmt.Fprintln(os.Stderr, "Run gws init first to create a workspace.")
 		return fmt.Errorf("workspace not initialized")
 	}
 
 	// Resolve target path: "." means current working directory
-	targetPath := flagAdd
+	targetPath := path
 	if targetPath == "." {
 		targetPath, err = os.Getwd()
 		if err != nil {
