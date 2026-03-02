@@ -35,7 +35,7 @@ if ! type compdef &>/dev/null; then
 fi
 function gws() {
   case "$1" in
-    -*|__*|completion|shell-init|help) {BIN} "$@" ;;
+    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|-*|__*) {BIN} "$@" ;;
     *) cd "$({BIN} -g "$1" -q)" ;;
   esac
 }
@@ -46,7 +46,7 @@ compdef _git-workspace gws
 const bashInitTemplate = `# git-workspace shell integration — do not edit, managed via shell-init
 function gws() {
   case "$1" in
-    -*|__*|completion|shell-init|help) {BIN} "$@"; return ;;
+    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|-*|__*) {BIN} "$@"; return ;;
     *)
       local dest
       dest="$({BIN} -g "$1" -q 2>/dev/null)"
