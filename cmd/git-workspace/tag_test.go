@@ -398,6 +398,145 @@ func TestCompleteRepoThenTags_SecondArg(t *testing.T) {
 	}
 }
 
+func TestFindRepositoriesByPath(t *testing.T) {
+	cfg := &config.Config{
+		Repositories: []config.Repository{
+			{Name: "api-service", Path: "/home/user/work/api-service"},
+			{Name: "api-gateway", Path: "/home/user/work/api-gateway"},
+			{Name: "personal-app", Path: "/home/user/personal/personal-app"},
+			{Name: "Other-Repo", Path: "/Home/User/Other-Repo"},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		pathFilter string
+		wantNames  []string
+	}{
+		{
+			name:       "Prefix match returns two repos",
+			pathFilter: "/home/user/work",
+			wantNames:  []string{"api-service", "api-gateway"},
+		},
+		{
+			name:       "Prefix match single repo",
+			pathFilter: "/home/user/work/api-service",
+			wantNames:  []string{"api-service"},
+		},
+		{
+			name:       "Substring fallback when no prefix match",
+			pathFilter: "user/personal",
+			wantNames:  []string{"personal-app"},
+		},
+		{
+			name:       "Case-sensitive no match on wrong case",
+			pathFilter: "/HOME/USER/WORK",
+			wantNames:  []string{},
+		},
+		{
+			name:       "Exact case match for mixed-case path",
+			pathFilter: "/Home/User/Other-Repo",
+			wantNames:  []string{"Other-Repo"},
+		},
+		{
+			name:       "No match returns empty",
+			pathFilter: "/nonexistent",
+			wantNames:  []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repos := findRepositoriesWithFilters(cfg, "", tt.pathFilter)
+
+			if len(repos) != len(tt.wantNames) {
+				t.Errorf("got %d repos, want %d", len(repos), len(tt.wantNames))
+				return
+			}
+
+			found := make(map[string]bool)
+			for _, r := range repos {
+				found[r.Name] = true
+			}
+			for _, name := range tt.wantNames {
+				if !found[name] {
+					t.Errorf("expected repo %q in results but it was missing", name)
+				}
+			}
+		})
+	}
+}
+
+func TestFindRepositoriesWithFilters(t *testing.T) {
+	cfg := &config.Config{
+		Repositories: []config.Repository{
+			{Name: "api-service", Path: "/home/user/work/api-service"},
+			{Name: "api-gateway", Path: "/home/user/work/api-gateway"},
+			{Name: "personal-app", Path: "/home/user/personal/personal-app"},
+			{Name: "Other-Repo", Path: "/Home/User/Other-Repo"},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		repoFilter string
+		pathFilter string
+		wantNames  []string
+	}{
+		{
+			name:       "Repo filter only",
+			repoFilter: "api",
+			pathFilter: "",
+			wantNames:  []string{"api-service", "api-gateway"},
+		},
+		{
+			name:       "Path filter only",
+			repoFilter: "",
+			pathFilter: "/home/user/work",
+			wantNames:  []string{"api-service", "api-gateway"},
+		},
+		{
+			name:       "AND logic: intersection of repo and path",
+			repoFilter: "api",
+			pathFilter: "/home/user/work/api-service",
+			wantNames:  []string{"api-service"},
+		},
+		{
+			name:       "AND logic: no intersection returns empty",
+			repoFilter: "personal",
+			pathFilter: "/home/user/work",
+			wantNames:  []string{},
+		},
+		{
+			name:       "Both empty returns all repos",
+			repoFilter: "",
+			pathFilter: "",
+			wantNames:  []string{"api-service", "api-gateway", "personal-app", "Other-Repo"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repos := findRepositoriesWithFilters(cfg, tt.repoFilter, tt.pathFilter)
+
+			if len(repos) != len(tt.wantNames) {
+				t.Errorf("got %d repos, want %d", len(repos), len(tt.wantNames))
+				return
+			}
+
+			found := make(map[string]bool)
+			for _, r := range repos {
+				found[r.Name] = true
+			}
+			for _, name := range tt.wantNames {
+				if !found[name] {
+					t.Errorf("expected repo %q in results but it was missing", name)
+				}
+			}
+		})
+	}
+}
+
 func TestTagNoOperationShowsHelp(t *testing.T) {
 	origAdd := tagFlagAdd
 	origDel := tagFlagDelete
