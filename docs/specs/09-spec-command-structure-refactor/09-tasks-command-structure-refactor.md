@@ -96,7 +96,7 @@
 - [x] 3.6 Remove the `filterFlagUsages` template function from `main.go`'s usage template (filters now appear in `gws list --help`, not `gws --help`). Update the root usage template to remove the "List Filters" section.
 - [x] 3.7 Verify `make ci` passes.
 
-### [ ] 4.0 Update Shell Integration and Tab Completion
+### [x] 4.0 Update Shell Integration and Tab Completion
 
 #### 4.0 Proof Artifact(s)
 
@@ -107,11 +107,11 @@
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Update the `zshInitTemplate` in `shellinit.go`: change the `case` pattern to route known subcommand names to the binary. Replace `-*|__*|completion|shell-init|help)` with a pattern that includes all subcommands: `list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|-*)`. The `*` catch-all continues to handle repo name navigation via `cd`.
-- [ ] 4.2 Update the `bashInitTemplate` in `shellinit.go` with the same subcommand routing pattern as zsh.
-- [ ] 4.3 Verify the root command's `ValidArgsFunction` still returns repo names. With subcommands registered, Cobra automatically includes subcommand names in completions. Test that both subcommand names and repo names appear in completion output by running `git-workspace __complete ""` (Cobra's internal completion protocol).
-- [ ] 4.4 Write or update tests for `shellinit.go` that assert the shell templates contain the expected subcommand names in the routing pattern. Verify both zsh and bash templates are correct.
-- [ ] 4.5 Verify `make ci` passes.
+- [x] 4.1 Update the `zshInitTemplate` in `shellinit.go`: change the `case` pattern to route known subcommand names to the binary. Replace `-*|__*|completion|shell-init|help)` with a pattern that includes all subcommands: `list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|-*)`. The `*` catch-all continues to handle repo name navigation via `cd`.
+- [x] 4.2 Update the `bashInitTemplate` in `shellinit.go` with the same subcommand routing pattern as zsh.
+- [x] 4.3 Verify the root command's `ValidArgsFunction` still returns repo names. With subcommands registered, Cobra automatically includes subcommand names in completions. Test that both subcommand names and repo names appear in completion output by running `git-workspace __complete ""` (Cobra's internal completion protocol).
+- [x] 4.4 Write or update tests for `shellinit.go` that assert the shell templates contain the expected subcommand names in the routing pattern. Verify both zsh and bash templates are correct.
+- [x] 4.5 Verify `make ci` passes.
 
 ### [ ] 5.0 Add Deprecation Layer for Old Flag Forms
 
