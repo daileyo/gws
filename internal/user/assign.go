@@ -108,6 +108,124 @@ func setGitConfigValue(content, section, key, value string) string {
 	return strings.Join(result, "\n")
 }
 
+// removeGitConfigKey removes a key from a section in a gitconfig content string.
+// If the section becomes empty after removal, the section header is also removed.
+func removeGitConfigKey(content, section, key string) string {
+	lines := strings.Split(content, "\n")
+	var result []string
+	inSection := false
+	sectionHeaderIdx := -1
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Check for section header
+		if strings.HasPrefix(trimmed, "[") {
+			// Before leaving the current section, check if it's now empty
+			if inSection && sectionHeaderIdx >= 0 {
+				if isSectionEmpty(result, sectionHeaderIdx) {
+					// Remove the section header
+					result = append(result[:sectionHeaderIdx], result[sectionHeaderIdx+1:]...)
+					sectionHeaderIdx = -1
+				}
+			}
+
+			sectionName := strings.ToLower(trimmed)
+			// Strip brackets and handle subsections like [remote "origin"]
+			sectionName = strings.TrimPrefix(sectionName, "[")
+			sectionName = strings.TrimSuffix(sectionName, "]")
+			sectionName = strings.Split(sectionName, " ")[0]
+			inSection = sectionName == section
+			if inSection {
+				sectionHeaderIdx = len(result)
+			}
+		}
+
+		// Skip the key line if we're in the target section
+		if inSection && trimmed != "" && !strings.HasPrefix(trimmed, "[") {
+			keyLower := strings.ToLower(key)
+			lineLower := strings.ToLower(trimmed)
+			if strings.HasPrefix(lineLower, keyLower+" ") || strings.HasPrefix(lineLower, keyLower+"=") {
+				continue // Skip this line (remove the key)
+			}
+		}
+
+		result = append(result, line)
+	}
+
+	// Final check: if we ended while still in the section
+	if inSection && sectionHeaderIdx >= 0 {
+		if isSectionEmpty(result, sectionHeaderIdx) {
+			result = append(result[:sectionHeaderIdx], result[sectionHeaderIdx+1:]...)
+		}
+	}
+
+	// Clean up trailing empty lines
+	for len(result) > 0 && strings.TrimSpace(result[len(result)-1]) == "" {
+		result = result[:len(result)-1]
+	}
+	if len(result) > 0 {
+		result = append(result, "")
+	}
+
+	return strings.Join(result, "\n")
+}
+
+// isSectionEmpty checks if a section (starting at headerIdx) has no key-value lines after it.
+func isSectionEmpty(lines []string, headerIdx int) bool {
+	for i := headerIdx + 1; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+		if trimmed == "" {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "[") {
+			// Hit the next section — this section is empty
+			return true
+		}
+		// Found a non-empty, non-section line — section has content
+		return false
+	}
+	// Reached end of file — section is empty
+	return true
+}
+
+// DeleteLocal removes user config keys from a repository's local .git/config.
+// By default, it removes only user.name and user.email.
+// If removeAll is true, it also removes user.signingkey and commit.gpgsign.
+func DeleteLocal(repoPath string, removeAll bool) error {
+	gitConfigPath := filepath.Join(repoPath, ".git", "config")
+
+	// Verify the repo exists
+	if _, err := os.Stat(gitConfigPath); os.IsNotExist(err) {
+		return fmt.Errorf("not a git repository: %s", repoPath)
+	}
+
+	// Read existing config
+	data, err := os.ReadFile(gitConfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to read git config: %w", err)
+	}
+
+	content := string(data)
+
+	// Remove user.name and user.email
+	content = removeGitConfigKey(content, "user", "name")
+	content = removeGitConfigKey(content, "user", "email")
+
+	// Optionally remove signing config
+	if removeAll {
+		content = removeGitConfigKey(content, "user", "signingkey")
+		content = removeGitConfigKey(content, "commit", "gpgsign")
+	}
+
+	// Write updated config
+	if err := os.WriteFile(gitConfigPath, []byte(content), 0600); err != nil {
+		return fmt.Errorf("failed to write git config: %w", err)
+	}
+
+	return nil
+}
+
 // AssignWithSubdirs moves a repository to a profile subdirectory and sets up includeIf
 func AssignWithSubdirs(cfg *config.Config, repoPath string, profile config.Profile, workspace string) (string, error) {
 	// Create profile subdirectory

@@ -146,6 +146,30 @@ func UpdateProfile(cfg *config.Config, name string, updates config.Profile) erro
 	return nil
 }
 
+// MatchProfileByUser finds a stored profile matching the given email (primary)
+// or git name (secondary). Returns nil if no match is found.
+func MatchProfileByUser(profiles []config.Profile, userName string, email string) *config.Profile {
+	// Primary: match by email
+	if email != "" {
+		for i := range profiles {
+			if strings.EqualFold(profiles[i].Email, email) {
+				return &profiles[i]
+			}
+		}
+	}
+
+	// Secondary: match by git name
+	if userName != "" {
+		for i := range profiles {
+			if strings.EqualFold(profiles[i].GitName, userName) {
+				return &profiles[i]
+			}
+		}
+	}
+
+	return nil
+}
+
 // ListProfiles returns a formatted list of all profiles (stored and detected)
 func ListProfiles(cfg *config.Config) (stored []config.Profile, detected []config.Profile) {
 	stored = cfg.Profiles

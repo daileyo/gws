@@ -92,6 +92,12 @@ func displayTable(repos []config.Repository, statusCache *git.Cache) {
 	}
 	userInfoMap := make(map[string]repoUserInfo)
 
+	// Get global default user for marking repos using the default identity
+	var globalDefaultUser *git.GlobalUserConfig
+	if showUser {
+		globalDefaultUser, _ = git.GetGlobalDefaultUser()
+	}
+
 	for _, repo := range repos {
 		if len(repo.Name) > maxNameLen {
 			maxNameLen = len(repo.Name)
@@ -122,32 +128,47 @@ func displayTable(repos []config.Repository, statusCache *git.Cache) {
 		if showUser {
 			info := repoUserInfo{}
 
-			// Format user display with source marker
-			info.userDisplay = repo.User
-			if info.userDisplay == "" {
-				info.userDisplay = "-"
-			} else if repo.UserSource == config.UserSourceLocal {
-				info.userDisplay += " (local)"
+			// Start with stored config values
+			displayUser := repo.User
+			displayEmail := repo.Email
+			displaySign := repo.SigningEnabled
+			displaySource := repo.UserSource
+
+			// Read effective config at display time to detect local overrides
+			currentCfg, err := git.GetUserConfig(repo.Path)
+			if err == nil && currentCfg != nil {
+				if currentCfg.Source == config.UserSourceLocal {
+					// Local config detected - show effective local values
+					displayUser = currentCfg.Name
+					displayEmail = currentCfg.Email
+					displaySign = currentCfg.SignCommits
+					displaySource = config.UserSourceLocal
+				} else if (repo.User != "" && repo.User != currentCfg.Name) ||
+					(repo.Email != "" && repo.Email != currentCfg.Email) {
+					info.hasDrift = true
+				}
 			}
 
-			info.email = repo.Email
+			// Format user display with source marker
+			info.userDisplay = displayUser
+			if info.userDisplay == "" {
+				info.userDisplay = "-"
+			} else if displaySource == config.UserSourceLocal {
+				info.userDisplay += " (local)"
+			} else if displaySource == config.UserSourceGlobal && globalDefaultUser != nil &&
+				globalDefaultUser.Name != "" && displayUser == globalDefaultUser.Name {
+				info.userDisplay += " *"
+			}
+
+			info.email = displayEmail
 			if info.email == "" {
 				info.email = "-"
 			}
 
-			if repo.SigningEnabled {
+			if displaySign {
 				info.signStr = "✓"
 			} else {
 				info.signStr = ""
-			}
-
-			// Check for drift - compare stored config with current effective config
-			currentCfg, err := git.GetUserConfig(repo.Path)
-			if err == nil && currentCfg != nil {
-				if (repo.User != "" && repo.User != currentCfg.Name) ||
-					(repo.Email != "" && repo.Email != currentCfg.Email) {
-					info.hasDrift = true
-				}
 			}
 
 			userInfoMap[repo.Path] = info

@@ -30,6 +30,14 @@ var (
 	flagPrintWorkspace bool
 	flagGo             string
 	flagQuiet          bool
+	flagUser           bool
+	flagUpdate         bool
+	flagDelete         bool
+	flagAll            bool
+	flagVerbose        bool
+	flagInlineName     string
+	flagInlineEmail    string
+	flagListUsers      bool
 )
 
 // Filter flags (for --list)
@@ -44,8 +52,10 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "git-workspace",
-	Short: "Git Workspace - Discover, organize, and navigate git repositories",
+	Use:              "git-workspace",
+	Short:            "Git Workspace - Discover, organize, and navigate git repositories",
+	Args:             cobra.ArbitraryArgs,
+	TraverseChildren: true,
 	Long: `git-workspace is a lightweight, cross-platform CLI tool for discovering, organizing,
 and navigating git repositories on your local system. It provides an intelligent
 repository index and navigation layer with powerful search and filtering capabilities.
@@ -103,14 +113,40 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		if flagGo != "" {
 			activeCount++
 		}
-
-		if activeCount > 1 {
-			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go)")
+		if flagUser || flagListUsers {
+			activeCount++
 		}
 
-		// Validate filter flags require --list
-		if !flagList && hasFilterFlags(cmd) {
-			return fmt.Errorf("filter flags (--type, --tag, --name, --path, --output, --status) require --list/-l to be set")
+		if activeCount > 1 {
+			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go, --user, --list-users)")
+		}
+
+		// Validate --user flag dependencies
+		if flagUpdate && !flagUser {
+			return fmt.Errorf("--update/-u requires --user to be set")
+		}
+		if flagDelete && !flagUser {
+			return fmt.Errorf("--delete/-D requires --user to be set")
+		}
+		if flagUpdate && flagDelete {
+			return fmt.Errorf("--update and --delete are mutually exclusive")
+		}
+		if flagAll && !flagDelete {
+			return fmt.Errorf("--all requires --delete/-D to be set")
+		}
+		if (flagInlineName != "" || flagInlineEmail != "") && !flagUpdate {
+			return fmt.Errorf("--git-name and --git-email require --user --update to be set")
+		}
+		if flagVerbose && !flagUser {
+			return fmt.Errorf("--verbose requires --user to be set")
+		}
+
+		// Validate filter flags: --tag is allowed with --list or --user; other filters require --list
+		if !flagList && hasNonTagFilterFlags(cmd) {
+			return fmt.Errorf("filter flags (--type, --name, --path, --output, --status) require --list/-l to be set")
+		}
+		if !flagList && !flagUser && cmd.Flags().Changed("tag") {
+			return fmt.Errorf("--tag requires --list/-l or --user to be set")
 		}
 
 		// Validate --recursive requires --add
@@ -118,9 +154,9 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return fmt.Errorf("--recursive/-v requires --add/-a to be set")
 		}
 
-		// Validate --quiet only applies to navigation
-		if flagQuiet && flagGo == "" && len(args) == 0 {
-			return fmt.Errorf("--quiet/-q can only be used with navigation (--go or positional argument)")
+		// Validate --quiet applies to navigation and user operations
+		if flagQuiet && flagGo == "" && len(args) == 0 && !flagUser {
+			return fmt.Errorf("--quiet/-q can only be used with navigation or --user operations")
 		}
 
 		// Validate --go and positional args are not both provided
@@ -175,6 +211,21 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return runRefresh(cmd, args)
 		}
 
+		if flagListUsers {
+			return runListUsers(cmd, args)
+		}
+
+		if flagUser {
+			if flagUpdate {
+				return runUserUpdate(cmd, args)
+			}
+			if flagDelete {
+				return runUserDelete(cmd, args)
+			}
+			// --user alone: list profiles
+			return runListUsers(cmd, args)
+		}
+
 		// Navigation via --go flag
 		if flagGo != "" {
 			cfg, err := config.Load()
@@ -216,11 +267,21 @@ func init() {
 	rootCmd.Flags().Lookup("add").NoOptDefVal = "."
 	rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories found in the current directory (use with --add)")
 	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
-	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "u", false, "Remove a tag from repositories (args: <repo> <tag>)")
+	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "x", false, "Remove a tag from repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")
 	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Print workspace path (for shell integration)")
 	rootCmd.Flags().StringVarP(&flagGo, "go", "g", "", "Navigate to a repository by name (prints path)")
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
+
+	// User operation flags
+	rootCmd.Flags().BoolVar(&flagUser, "user", false, "List profiles, or use with --update/-u or --delete/-D")
+	rootCmd.Flags().BoolVarP(&flagUpdate, "update", "u", false, "Update local git user config for repositories (requires --user)")
+	rootCmd.Flags().BoolVarP(&flagDelete, "delete", "D", false, "Delete local git user config from repositories (requires --user)")
+	rootCmd.Flags().BoolVar(&flagAll, "all", false, "Also remove signing config when deleting (requires --delete)")
+	rootCmd.Flags().BoolVar(&flagVerbose, "verbose", false, "Show detailed output for user operations")
+	rootCmd.Flags().StringVar(&flagInlineName, "git-name", "", "Inline git user.name for --user --update")
+	rootCmd.Flags().StringVar(&flagInlineEmail, "git-email", "", "Inline git user.email for --user --update")
+	rootCmd.Flags().BoolVar(&flagListUsers, "list-users", false, "List all available user profiles")
 
 	// Filter flags (apply when --list is active)
 	rootCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
@@ -229,7 +290,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match)")
 	rootCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 	rootCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
-	rootCmd.Flags().BoolVar(&showUser, "user", false, "Show git user info (USER, EMAIL, SIGN columns)")
+	rootCmd.Flags().BoolVar(&showUser, "show-user", false, "Show git user info (USER, EMAIL, SIGN columns)")
 
 	// Register template helpers for grouped flag display
 	flagGroup := func(names []string) func(*cobra.Command) string {
@@ -244,7 +305,8 @@ func init() {
 		}
 	}
 	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add", "add-tag", "remove-tag", "refresh", "print-workspace"}))
-	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "user"}))
+	cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users"}))
+	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "show-user"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
 
 	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
@@ -283,6 +345,19 @@ Commands:
   gws completion [bash|zsh|fish|powershell]    Generate shell completion script
   gws shell-init [zsh|bash]                    Output shell integration code to eval
 
+User Operations:
+  gws --user                                        # List available user profiles
+  gws --list-users                                  # Same as above
+  gws --user -u <repo> <profile>                    # Set local user from a stored profile
+  gws --user -u <repo> --git-email user@email.com   # Set local user from inline values
+  gws --user -u --tag <tag> <profile>               # Batch update all repos with tag
+  gws --user -D <repo>                              # Remove local user config (use default)
+  gws --user -D <repo> --all                        # Also remove signing config
+  gws --user -D --tag <tag>                         # Batch delete from all repos with tag
+
+  Flags:
+{{userFlagUsages . | trimRightSpace}}
+
 List Filters (require --list / -l):
 {{filterFlagUsages . | trimRightSpace}}
 
@@ -295,19 +370,15 @@ Other:
 `)
 }
 
-// hasFilterFlags checks if any filter flag has been explicitly set by the user
-func hasFilterFlags(cmd *cobra.Command) bool {
-	filterFlagNames := []string{"type", "tag", "name", "path", "status", "user"}
-	for _, name := range filterFlagNames {
+// hasNonTagFilterFlags checks if any filter flag other than --tag has been set
+func hasNonTagFilterFlags(cmd *cobra.Command) bool {
+	nonTagFilterNames := []string{"type", "name", "path", "status", "show-user"}
+	for _, name := range nonTagFilterNames {
 		if cmd.Flags().Changed(name) {
 			return true
 		}
 	}
-	// Check output only if it was explicitly changed from default
-	if cmd.Flags().Changed("output") {
-		return true
-	}
-	return false
+	return cmd.Flags().Changed("output")
 }
 
 func main() {

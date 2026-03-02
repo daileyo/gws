@@ -76,6 +76,14 @@ func runAdd(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read repository metadata: %w", err)
 	}
 
+	// Detect git user configuration and auto-link to profiles
+	singleRepo := []config.Repository{*newRepo}
+	detectUserForRepos(singleRepo, cfg.Profiles)
+	*newRepo = singleRepo[0]
+
+	// Sync profiles from detected repo users
+	syncProfilesFromRepos(cfg)
+
 	// Create symlink in workspace if the repo is outside the workspace directory
 	symlinkCreated, err := createSymlinkIfExternal(cfg, absPath, repoName)
 	if err != nil {
@@ -163,8 +171,14 @@ func runAddRecursive() error {
 		return nil
 	}
 
-	// Save updated config
+	// Detect git user configuration and auto-link to profiles
+	detectUserForRepos(newRepos, cfg.Profiles)
+
+	// Append new repos and sync profiles from detected users
 	cfg.Repositories = append(cfg.Repositories, newRepos...)
+	syncProfilesFromRepos(cfg)
+
+	// Save updated config
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}
