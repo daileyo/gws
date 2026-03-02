@@ -11,6 +11,7 @@ func TestDeprecatedFlagsAreHidden(t *testing.T) {
 	// All deprecated flags should be hidden from help
 	deprecatedFlags := []string{
 		"list", "init", "add", "recursive", "refresh", "print-workspace", "go",
+		"add-tag", "remove-tag",
 		"type", "tag", "name", "path", "output", "status", "show-user",
 	}
 
@@ -147,6 +148,54 @@ func TestDeprecatedNoFlagsSet(t *testing.T) {
 	}
 }
 
+func TestDeprecatedAddTagEmitsWarning(t *testing.T) {
+	origAddTag := depAddTag
+	defer func() {
+		depAddTag = origAddTag
+		rootCmd.Flags().Lookup("add-tag").Changed = false
+	}()
+
+	depAddTag = true
+	rootCmd.Flags().Lookup("add-tag").Changed = true
+
+	// Capture stderr
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	emitDeprecationWarnings(rootCmd)
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	output := buf.String()
+
+	if !strings.Contains(output, "Warning: --add-tag is deprecated") {
+		t.Errorf("Expected deprecation warning for --add-tag, got: %s", output)
+	}
+	if !strings.Contains(output, "gws tag add") {
+		t.Errorf("Expected suggestion to use 'gws tag add', got: %s", output)
+	}
+}
+
+func TestDeprecatedAddTagDispatch(t *testing.T) {
+	origAddTag := depAddTag
+	defer func() { depAddTag = origAddTag }()
+
+	depAddTag = true
+
+	// With wrong arg count, should error
+	handled, err := handleDeprecatedFlags(rootCmd, []string{"only-one-arg"})
+	if !handled {
+		t.Fatal("Expected handleDeprecatedFlags to handle --add-tag")
+	}
+	if err == nil || !strings.Contains(err.Error(), "exactly 2 arguments") {
+		t.Errorf("Expected arg count error, got: %v", err)
+	}
+}
+
 func TestDepWarningsMap(t *testing.T) {
 	// Verify all expected deprecation mappings exist
 	expected := map[string]string{
@@ -157,6 +206,8 @@ func TestDepWarningsMap(t *testing.T) {
 		"refresh":         "gws refresh",
 		"print-workspace": "gws print-workspace",
 		"go":              "gws <repo-name>",
+		"add-tag":         "gws tag add <repo> <tag>",
+		"remove-tag":      "gws tag remove <repo> <tag>",
 	}
 
 	for flag, newForm := range expected {

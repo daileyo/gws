@@ -76,7 +76,7 @@
 - [x] 3.4 Write tests that verify the completion functions return expected repo names and tags. Use table-driven tests with mock config.
 - [x] 3.5 Verify `make ci` passes.
 
-### [ ] 4.0 Deprecate Old Tag Flags and Clean Up Root Command
+### [x] 4.0 Deprecate Old Tag Flags and Clean Up Root Command
 
 #### 4.0 Proof Artifact(s)
 
@@ -88,12 +88,12 @@
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Remove `flagAddTag` and `flagRemoveTag` variables from `main.go`. Remove their flag registrations (`--add-tag`/`-d` and `--remove-tag`/`-x`) from `main.go`'s `init()`.
-- [ ] 4.2 Remove the tag dispatch block from root `RunE` (`if flagAddTag { ... }` and `if flagRemoveTag { ... }`).
-- [ ] 4.3 In `deprecated.go`, add `depAddTag` (bool) and `depRemoveTag` (bool) variables. Register them as hidden flags in `registerDeprecatedFlags()`: `--add-tag` (bool, hidden) and `--remove-tag` (bool, hidden). Add them to the hidden flags list.
-- [ ] 4.4 Add deprecation warning mappings to `depWarnings`: `"add-tag" → "gws tag add <repo> <tag>"` and `"remove-tag" → "gws tag remove <repo> <tag>"`.
-- [ ] 4.5 Update `handleDeprecatedFlags()` to count `depAddTag`/`depRemoveTag` in the mutual exclusivity check (replacing the old `flagAddTag`/`flagRemoveTag` counting). Add dispatch logic: if `depAddTag` is set, validate 2 args, emit warnings, call `runAddTag(args[0], args[1])`; same for `depRemoveTag` calling `runRemoveTag(args[0], args[1])`.
-- [ ] 4.6 Remove the "Tag Operations" section from the root usage template in `main.go`. The tag subcommand will appear naturally in the "Available Commands" list.
-- [ ] 4.7 Update `deprecated_test.go`: (a) add `"add-tag"` and `"remove-tag"` to `TestDeprecatedFlagsAreHidden`, (b) add a test that `--add-tag` emits a deprecation warning, (c) add a test that deprecated `--add-tag` dispatches to `runAddTag`.
-- [ ] 4.8 Update `main_test.go` to remove any references to `flagAddTag`/`flagRemoveTag`. Update the mutual exclusivity test if it references these old variables.
-- [ ] 4.9 Verify `make ci` passes with the complete refactor in place.
+- [x] 4.1 Remove `flagAddTag` and `flagRemoveTag` variables from `main.go`. Remove their flag registrations (`--add-tag`/`-d` and `--remove-tag`/`-x`) from `main.go`'s `init()`.
+- [x] 4.2 Remove the tag dispatch block from root `RunE` (`if flagAddTag { ... }` and `if flagRemoveTag { ... }`).
+- [x] 4.3 In `deprecated.go`, add `depAddTag` (bool) and `depRemoveTag` (bool) variables. Register them as hidden flags in `registerDeprecatedFlags()`: `--add-tag` (bool, hidden) and `--remove-tag` (bool, hidden). Add them to the hidden flags list.
+- [x] 4.4 Add deprecation warning mappings to `depWarnings`: `"add-tag" → "gws tag add <repo> <tag>"` and `"remove-tag" → "gws tag remove <repo> <tag>"`.
+- [x] 4.5 Update `handleDeprecatedFlags()` to count `depAddTag`/`depRemoveTag` in the mutual exclusivity check (replacing the old `flagAddTag`/`flagRemoveTag` counting). Add dispatch logic: if `depAddTag` is set, validate 2 args, emit warnings, call `runAddTag(args[0], args[1])`; same for `depRemoveTag` calling `runRemoveTag(args[0], args[1])`.
+- [x] 4.6 Remove the "Tag Operations" section from the root usage template in `main.go`. The tag subcommand will appear naturally in the "Available Commands" list.
+- [x] 4.7 Update `deprecated_test.go`: (a) add `"add-tag"` and `"remove-tag"` to `TestDeprecatedFlagsAreHidden`, (b) add a test that `--add-tag` emits a deprecation warning, (c) add a test that deprecated `--add-tag` dispatches to `runAddTag`.
+- [x] 4.8 Update `main_test.go` to remove any references to `flagAddTag`/`flagRemoveTag`. Update the mutual exclusivity test if it references these old variables.
+- [x] 4.9 Verify `make ci` passes with the complete refactor in place.

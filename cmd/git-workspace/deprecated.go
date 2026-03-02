@@ -20,6 +20,10 @@ var (
 	depPrintWorkspace bool
 	depGo             string
 
+	// Deprecated tag flags (migrated to tag subcommand in spec 10).
+	depAddTag    bool
+	depRemoveTag bool
+
 	// Deprecated filter flags (for compound usage like `gws --list --type github`).
 	// filterTags is shared with user operations (which still use --tag on root).
 	depFilterType   string
@@ -42,6 +46,10 @@ func registerDeprecatedFlags(root *cobra.Command) {
 	root.Flags().BoolVarP(&depPrintWorkspace, "print-workspace", "w", false, "Shorthand for 'print-workspace' subcommand")
 	root.Flags().StringVarP(&depGo, "go", "g", "", "Navigate to a repository by name (prints path)")
 
+	// Deprecated tag flags (migrated to tag subcommand in spec 10)
+	root.Flags().BoolVarP(&depAddTag, "add-tag", "d", false, "Add a tag to repositories")
+	root.Flags().BoolVarP(&depRemoveTag, "remove-tag", "x", false, "Remove a tag from repositories")
+
 	// Deprecated filter flags (compound usage: gws --list --type github)
 	root.Flags().StringVarP(&depFilterType, "type", "y", "", "Filter by repository type")
 	root.Flags().StringSliceVar(&filterTags, "tag", []string{}, "Filter by custom tag(s)")
@@ -54,6 +62,7 @@ func registerDeprecatedFlags(root *cobra.Command) {
 	// Hide all deprecated flags from help output
 	hiddenFlags := []string{
 		"list", "init", "add", "recursive", "refresh", "print-workspace", "go",
+		"add-tag", "remove-tag",
 		"type", "tag", "name", "path", "output", "status", "show-user",
 	}
 	for _, name := range hiddenFlags {
@@ -70,6 +79,8 @@ var depWarnings = map[string]string{
 	"refresh":         "gws refresh",
 	"print-workspace": "gws print-workspace",
 	"go":              "gws <repo-name>",
+	"add-tag":         "gws tag add <repo> <tag>",
+	"remove-tag":      "gws tag remove <repo> <tag>",
 	"type":            "gws list --type",
 	"name":            "gws list --name",
 	"path":            "gws list --path",
@@ -112,14 +123,14 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 		activeCount++
 	}
 
-	// Also count tag alias, tag flags, and user flags on root
+	// Also count tag alias, deprecated tag flags, and user flags on root
 	if flagTagAlias {
 		activeCount++
 	}
-	if flagAddTag {
+	if depAddTag {
 		activeCount++
 	}
-	if flagRemoveTag {
+	if depRemoveTag {
 		activeCount++
 	}
 	if flagUser || flagListUsers {
@@ -163,7 +174,7 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 	}
 
 	// These require workspace to exist
-	if depList || depRefresh || depPrintWorkspace || depGo != "" {
+	if depList || depRefresh || depPrintWorkspace || depGo != "" || depAddTag || depRemoveTag {
 		exists, err := config.Exists()
 		if err != nil {
 			return true, fmt.Errorf("failed to check workspace status: %w", err)
@@ -175,6 +186,24 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 			fmt.Fprintln(os.Stderr, "  gws init")
 			return true, fmt.Errorf("workspace not initialized")
 		}
+	}
+
+	// Dispatch deprecated --add-tag
+	if depAddTag {
+		if len(args) != 2 {
+			return true, fmt.Errorf("--add-tag requires exactly 2 arguments: <repository> <tag>")
+		}
+		emitDeprecationWarnings(cmd)
+		return true, runAddTag(args[0], args[1])
+	}
+
+	// Dispatch deprecated --remove-tag
+	if depRemoveTag {
+		if len(args) != 2 {
+			return true, fmt.Errorf("--remove-tag requires exactly 2 arguments: <repository> <tag>")
+		}
+		emitDeprecationWarnings(cmd)
+		return true, runRemoveTag(args[0], args[1])
 	}
 
 	// Dispatch deprecated print-workspace
