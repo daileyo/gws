@@ -33,15 +33,19 @@ func TestFilterFlagsOnListCmd(t *testing.T) {
 	}
 }
 
-func TestFilterFlagsNotOnRoot(t *testing.T) {
-	// Filter flags (except --tag) should NOT be on rootCmd
-	rootOnlyAbsent := []string{"type", "name", "path", "output", "status", "show-user"}
+func TestFilterFlagsOnRootAreHidden(t *testing.T) {
+	// Filter flags on root are deprecated (hidden) — they exist for backward compat
+	deprecatedFilters := []string{"type", "name", "path", "output", "status", "show-user"}
 
-	for _, name := range rootOnlyAbsent {
+	for _, name := range deprecatedFilters {
 		t.Run(name, func(t *testing.T) {
 			flag := rootCmd.Flags().Lookup(name)
-			if flag != nil {
-				t.Errorf("Filter flag --%s should NOT be on rootCmd (scoped to listCmd)", name)
+			if flag == nil {
+				t.Errorf("Deprecated filter flag --%s not found on rootCmd", name)
+				return
+			}
+			if !flag.Hidden {
+				t.Errorf("Deprecated filter flag --%s on rootCmd should be hidden", name)
 			}
 		})
 	}
