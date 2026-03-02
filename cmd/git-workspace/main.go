@@ -18,8 +18,9 @@ var (
 	date    = "unknown"
 )
 
-// Command flags that remain on root (tag, user — migrated in specs 10/11).
+// Command flags that remain on root (user — migrated in spec 11).
 var (
+	flagTagAlias    bool
 	flagAddTag      bool
 	flagRemoveTag   bool
 	flagQuiet       bool
@@ -115,7 +116,13 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return fmt.Errorf("workspace not initialized")
 		}
 
-		// Tag operations (remain on root until spec 10)
+		// Tag alias: -t delegates to the tag subcommand with remaining args
+		if flagTagAlias {
+			tagCmd.SetArgs(args)
+			return tagCmd.Execute()
+		}
+
+		// Tag operations (remain on root until spec 10 task 4 moves to deprecation)
 		if flagAddTag {
 			if len(args) != 2 {
 				return fmt.Errorf("--add-tag requires exactly 2 arguments: <repository> <tag>")
@@ -175,7 +182,11 @@ func init() {
 	// Register deprecated flags (hidden, emit warnings when used)
 	registerDeprecatedFlags(rootCmd)
 
-	// Tag command flags (remain on root — migrated to tag subcommand in spec 10)
+	// Tag alias: -t on root delegates to the tag subcommand
+	rootCmd.Flags().BoolVarP(&flagTagAlias, "tag-cmd", "t", false, "Alias for 'tag' subcommand")
+	_ = rootCmd.Flags().MarkHidden("tag-cmd")
+
+	// Tag command flags (remain on root — migrated to deprecation layer in spec 10 task 4)
 	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "x", false, "Remove a tag from repositories (args: <repo> <tag>)")
 
