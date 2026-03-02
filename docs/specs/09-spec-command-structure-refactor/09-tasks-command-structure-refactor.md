@@ -113,7 +113,7 @@
 - [x] 4.4 Write or update tests for `shellinit.go` that assert the shell templates contain the expected subcommand names in the routing pattern. Verify both zsh and bash templates are correct.
 - [x] 4.5 Verify `make ci` passes.
 
-### [ ] 5.0 Add Deprecation Layer for Old Flag Forms
+### [x] 5.0 Add Deprecation Layer for Old Flag Forms
 
 #### 5.0 Proof Artifact(s)
 
@@ -125,14 +125,14 @@
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Create `deprecated.go` with a `registerDeprecatedFlags(rootCmd)` function. This function registers hidden flags for: `--list` (bool), `--init` (bool), `--add` (string with `NoOptDefVal = "."`), `--refresh` (bool), `--print-workspace` (bool), `--go` (string). Each flag should use `cmd.Flags().MarkHidden()` after registration.
-- [ ] 5.2 In `deprecated.go`, register hidden filter flags on root: `--type` (string), `--tag` (string slice), `--name` (string), `--path` (string), `--output` (string), `--status` (bool), `--show-user` (bool). These are needed so `gws --list --type github` continues to work during the deprecation period.
-- [ ] 5.3 Create a `handleDeprecatedFlags(cmd, args)` function in `deprecated.go` that checks if any deprecated flag is set (via `cmd.Flags().Changed()`). For each deprecated flag that is set: (a) print a warning to stderr (`fmt.Fprintf(os.Stderr, "Warning: --%s is deprecated, use '%s' instead\n", flagName, newForm)`), and (b) delegate to the corresponding new subcommand logic (building params from the deprecated flag values).
-- [ ] 5.4 Call `registerDeprecatedFlags(rootCmd)` from `main.go`'s `init()`. In root `RunE`, call `handleDeprecatedFlags` early in the dispatch chain (before the default/navigation fallthrough) to intercept deprecated flag usage.
-- [ ] 5.5 Handle the compound deprecation case: `gws --list --type github --tag work`. The deprecation handler must detect `--list` plus any deprecated filter flags, build a `ListOptions` from them, and call the list logic with those options. Each deprecated flag used should emit its own warning.
-- [ ] 5.6 Ensure all deprecated flags are hidden: verify they do NOT appear in `gws --help` output. Write a test that parses help output and confirms none of the deprecated flag names are present.
-- [ ] 5.7 Create `deprecated_test.go` with tests: (a) each deprecated flag routes to correct logic, (b) each deprecated flag emits a warning to stderr, (c) compound `--list` + filter flags work correctly, (d) deprecated flags are hidden from help.
-- [ ] 5.8 Remove the old command flag variables (`flagList`, `flagInit`, `flagAdd`, `flagRefresh`, `flagPrintWorkspace`) and their registrations from `main.go` — these are now fully replaced by subcommands + deprecation layer. Also remove the old filter flag variables from `main.go` if not already removed in task 3.1.
-- [ ] 5.9 Update or remove any remaining tests in `main_test.go` that reference the old flag variables. The `TestMutualExclusivity` test should be rewritten to test the new alias flags and/or subcommand mutual exclusivity.
-- [ ] 5.10 Note: Do NOT register deprecated forms for `--add-tag`, `--remove-tag`, `--user`, `--update`, `--delete`, `--all`, `--verbose`, `--git-name`, `--git-email`, `--list-users`. Those are handled in specs 10 and 11. For now, these flags remain on root as-is (they will be migrated in later specs).
-- [ ] 5.11 Verify `make ci` passes with the complete refactor in place.
+- [x] 5.1 Create `deprecated.go` with a `registerDeprecatedFlags(rootCmd)` function. This function registers hidden flags for: `--list` (bool), `--init` (bool), `--add` (string with `NoOptDefVal = "."`), `--refresh` (bool), `--print-workspace` (bool), `--go` (string). Each flag should use `cmd.Flags().MarkHidden()` after registration.
+- [x] 5.2 In `deprecated.go`, register hidden filter flags on root: `--type` (string), `--tag` (string slice), `--name` (string), `--path` (string), `--output` (string), `--status` (bool), `--show-user` (bool). These are needed so `gws --list --type github` continues to work during the deprecation period.
+- [x] 5.3 Create a `handleDeprecatedFlags(cmd, args)` function in `deprecated.go` that checks if any deprecated flag is set (via `cmd.Flags().Changed()`). For each deprecated flag that is set: (a) print a warning to stderr (`fmt.Fprintf(os.Stderr, "Warning: --%s is deprecated, use '%s' instead\n", flagName, newForm)`), and (b) delegate to the corresponding new subcommand logic (building params from the deprecated flag values).
+- [x] 5.4 Call `registerDeprecatedFlags(rootCmd)` from `main.go`'s `init()`. In root `RunE`, call `handleDeprecatedFlags` early in the dispatch chain (before the default/navigation fallthrough) to intercept deprecated flag usage.
+- [x] 5.5 Handle the compound deprecation case: `gws --list --type github --tag work`. The deprecation handler must detect `--list` plus any deprecated filter flags, build a `ListOptions` from them, and call the list logic with those options. Each deprecated flag used should emit its own warning.
+- [x] 5.6 Ensure all deprecated flags are hidden: verify they do NOT appear in `gws --help` output. Write a test that parses help output and confirms none of the deprecated flag names are present.
+- [x] 5.7 Create `deprecated_test.go` with tests: (a) each deprecated flag routes to correct logic, (b) each deprecated flag emits a warning to stderr, (c) compound `--list` + filter flags work correctly, (d) deprecated flags are hidden from help.
+- [x] 5.8 Remove the old command flag variables (`flagList`, `flagInit`, `flagAdd`, `flagRefresh`, `flagPrintWorkspace`) and their registrations from `main.go` — these are now fully replaced by subcommands + deprecation layer. Also remove the old filter flag variables from `main.go` if not already removed in task 3.1.
+- [x] 5.9 Update or remove any remaining tests in `main_test.go` that reference the old flag variables. The `TestMutualExclusivity` test should be rewritten to test the new alias flags and/or subcommand mutual exclusivity.
+- [x] 5.10 Note: Do NOT register deprecated forms for `--add-tag`, `--remove-tag`, `--user`, `--update`, `--delete`, `--all`, `--verbose`, `--git-name`, `--git-email`, `--list-users`. Those are handled in specs 10 and 11. For now, these flags remain on root as-is (they will be migrated in later specs).
+- [x] 5.11 Verify `make ci` passes with the complete refactor in place.
