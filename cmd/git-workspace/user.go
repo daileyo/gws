@@ -42,7 +42,8 @@ Short flags:
   gws user -a work --email work@company.com        # Add a new profile
   gws user -s work                                 # Show profile details
   gws user -d work                                 # Remove a profile`,
-	Args: cobra.ArbitraryArgs,
+	Args:              cobra.ArbitraryArgs,
+	ValidArgsFunction: completeProfileThenNone,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Count active short flags for mutual exclusivity
 		activeCount := 0
@@ -577,6 +578,46 @@ Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
 
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `)
+}
+
+// completeProfileThenNone completes profile names for the first arg, nothing after.
+func completeProfileThenNone(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) >= 1 {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return completeProfileNames(toComplete)
+}
+
+// completeProfileNames returns profile names (stored + auto-detected) matching the prefix.
+func completeProfileNames(toComplete string) ([]string, cobra.ShellCompDirective) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	seen := make(map[string]bool)
+	var names []string
+
+	// Stored profiles
+	for _, p := range cfg.Profiles {
+		if strings.HasPrefix(strings.ToLower(p.Name), strings.ToLower(toComplete)) && !seen[p.Name] {
+			seen[p.Name] = true
+			names = append(names, p.Name)
+		}
+	}
+
+	// Auto-detected profiles
+	detected, err := user.DetectProfiles()
+	if err == nil {
+		for _, p := range detected {
+			if strings.HasPrefix(strings.ToLower(p.Name), strings.ToLower(toComplete)) && !seen[p.Name] {
+				seen[p.Name] = true
+				names = append(names, p.Name)
+			}
+		}
+	}
+
+	return names, cobra.ShellCompDirectiveNoFileComp
 }
 
 // displayProfileTable shows profiles in a formatted table

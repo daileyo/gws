@@ -53,7 +53,7 @@ Register `-a` (add), `-d` (remove), `-l` (list), and `-s` (show) as boolean flag
 - [x] 1.6 Reset `userCmd`'s usage template to Cobra's default (same pattern as `tagCmd` in `tag.go:101-124`) so it doesn't inherit root's custom template.
 - [x] 1.7 Run `go vet ./... && go test ./... -count=1` to verify no regressions. Fix any issues.
 
-### [ ] 2.0 Add short-flag tests and tab completion for user short flags
+### [x] 2.0 Add short-flag tests and tab completion for user short flags
 
 Add comprehensive tests for the new short-flag interface: flag registration, mutual exclusivity, dispatch routing, and coexistence with word-form sub-subcommands. Add tab completion functions for the positional arguments used with `-a`, `-d`, and `-s` (profile name completion).
 
@@ -66,15 +66,15 @@ Add comprehensive tests for the new short-flag interface: flag registration, mut
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Create `cmd/git-workspace/user_test.go` with tests for:
+- [x] 2.1 Create `cmd/git-workspace/user_test.go` with tests for:
   - `TestUserShortFlagsRegistered`: Verify `-a`, `-d`, `-l`, `-s` flags are registered on `userCmd` with correct shorthand letters.
   - `TestUserShortFlagMutualExclusivity`: Verify setting two or more short flags returns an error.
   - `TestUserSubcommandsRegistered`: Verify `list`, `add`, `show`, `remove`, `assign`, `sync` are registered as sub-subcommands of `userCmd`.
   - `TestUserNoOperationShowsHelp`: Verify `gws user` with no flags and no sub-subcommand returns help (no error).
-- [ ] 2.2 Add a `completeProfileNames` helper function in `user.go` that returns stored and auto-detected profile names matching a prefix (similar to `completeRepoNames` in `tag.go`).
-- [ ] 2.3 Set `userCmd.ValidArgsFunction` to complete profile names for the first positional argument (used with `-a`, `-s`, `-d`).
-- [ ] 2.4 Add a test `TestUserProfileCompletion` in `user_test.go` that verifies the completion function returns profile names.
-- [ ] 2.5 Run `go vet ./... && go test ./... -count=1` to verify all tests pass with no regressions.
+- [x] 2.2 Add a `completeProfileNames` helper function in `user.go` that returns stored and auto-detected profile names matching a prefix (similar to `completeRepoNames` in `tag.go`).
+- [x] 2.3 Set `userCmd.ValidArgsFunction` to complete profile names for the first positional argument (used with `-a`, `-s`, `-d`).
+- [x] 2.4 Add a test `TestUserProfileCompletion` in `user_test.go` that verifies the completion function returns profile names.
+- [x] 2.5 Run `go vet ./... && go test ./... -count=1` to verify all tests pass with no regressions.
 
 ### [ ] 3.0 Deprecate root-level user flags to deprecated.go
 
