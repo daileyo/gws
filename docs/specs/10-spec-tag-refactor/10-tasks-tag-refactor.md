@@ -60,7 +60,7 @@
 - [x] 2.8 Write tests in `tag_test.go`: (a) `TestTagSubcommandsRegistered` — verify `add` and `remove` are registered on `tagCmd`, (b) `TestTagFlagAdd` — verify `-a` flag routes to add logic, (c) `TestTagFlagDelete` — verify `-d` flag routes to remove logic, (d) `TestTagMutualExclusivity` — verify `-a` and `-d` together error, (e) `TestTagNoOperationShowsHelp` — verify bare `gws tag` shows help, (f) `TestTagAliasFlag` — verify `-t` is registered and hidden on root.
 - [x] 2.9 Verify `make ci` passes.
 
-### [ ] 3.0 Add Tab Completion for Tag Operations
+### [x] 3.0 Add Tab Completion for Tag Operations
 
 #### 3.0 Proof Artifact(s)
 
@@ -70,11 +70,11 @@
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Add a `ValidArgsFunction` to `tagAddCmd` that suggests repo names for the first positional arg (load config, return repo names matching the prefix) and no completions for the second arg. Follow the same pattern as `rootCmd.ValidArgsFunction`.
-- [ ] 3.2 Add a `ValidArgsFunction` to `tagRemoveCmd` that suggests repo names for the first positional arg, and for the second positional arg, suggests existing tags for the specified repo (load config, find repo by first arg, return its tags).
-- [ ] 3.3 Add a `ValidArgsFunction` to `tagCmd` itself for the flag-based invocation pattern (`tag -a <repo> <tag>`) — same logic as `tagAddCmd` (repo names for first arg, no completions for second).
-- [ ] 3.4 Write tests that verify the completion functions return expected repo names and tags. Use table-driven tests with mock config.
-- [ ] 3.5 Verify `make ci` passes.
+- [x] 3.1 Add a `ValidArgsFunction` to `tagAddCmd` that suggests repo names for the first positional arg (load config, return repo names matching the prefix) and no completions for the second arg. Follow the same pattern as `rootCmd.ValidArgsFunction`.
+- [x] 3.2 Add a `ValidArgsFunction` to `tagRemoveCmd` that suggests repo names for the first positional arg, and for the second positional arg, suggests existing tags for the specified repo (load config, find repo by first arg, return its tags).
+- [x] 3.3 Add a `ValidArgsFunction` to `tagCmd` itself for the flag-based invocation pattern (`tag -a <repo> <tag>`) — same logic as `tagAddCmd` (repo names for first arg, no completions for second).
+- [x] 3.4 Write tests that verify the completion functions return expected repo names and tags. Use table-driven tests with mock config.
+- [x] 3.5 Verify `make ci` passes.
 
 ### [ ] 4.0 Deprecate Old Tag Flags and Clean Up Root Command
 
