@@ -61,7 +61,7 @@
 
 ---
 
-### [ ] 2.0 Register Flags and Update Command `RunE` Logic
+### [x] 2.0 Register Flags and Update Command `RunE` Logic
 
 #### 2.0 Proof Artifact(s)
 

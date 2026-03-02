@@ -13,6 +13,16 @@ import (
 var (
 	tagFlagAdd    bool
 	tagFlagDelete bool
+	tagFlagPath   string // --path/-p on tagCmd (for use with -a/-d)
+	tagFlagRepo   string // --repo/-r on tagCmd (for use with -a/-d)
+)
+
+// Targeting flags for tagAddCmd and tagRemoveCmd.
+var (
+	tagAddPath    string // --path/-p on tagAddCmd
+	tagAddRepo    string // --repo/-r on tagAddCmd
+	tagRemovePath string // --path/-p on tagRemoveCmd
+	tagRemoveRepo string // --repo/-r on tagRemoveCmd
 )
 
 var tagCmd = &cobra.Command{
@@ -21,11 +31,15 @@ var tagCmd = &cobra.Command{
 	Long: `Manage tags on tracked repositories.
 
 Examples:
-  gws tag add my-repo work          # Add the "work" tag
-  gws tag -a my-repo work           # Same, using short flag
-  gws tag remove my-repo work       # Remove the "work" tag
-  gws tag -d my-repo work           # Same, using short flag
-  gws tag                           # Show this help`,
+  gws tag add my-repo work                          # Add the "work" tag by name
+  gws tag -a my-repo work                           # Same, using short flag
+  gws tag add --path /home/user/work backend        # Add tag to all repos under a path
+  gws tag add --repo api backend                    # Add tag to repos matching "api" by name
+  gws tag add --repo api --path /work backend       # Add tag matching both conditions
+  gws tag remove my-repo work                       # Remove the "work" tag
+  gws tag -d my-repo work                           # Same, using short flag
+  gws tag remove --path /home/user/work backend     # Remove tag from all repos under a path
+  gws tag                                           # Show this help`,
 	Args:              cobra.ArbitraryArgs,
 	ValidArgsFunction: completeRepoThenNone,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -35,6 +49,12 @@ Examples:
 		}
 
 		if tagFlagAdd {
+			if tagFlagPath != "" || tagFlagRepo != "" {
+				if len(args) != 1 {
+					return fmt.Errorf("tag -a with --path or --repo requires exactly 1 argument: <tag>")
+				}
+				return runAddTagWithFilters(tagFlagRepo, tagFlagPath, args[0])
+			}
 			if len(args) != 2 {
 				return fmt.Errorf("tag -a requires exactly 2 arguments: <repository> <tag>")
 			}
@@ -42,6 +62,12 @@ Examples:
 		}
 
 		if tagFlagDelete {
+			if tagFlagPath != "" || tagFlagRepo != "" {
+				if len(args) != 1 {
+					return fmt.Errorf("tag -d with --path or --repo requires exactly 1 argument: <tag>")
+				}
+				return runRemoveTagWithFilters(tagFlagRepo, tagFlagPath, args[0])
+			}
 			if len(args) != 2 {
 				return fmt.Errorf("tag -d requires exactly 2 arguments: <repository> <tag>")
 			}
@@ -54,35 +80,65 @@ Examples:
 }
 
 var tagAddCmd = &cobra.Command{
-	Use:   "add <repo> <tag>",
+	Use:   "add [--path <path>] [--repo <repo>] <tag> | add <repo> <tag>",
 	Short: "Add a tag to repositories",
 	Long: `Add a tag to all repositories matching the identifier.
 
-The repository can be specified by name (partial match, case-insensitive) or exact path.
+With no flags, the repository identifier matches by partial name (case-insensitive) or exact path.
+Use --path to match by path prefix or substring (case-sensitive).
+Use --repo to explicitly match by partial name (case-insensitive).
+Combine --path and --repo to require both conditions (AND logic).
 
 Examples:
   gws tag add my-repo work
-  gws tag add api backend`,
-	Args:              cobra.ExactArgs(2),
+  gws tag add api backend
+  gws tag add --path /home/user/work backend
+  gws tag add --repo api backend
+  gws tag add --repo api --path /work backend`,
+	Args:              cobra.ArbitraryArgs,
 	ValidArgsFunction: completeRepoThenNone,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if tagAddPath != "" || tagAddRepo != "" {
+			if len(args) != 1 {
+				return fmt.Errorf("tag add with --path or --repo requires exactly 1 argument: <tag>")
+			}
+			return runAddTagWithFilters(tagAddRepo, tagAddPath, args[0])
+		}
+		if len(args) != 2 {
+			return fmt.Errorf("tag add requires exactly 2 arguments: <repo> <tag>")
+		}
 		return runAddTag(args[0], args[1])
 	},
 }
 
 var tagRemoveCmd = &cobra.Command{
-	Use:   "remove <repo> <tag>",
+	Use:   "remove [--path <path>] [--repo <repo>] <tag> | remove <repo> <tag>",
 	Short: "Remove a tag from repositories",
 	Long: `Remove a tag from all repositories matching the identifier.
 
-The repository can be specified by name (partial match, case-insensitive) or exact path.
+With no flags, the repository identifier matches by partial name (case-insensitive) or exact path.
+Use --path to match by path prefix or substring (case-sensitive).
+Use --repo to explicitly match by partial name (case-insensitive).
+Combine --path and --repo to require both conditions (AND logic).
 
 Examples:
   gws tag remove my-repo work
-  gws tag remove api backend`,
-	Args:              cobra.ExactArgs(2),
+  gws tag remove api backend
+  gws tag remove --path /home/user/work backend
+  gws tag remove --repo api backend
+  gws tag remove --repo api --path /work backend`,
+	Args:              cobra.ArbitraryArgs,
 	ValidArgsFunction: completeRepoThenTags,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if tagRemovePath != "" || tagRemoveRepo != "" {
+			if len(args) != 1 {
+				return fmt.Errorf("tag remove with --path or --repo requires exactly 1 argument: <tag>")
+			}
+			return runRemoveTagWithFilters(tagRemoveRepo, tagRemovePath, args[0])
+		}
+		if len(args) != 2 {
+			return fmt.Errorf("tag remove requires exactly 2 arguments: <repo> <tag>")
+		}
 		return runRemoveTag(args[0], args[1])
 	},
 }
@@ -96,6 +152,26 @@ func init() {
 	// Short flags on the tag command for quick invocation
 	tagCmd.Flags().BoolVarP(&tagFlagAdd, "add", "a", false, "Add a tag (equivalent to 'tag add')")
 	tagCmd.Flags().BoolVarP(&tagFlagDelete, "delete", "d", false, "Remove a tag (equivalent to 'tag remove')")
+
+	// Targeting flags on tagCmd (for use with -a / -d)
+	tagCmd.Flags().StringVarP(&tagFlagPath, "path", "p", "", "Match repositories by path prefix or substring (case-sensitive)")
+	tagCmd.Flags().StringVarP(&tagFlagRepo, "repo", "r", "", "Match repositories by name (partial, case-insensitive)")
+
+	// Targeting flags on tagAddCmd
+	tagAddCmd.Flags().StringVarP(&tagAddPath, "path", "p", "", "Match repositories by path prefix or substring (case-sensitive)")
+	tagAddCmd.Flags().StringVarP(&tagAddRepo, "repo", "r", "", "Match repositories by name (partial, case-insensitive)")
+
+	// Targeting flags on tagRemoveCmd
+	tagRemoveCmd.Flags().StringVarP(&tagRemovePath, "path", "p", "", "Match repositories by path prefix or substring (case-sensitive)")
+	tagRemoveCmd.Flags().StringVarP(&tagRemoveRepo, "repo", "r", "", "Match repositories by name (partial, case-insensitive)")
+
+	// Shell completion for --path flag
+	_ = tagAddCmd.RegisterFlagCompletionFunc("path", func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return completeRepoPaths(toComplete)
+	})
+	_ = tagRemoveCmd.RegisterFlagCompletionFunc("path", func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return completeRepoPaths(toComplete)
+	})
 
 	// Reset to Cobra's default template so tag help doesn't inherit root's custom template
 	tagCmd.SetUsageTemplate(`Usage:{{if .Runnable}}
@@ -180,6 +256,33 @@ func completeRepoTags(repoIdentifier, toComplete string) ([]string, cobra.ShellC
 	return tags, cobra.ShellCompDirectiveNoFileComp
 }
 
+// completeRepoPaths returns known repo paths matching the prefix for --path flag completion.
+func completeRepoPaths(toComplete string) ([]string, cobra.ShellCompDirective) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	var paths []string
+	for _, repo := range cfg.Repositories {
+		if strings.HasPrefix(repo.Path, toComplete) {
+			paths = append(paths, repo.Path)
+		}
+	}
+	return paths, cobra.ShellCompDirectiveNoFileComp
+}
+
+// noMatchError returns a context-aware error message for filter-based no-match scenarios.
+func noMatchError(repoFilter, pathFilter string) error {
+	switch {
+	case repoFilter != "" && pathFilter != "":
+		return fmt.Errorf("no repositories found matching repo: %s and path: %s", repoFilter, pathFilter)
+	case pathFilter != "":
+		return fmt.Errorf("no repositories found matching path: %s", pathFilter)
+	default:
+		return fmt.Errorf("no repositories found matching repo: %s", repoFilter)
+	}
+}
+
 // runAddTag adds a tag to all repositories matching the identifier.
 func runAddTag(repoIdentifier, tag string) error {
 	// Load configuration
@@ -240,6 +343,71 @@ func runAddTag(repoIdentifier, tag string) error {
 				if hasTag && skippedCount < len(repos) {
 					// This repo was just tagged
 					fmt.Printf("  - %s\n", repo.Name)
+				}
+			}
+		}
+	}
+
+	if skippedCount > 0 {
+		fmt.Printf("%d %s already had tag '%s'\n", skippedCount, pluralize(skippedCount, "repository", "repositories"), tag)
+	}
+
+	return nil
+}
+
+// runAddTagWithFilters adds a tag to all repositories matching the given filters.
+func runAddTagWithFilters(repoFilter, pathFilter, tag string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	repos := findRepositoriesWithFilters(cfg, repoFilter, pathFilter)
+	if len(repos) == 0 {
+		return noMatchError(repoFilter, pathFilter)
+	}
+
+	taggedCount := 0
+	skippedCount := 0
+	for _, repo := range repos {
+		hasTag := false
+		for _, existingTag := range repo.Tags {
+			if existingTag == tag {
+				hasTag = true
+				break
+			}
+		}
+		if hasTag {
+			skippedCount++
+			continue
+		}
+		repo.Tags = append(repo.Tags, tag)
+		taggedCount++
+	}
+
+	if taggedCount > 0 {
+		if err := config.Save(cfg); err != nil {
+			return fmt.Errorf("failed to save configuration: %w", err)
+		}
+	}
+
+	if taggedCount > 0 {
+		fmt.Printf("Added tag '%s' to %d %s\n", tag, taggedCount, pluralize(taggedCount, "repository", "repositories"))
+		if taggedCount <= 5 {
+			for _, repo := range repos {
+				hasTag := false
+				for _, existingTag := range repo.Tags {
+					if existingTag == tag {
+						hasTag = true
+						break
+					}
+				}
+				if hasTag && skippedCount < len(repos) {
+					if pathFilter != "" {
+						fmt.Printf("  - %s  %s\n", repo.Name, repo.Path)
+					} else {
+						fmt.Printf("  - %s\n", repo.Name)
+					}
 				}
 			}
 		}
