@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
+
 	"github.com/daileyo/gws/internal/config"
 )
 
@@ -351,6 +353,48 @@ func TestTagFlagDelete(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "exactly 2 arguments") {
 		t.Errorf("Expected arg count error, got: %s", err.Error())
+	}
+}
+
+func TestTagCompletionFunctionsRegistered(t *testing.T) {
+	// Verify ValidArgsFunction is set on all tag commands
+	tests := []struct {
+		name string
+		cmd  *cobra.Command
+	}{
+		{"tagCmd", tagCmd},
+		{"tagAddCmd", tagAddCmd},
+		{"tagRemoveCmd", tagRemoveCmd},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.cmd.ValidArgsFunction == nil {
+				t.Errorf("%s should have ValidArgsFunction set", tt.name)
+			}
+		})
+	}
+}
+
+func TestCompleteRepoThenNone(t *testing.T) {
+	// When 1+ args already provided, should return no completions
+	names, directive := completeRepoThenNone(tagAddCmd, []string{"my-repo"}, "")
+	if names != nil {
+		t.Errorf("Expected nil completions after first arg, got %v", names)
+	}
+	if directive != cobra.ShellCompDirectiveNoFileComp {
+		t.Errorf("Expected NoFileComp directive, got %d", directive)
+	}
+}
+
+func TestCompleteRepoThenTags_SecondArg(t *testing.T) {
+	// When 2+ args already provided, should return no completions
+	names, directive := completeRepoThenTags(tagRemoveCmd, []string{"repo", "tag"}, "")
+	if names != nil {
+		t.Errorf("Expected nil completions after second arg, got %v", names)
+	}
+	if directive != cobra.ShellCompDirectiveNoFileComp {
+		t.Errorf("Expected NoFileComp directive, got %d", directive)
 	}
 }
 
