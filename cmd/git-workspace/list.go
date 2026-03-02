@@ -5,10 +5,51 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
 	"github.com/daileyo/gws/internal/git"
 )
+
+// listCmd is the Cobra subcommand for listing repositories.
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all tracked repositories",
+	Long: `List all repositories tracked by gws with optional filtering.
+
+Examples:
+  gws list                          # List all repositories
+  gws list --type github            # List only GitHub repositories
+  gws list -t personal -s           # List repos tagged "personal" with git status
+  gws list -n "api-*" -o json       # Filter by name with wildcard, output as JSON
+  gws list -su                      # List with status and user columns`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runList(ListOptions{
+			FilterType:   filterType,
+			FilterTags:   filterTags,
+			FilterName:   filterName,
+			FilterPath:   filterPath,
+			OutputFormat: outputFormat,
+			ShowStatus:   showStatus,
+			ShowUser:     showUser,
+		})
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(listCmd)
+
+	// Register filter flags on listCmd (also registered on root for backward compat until task 3.0)
+	listCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
+	listCmd.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
+	listCmd.Flags().StringVarP(&filterName, "name", "n", "", "Filter by repository name (partial match, supports wildcards)")
+	listCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match, supports wildcards)")
+	listCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
+	listCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
+	listCmd.Flags().BoolVarP(&showUser, "show-user", "u", false, "Show git user info (USER, EMAIL, SIGN columns)")
+}
 
 // ListOptions holds all parameters for the list operation.
 type ListOptions struct {

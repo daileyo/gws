@@ -52,7 +52,7 @@
 - [x] 1.5 Extract the inline `print-workspace` logic from RunE into a `runPrintWorkspace()` function in a new or existing file, so it can be called from both the subcommand and deprecation layer.
 - [x] 1.6 Update all existing tests (`init_test.go`, `add_test.go`, `main_test.go`) to use the new function signatures. Verify `make test` and `make lint` pass.
 
-### [ ] 2.0 Create Core Subcommands (list, init, add, refresh, print-workspace)
+### [x] 2.0 Create Core Subcommands (list, init, add, refresh, print-workspace)
 
 #### 2.0 Proof Artifact(s)
 
@@ -66,16 +66,16 @@
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Create the `listCmd` Cobra subcommand in `list.go`. Register it with `rootCmd.AddCommand(listCmd)` in an `init()` function. The `RunE` should build a `ListOptions` struct from its own flags and call the refactored `runList`. Register filter flags on `listCmd` (this is completed in task 3.0 — for now, register them on both root and list to avoid breaking anything).
-- [ ] 2.2 Create the `initCmd` Cobra subcommand in `init.go`. It should accept an optional positional arg for directory path (default `.`). Register with `rootCmd.AddCommand(initCmd)` in `init()`. The `RunE` calls the refactored `runInit` with the path argument.
-- [ ] 2.3 Create the `addCmd` Cobra subcommand in `add.go`. It should accept an optional positional arg for repo path (default `.`). Register `--recursive`/`-v` flag on `addCmd`. Register with `rootCmd.AddCommand(addCmd)`. The `RunE` calls the refactored `runAdd` with the path and recursive flag.
-- [ ] 2.4 Create the `refreshCmd` Cobra subcommand in `refresh.go`. No arguments. Register with `rootCmd.AddCommand(refreshCmd)`. The `RunE` calls `runRefresh`.
-- [ ] 2.5 Create the `printWorkspaceCmd` Cobra subcommand (command name `print-workspace`) in a new file or in `main.go`. No arguments. Register with `rootCmd.AddCommand`. The `RunE` calls `runPrintWorkspace`.
-- [ ] 2.6 Register root-level hidden boolean alias flags for each subcommand: `-l` (list), `-i` (init), `-a` (add), `-r` (refresh), `-w` (print-workspace). In the root `RunE`, check if any alias flag is set and delegate to the corresponding subcommand's logic. Enforce mutual exclusivity (only one alias flag at a time, and no alias flag if a subcommand was invoked).
-- [ ] 2.7 Update the root command's `Long` description and usage template to reflect the new subcommand structure. Replace the flag-based examples with subcommand examples (e.g., `gws list` instead of `gws --list`).
-- [ ] 2.8 Update `TestNoSubcommandsRegistered` in `main_test.go` — invert it to `TestSubcommandsRegistered` that verifies `list`, `init`, `add`, `refresh`, `print-workspace` ARE registered. Update `TestCommandFlagsRegistered` to verify the alias flags (`-l`, `-i`, `-a`, `-r`, `-w`) are registered and hidden.
-- [ ] 2.9 Write tests for each new subcommand: verify `listCmd`, `initCmd`, `addCmd`, `refreshCmd`, `printWorkspaceCmd` can be invoked and produce correct results. Follow existing test patterns (save/restore globals, `withTempHome`, `withTempWorkdir`).
-- [ ] 2.10 Verify `make ci` passes (vet, lint, test-race).
+- [x] 2.1 Create the `listCmd` Cobra subcommand in `list.go`. Register it with `rootCmd.AddCommand(listCmd)` in an `init()` function. The `RunE` should build a `ListOptions` struct from its own flags and call the refactored `runList`. Register filter flags on `listCmd` (this is completed in task 3.0 — for now, register them on both root and list to avoid breaking anything).
+- [x] 2.2 Create the `initCmd` Cobra subcommand in `init.go`. It should accept an optional positional arg for directory path (default `.`). Register with `rootCmd.AddCommand(initCmd)` in `init()`. The `RunE` calls the refactored `runInit` with the path argument.
+- [x] 2.3 Create the `addCmd` Cobra subcommand in `add.go`. It should accept an optional positional arg for repo path (default `.`). Register `--recursive`/`-v` flag on `addCmd`. Register with `rootCmd.AddCommand(addCmd)`. The `RunE` calls the refactored `runAdd` with the path and recursive flag.
+- [x] 2.4 Create the `refreshCmd` Cobra subcommand in `refresh.go`. No arguments. Register with `rootCmd.AddCommand(refreshCmd)`. The `RunE` calls `runRefresh`.
+- [x] 2.5 Create the `printWorkspaceCmd` Cobra subcommand (command name `print-workspace`) in a new file or in `main.go`. No arguments. Register with `rootCmd.AddCommand`. The `RunE` calls `runPrintWorkspace`.
+- [x] 2.6 Register root-level hidden boolean alias flags for each subcommand: `-l` (list), `-i` (init), `-a` (add), `-r` (refresh), `-w` (print-workspace). In the root `RunE`, check if any alias flag is set and delegate to the corresponding subcommand's logic. Enforce mutual exclusivity (only one alias flag at a time, and no alias flag if a subcommand was invoked).
+- [x] 2.7 Update the root command's `Long` description and usage template to reflect the new subcommand structure. Replace the flag-based examples with subcommand examples (e.g., `gws list` instead of `gws --list`).
+- [x] 2.8 Update `TestNoSubcommandsRegistered` in `main_test.go` — invert it to `TestSubcommandsRegistered` that verifies `list`, `init`, `add`, `refresh`, `print-workspace` ARE registered. Update `TestCommandFlagsRegistered` to verify the alias flags (`-l`, `-i`, `-a`, `-r`, `-w`) are registered and hidden.
+- [x] 2.9 Write tests for each new subcommand: verify `listCmd`, `initCmd`, `addCmd`, `refreshCmd`, `printWorkspaceCmd` can be invoked and produce correct results. Follow existing test patterns (save/restore globals, `withTempHome`, `withTempWorkdir`).
+- [x] 2.10 Verify `make ci` passes (vet, lint, test-race).
 
 ### [ ] 3.0 Scope Filter Flags to the List Subcommand
 

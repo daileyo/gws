@@ -18,29 +18,33 @@ var (
 	date    = "unknown"
 )
 
-// Command flags
+// Root alias flags — hidden shortcuts that delegate to subcommands.
 var (
 	flagList           bool
 	flagInit           bool
 	flagAdd            string
 	flagRecursive      bool
-	flagAddTag         bool
-	flagRemoveTag      bool
 	flagRefresh        bool
 	flagPrintWorkspace bool
-	flagGo             string
-	flagQuiet          bool
-	flagUser           bool
-	flagUpdate         bool
-	flagDelete         bool
-	flagAll            bool
-	flagVerbose        bool
-	flagInlineName     string
-	flagInlineEmail    string
-	flagListUsers      bool
 )
 
-// Filter flags (for --list)
+// Command flags that remain on root (tag, user, navigation — migrated in specs 10/11).
+var (
+	flagAddTag    bool
+	flagRemoveTag bool
+	flagGo        string
+	flagQuiet     bool
+	flagUser      bool
+	flagUpdate    bool
+	flagDelete    bool
+	flagAll       bool
+	flagVerbose   bool
+	flagInlineName  string
+	flagInlineEmail string
+	flagListUsers bool
+)
+
+// Filter flags — shared between root (for backward compat) and listCmd.
 var (
 	filterType   string
 	filterTags   []string
@@ -60,22 +64,21 @@ var rootCmd = &cobra.Command{
 and navigating git repositories on your local system. It provides an intelligent
 repository index and navigation layer with powerful search and filtering capabilities.
 
-Commands (flags):
-  git-workspace --list                         # List all repositories
-  git-workspace -l --type github               # List only GitHub repositories
-  git-workspace -l --tag personal --status     # List repos tagged "personal" with git status
-  git-workspace --init                         # Initialize workspace in current directory
-  git-workspace --add                          # Add current directory to workspace
-  git-workspace --add ~/elsewhere/my-repo     # Add a specific repo to workspace
-  git-workspace --add-tag my-project personal  # Add tag to matching repos
-  git-workspace --remove-tag api work          # Remove tag from matching repos
-  git-workspace --refresh                      # Refresh repository metadata
+Commands:
+  gws list                              # List all repositories
+  gws list --type github                # List only GitHub repositories
+  gws list -t personal -s               # List repos tagged "personal" with git status
+  gws init                              # Initialize workspace in current directory
+  gws add                               # Add current directory to workspace
+  gws add ~/elsewhere/my-repo           # Add a specific repo to workspace
+  gws refresh                           # Refresh repository metadata
+  gws print-workspace                   # Print workspace root path
 
 Navigation:
-  git-workspace my-repo                        # Navigate to repository by name
-  git-workspace --go my-repo                   # Navigate using flag (same as above)
-  git-workspace -g my-repo -q                  # Quiet mode: print only the path
-  git-workspace "api-*"                        # Wildcard match with interactive selection
+  gws my-repo                           # Navigate to repository by name
+  gws --go my-repo                      # Navigate using flag (same as above)
+  gws -g my-repo -q                     # Quiet mode: print only the path
+  gws "api-*"                           # Wildcard match with interactive selection
 
 Shell integration (add to ~/.bashrc or ~/.zshrc):
 
@@ -84,10 +87,10 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
   eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
 
   # Navigate to workspace root
-  function cdgws() { cd "$(git-workspace --print-workspace)"; }
+  function cdgws() { cd "$(gws print-workspace)"; }
   alias gcd=cdgws`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Count active command flags for mutual exclusivity
+		// Count active alias flags for mutual exclusivity
 		activeCount := 0
 		if flagList {
 			activeCount++
@@ -118,7 +121,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 		}
 
 		if activeCount > 1 {
-			return fmt.Errorf("only one command flag can be used at a time (--list, --init, --add, --add-tag, --remove-tag, --refresh, --print-workspace, --go, --user, --list-users)")
+			return fmt.Errorf("only one command can be used at a time")
 		}
 
 		// Validate --user flag dependencies
@@ -141,7 +144,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return fmt.Errorf("--verbose requires --user to be set")
 		}
 
-		// Validate filter flags: --tag is allowed with --list or --user; other filters require --list
+		// Validate filter flags on root: --tag is allowed with --list or --user; other filters require --list
 		if !flagList && hasNonTagFilterFlags(cmd) {
 			return fmt.Errorf("filter flags (--type, --name, --path, --output, --status) require --list/-l to be set")
 		}
@@ -164,7 +167,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return fmt.Errorf("cannot use both --go flag and positional argument for navigation")
 		}
 
-		// Dispatch to command handlers
+		// Dispatch alias flags to subcommand logic
 		if flagInit {
 			return runInit("")
 		}
@@ -182,7 +185,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			fmt.Fprintln(os.Stderr, "Error: workspace not initialized")
 			fmt.Fprintln(os.Stderr, "")
 			fmt.Fprintln(os.Stderr, "To get started, navigate to your projects directory and run:")
-			fmt.Fprintln(os.Stderr, "  gws --init")
+			fmt.Fprintln(os.Stderr, "  gws init")
 			return fmt.Errorf("workspace not initialized")
 		}
 
@@ -263,20 +266,35 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 }
 
 func init() {
-	// Command flags
-	rootCmd.Flags().BoolVarP(&flagList, "list", "l", false, "List all tracked repositories")
-	rootCmd.Flags().BoolVarP(&flagInit, "init", "i", false, "Initialize a gws workspace in the current directory")
-	rootCmd.Flags().StringVarP(&flagAdd, "add", "a", "", "Add a git repository to the workspace (defaults to current directory)")
+	// Register print-workspace subcommand
+	rootCmd.AddCommand(printWorkspaceCmd)
+
+	// Hidden alias flags — shortcuts that delegate to subcommands from root.
+	// These allow `gws -l` as shorthand for `gws list`, etc.
+	rootCmd.Flags().BoolVarP(&flagList, "list", "l", false, "Shorthand for 'list' subcommand")
+	rootCmd.Flags().BoolVarP(&flagInit, "init", "i", false, "Shorthand for 'init' subcommand")
+	rootCmd.Flags().StringVarP(&flagAdd, "add", "a", "", "Shorthand for 'add' subcommand")
 	rootCmd.Flags().Lookup("add").NoOptDefVal = "."
-	rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories found in the current directory (use with --add)")
+	rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories (use with --add/-a)")
+	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Shorthand for 'refresh' subcommand")
+	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Shorthand for 'print-workspace' subcommand")
+	// Hide alias flags from help — users should use subcommands
+	_ = rootCmd.Flags().MarkHidden("list")
+	_ = rootCmd.Flags().MarkHidden("init")
+	_ = rootCmd.Flags().MarkHidden("add")
+	_ = rootCmd.Flags().MarkHidden("recursive")
+	_ = rootCmd.Flags().MarkHidden("refresh")
+	_ = rootCmd.Flags().MarkHidden("print-workspace")
+
+	// Tag command flags (remain on root — migrated to tag subcommand in spec 10)
 	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "x", false, "Remove a tag from repositories (args: <repo> <tag>)")
-	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Refresh repository metadata and git status cache")
-	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Print workspace path (for shell integration)")
+
+	// Navigation flags
 	rootCmd.Flags().StringVarP(&flagGo, "go", "g", "", "Navigate to a repository by name (prints path)")
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
 
-	// User operation flags
+	// User operation flags (remain on root — migrated to user subcommand in spec 11)
 	rootCmd.Flags().BoolVar(&flagUser, "user", false, "List profiles, or use with --update/-u or --delete/-D")
 	rootCmd.Flags().BoolVarP(&flagUpdate, "update", "u", false, "Update local git user config for repositories (requires --user)")
 	rootCmd.Flags().BoolVarP(&flagDelete, "delete", "D", false, "Delete local git user config from repositories (requires --user)")
@@ -286,7 +304,8 @@ func init() {
 	rootCmd.Flags().StringVar(&flagInlineEmail, "git-email", "", "Inline git user.email for --user --update")
 	rootCmd.Flags().BoolVar(&flagListUsers, "list-users", false, "List all available user profiles")
 
-	// Filter flags (apply when --list is active)
+	// Filter flags on root (for backward compat with --list --type, etc.)
+	// Also registered on listCmd in list.go for subcommand usage.
 	rootCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
 	rootCmd.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
 	rootCmd.Flags().StringVarP(&filterName, "name", "n", "", "Filter by repository name (partial match)")
@@ -307,7 +326,6 @@ func init() {
 			return fs.FlagUsages()
 		}
 	}
-	cobra.AddTemplateFunc("commandFlagUsages", flagGroup([]string{"list", "init", "add", "add-tag", "remove-tag", "refresh", "print-workspace"}))
 	cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users"}))
 	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "show-user"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
@@ -343,25 +361,23 @@ func init() {
 	rootCmd.SetUsageTemplate(`Usage:
   {{.UseLine}}
 
-Commands:
-{{commandFlagUsages . | trimRightSpace}}
-  gws completion [bash|zsh|fish|powershell]    Generate shell completion script
-  gws shell-init [zsh|bash]                    Output shell integration code to eval
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 
-User Operations:
+Tag Operations (migrating to subcommand in future release):
+  gws --add-tag <repo> <tag>                        # Add tag to matching repos
+  gws --remove-tag <repo> <tag>                     # Remove tag from matching repos
+
+User Operations (migrating to subcommand in future release):
   gws --user                                        # List available user profiles
   gws --list-users                                  # Same as above
   gws --user -u <repo> <profile>                    # Set local user from a stored profile
-  gws --user -u <repo> --git-email user@email.com   # Set local user from inline values
-  gws --user -u --tag <tag> <profile>               # Batch update all repos with tag
-  gws --user -D <repo>                              # Remove local user config (use default)
-  gws --user -D <repo> --all                        # Also remove signing config
-  gws --user -D --tag <tag>                         # Batch delete from all repos with tag
+  gws --user -D <repo>                              # Remove local user config
 
   Flags:
 {{userFlagUsages . | trimRightSpace}}
 
-List Filters (require --list / -l):
+List Filters (use with 'list' subcommand):
 {{filterFlagUsages . | trimRightSpace}}
 
 Navigation:
@@ -371,6 +387,21 @@ Other:
   -h, --help      help for {{.Name}}
       --version   version for {{.Name}}
 `)
+}
+
+// printWorkspaceCmd is the Cobra subcommand for printing the workspace path.
+var printWorkspaceCmd = &cobra.Command{
+	Use:   "print-workspace",
+	Short: "Print workspace path (for shell integration)",
+	Long: `Print the workspace root path. Useful for shell integration and scripting.
+
+Examples:
+  gws print-workspace
+  cd "$(gws print-workspace)"`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runPrintWorkspace()
+	},
 }
 
 // runPrintWorkspace prints the workspace root path.

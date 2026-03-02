@@ -3,10 +3,31 @@ package main
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 	"github.com/daileyo/gws/internal/git"
 )
+
+// refreshCmd is the Cobra subcommand for refreshing repository metadata.
+var refreshCmd = &cobra.Command{
+	Use:   "refresh",
+	Short: "Refresh repository metadata and git status cache",
+	Long: `Re-scan the workspace for repositories, update metadata, and clear the git status cache.
+New repositories are added, removed repositories are cleaned up, and existing tags are preserved.
+
+Examples:
+  gws refresh`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runRefresh()
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(refreshCmd)
+}
 
 // runRefresh handles the refresh logic.
 func runRefresh() error {
