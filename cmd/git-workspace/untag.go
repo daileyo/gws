@@ -3,20 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	"github.com/daileyo/gws/internal/config"
 )
 
-// runUntag handles the --remove-tag flag logic
-func runUntag(_ *cobra.Command, args []string) error {
-	if len(args) != 2 {
-		return fmt.Errorf("--remove-tag requires exactly 2 arguments: <repository> <tag>")
-	}
-
-	repoIdentifier := args[0]
-	tag := args[1]
-
+// runRemoveTag removes a tag from all repositories matching the identifier.
+func runRemoveTag(repoIdentifier, tag string) error {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
