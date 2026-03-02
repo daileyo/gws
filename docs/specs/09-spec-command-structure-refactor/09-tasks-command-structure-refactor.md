@@ -77,7 +77,7 @@
 - [x] 2.9 Write tests for each new subcommand: verify `listCmd`, `initCmd`, `addCmd`, `refreshCmd`, `printWorkspaceCmd` can be invoked and produce correct results. Follow existing test patterns (save/restore globals, `withTempHome`, `withTempWorkdir`).
 - [x] 2.10 Verify `make ci` passes (vet, lint, test-race).
 
-### [ ] 3.0 Scope Filter Flags to the List Subcommand
+### [x] 3.0 Scope Filter Flags to the List Subcommand
 
 #### 3.0 Proof Artifact(s)
 
@@ -88,13 +88,13 @@
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Remove filter flag registrations (`--type`, `--tag`, `--name`, `--path`, `--output`, `--status`, `--show-user`) from the root command's `init()` in `main.go`. Also remove the corresponding package-level variables (`filterType`, `filterTags`, etc.) from `main.go`.
-- [ ] 3.2 Register filter flags on the `listCmd` in `list.go`'s `init()`: `--tag`/`-t` (string slice), `--type`/`-y` (string), `--name`/`-n` (string), `--path`/`-p` (string), `--output`/`-o` (string, default "table"), `--status`/`-s` (bool), `--show-user`/`-u` (bool). Define the corresponding variables as package-level vars in `list.go` (or as struct fields).
-- [ ] 3.3 Remove the `hasNonTagFilterFlags` helper and the filter validation logic from root `RunE` (no longer needed since filters are scoped to `list`).
-- [ ] 3.4 Remove `TestFilterFlagsRegistered` and `TestFilterFlagsRequireList` from `main_test.go`. Add equivalent tests in `list_test.go` that verify filter flags are registered on `listCmd` with correct names and shorthands.
-- [ ] 3.5 Verify POSIX flag stacking works: write a test that invokes `listCmd` with `-su` (stacked booleans) and confirms both `showStatus` and `showUser` are set to true.
-- [ ] 3.6 Remove the `filterFlagUsages` template function from `main.go`'s usage template (filters now appear in `gws list --help`, not `gws --help`). Update the root usage template to remove the "List Filters" section.
-- [ ] 3.7 Verify `make ci` passes.
+- [x] 3.1 Remove filter flag registrations (`--type`, `--tag`, `--name`, `--path`, `--output`, `--status`, `--show-user`) from the root command's `init()` in `main.go`. Also remove the corresponding package-level variables (`filterType`, `filterTags`, etc.) from `main.go`.
+- [x] 3.2 Register filter flags on the `listCmd` in `list.go`'s `init()`: `--tag`/`-t` (string slice), `--type`/`-y` (string), `--name`/`-n` (string), `--path`/`-p` (string), `--output`/`-o` (string, default "table"), `--status`/`-s` (bool), `--show-user`/`-u` (bool). Define the corresponding variables as package-level vars in `list.go` (or as struct fields).
+- [x] 3.3 Remove the `hasNonTagFilterFlags` helper and the filter validation logic from root `RunE` (no longer needed since filters are scoped to `list`).
+- [x] 3.4 Remove `TestFilterFlagsRegistered` and `TestFilterFlagsRequireList` from `main_test.go`. Add equivalent tests in `list_test.go` that verify filter flags are registered on `listCmd` with correct names and shorthands.
+- [x] 3.5 Verify POSIX flag stacking works: write a test that invokes `listCmd` with `-su` (stacked booleans) and confirms both `showStatus` and `showUser` are set to true.
+- [x] 3.6 Remove the `filterFlagUsages` template function from `main.go`'s usage template (filters now appear in `gws list --help`, not `gws --help`). Update the root usage template to remove the "List Filters" section.
+- [x] 3.7 Verify `make ci` passes.
 
 ### [ ] 4.0 Update Shell Integration and Tab Completion
 

@@ -44,15 +44,9 @@ var (
 	flagListUsers bool
 )
 
-// Filter flags — shared between root (for backward compat) and listCmd.
+// Filter flags — --tag remains on root (used by user operations); other filters scoped to listCmd.
 var (
-	filterType   string
-	filterTags   []string
-	filterName   string
-	filterPath   string
-	outputFormat string
-	showStatus   bool
-	showUser     bool
+	filterTags []string
 )
 
 var rootCmd = &cobra.Command{
@@ -144,10 +138,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return fmt.Errorf("--verbose requires --user to be set")
 		}
 
-		// Validate filter flags on root: --tag is allowed with --list or --user; other filters require --list
-		if !flagList && hasNonTagFilterFlags(cmd) {
-			return fmt.Errorf("filter flags (--type, --name, --path, --output, --status) require --list/-l to be set")
-		}
+		// Validate --tag on root requires --list or --user (other filters are scoped to listCmd)
 		if !flagList && !flagUser && cmd.Flags().Changed("tag") {
 			return fmt.Errorf("--tag requires --list/-l or --user to be set")
 		}
@@ -195,13 +186,8 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 
 		if flagList {
 			return runList(ListOptions{
-				FilterType:   filterType,
 				FilterTags:   filterTags,
-				FilterName:   filterName,
-				FilterPath:   filterPath,
-				OutputFormat: outputFormat,
-				ShowStatus:   showStatus,
-				ShowUser:     showUser,
+				OutputFormat: "table",
 			})
 		}
 
@@ -304,15 +290,8 @@ func init() {
 	rootCmd.Flags().StringVar(&flagInlineEmail, "git-email", "", "Inline git user.email for --user --update")
 	rootCmd.Flags().BoolVar(&flagListUsers, "list-users", false, "List all available user profiles")
 
-	// Filter flags on root (for backward compat with --list --type, etc.)
-	// Also registered on listCmd in list.go for subcommand usage.
-	rootCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
+	// Tag filter flag remains on root (used by user operations; other filters scoped to listCmd)
 	rootCmd.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
-	rootCmd.Flags().StringVarP(&filterName, "name", "n", "", "Filter by repository name (partial match)")
-	rootCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match)")
-	rootCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
-	rootCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
-	rootCmd.Flags().BoolVar(&showUser, "show-user", false, "Show git user info (USER, EMAIL, SIGN columns)")
 
 	// Register template helpers for grouped flag display
 	flagGroup := func(names []string) func(*cobra.Command) string {
@@ -327,7 +306,6 @@ func init() {
 		}
 	}
 	cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users"}))
-	cobra.AddTemplateFunc("filterFlagUsages", flagGroup([]string{"type", "tag", "name", "path", "output", "status", "show-user"}))
 	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
 
 	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
@@ -377,9 +355,6 @@ User Operations (migrating to subcommand in future release):
   Flags:
 {{userFlagUsages . | trimRightSpace}}
 
-List Filters (use with 'list' subcommand):
-{{filterFlagUsages . | trimRightSpace}}
-
 Navigation:
 {{navigationFlagUsages . | trimRightSpace}}
 
@@ -412,17 +387,6 @@ func runPrintWorkspace() error {
 	}
 	fmt.Println(cfg.Workspace)
 	return nil
-}
-
-// hasNonTagFilterFlags checks if any filter flag other than --tag has been set
-func hasNonTagFilterFlags(cmd *cobra.Command) bool {
-	nonTagFilterNames := []string{"type", "name", "path", "status", "show-user"}
-	for _, name := range nonTagFilterNames {
-		if cmd.Flags().Changed(name) {
-			return true
-		}
-	}
-	return cmd.Flags().Changed("output")
 }
 
 func main() {
