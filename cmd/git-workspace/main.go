@@ -21,8 +21,6 @@ var (
 // Command flags that remain on root (user — migrated in spec 11).
 var (
 	flagTagAlias    bool
-	flagAddTag      bool
-	flagRemoveTag   bool
 	flagQuiet       bool
 	flagUser        bool
 	flagUpdate      bool
@@ -122,20 +120,6 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return tagCmd.Execute()
 		}
 
-		// Tag operations (remain on root until spec 10 task 4 moves to deprecation)
-		if flagAddTag {
-			if len(args) != 2 {
-				return fmt.Errorf("--add-tag requires exactly 2 arguments: <repository> <tag>")
-			}
-			return runAddTag(args[0], args[1])
-		}
-		if flagRemoveTag {
-			if len(args) != 2 {
-				return fmt.Errorf("--remove-tag requires exactly 2 arguments: <repository> <tag>")
-			}
-			return runRemoveTag(args[0], args[1])
-		}
-
 		// User operations (remain on root until spec 11)
 		if flagListUsers {
 			return runListUsers(cmd, args)
@@ -185,10 +169,6 @@ func init() {
 	// Tag alias: -t on root delegates to the tag subcommand
 	rootCmd.Flags().BoolVarP(&flagTagAlias, "tag-cmd", "t", false, "Alias for 'tag' subcommand")
 	_ = rootCmd.Flags().MarkHidden("tag-cmd")
-
-	// Tag command flags (remain on root — migrated to deprecation layer in spec 10 task 4)
-	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
-	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "x", false, "Remove a tag from repositories (args: <repo> <tag>)")
 
 	// Navigation flags
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
@@ -251,10 +231,6 @@ func init() {
 
 Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
-
-Tag Operations (migrating to subcommand in future release):
-  gws --add-tag <repo> <tag>                        # Add tag to matching repos
-  gws --remove-tag <repo> <tag>                     # Remove tag from matching repos
 
 User Operations (migrating to subcommand in future release):
   gws --user                                        # List available user profiles

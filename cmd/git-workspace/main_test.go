@@ -125,6 +125,7 @@ func TestSubcommandsRegistered(t *testing.T) {
 
 func TestAliasFlagsAreHidden(t *testing.T) {
 	hiddenFlags := []string{"list", "init", "add", "recursive", "refresh", "print-workspace", "go",
+		"add-tag", "remove-tag",
 		"type", "tag", "name", "path", "output", "status", "show-user", "tag-cmd"}
 
 	for _, name := range hiddenFlags {
