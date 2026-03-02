@@ -6,22 +6,15 @@ import (
 )
 
 func TestVersionVariablesAreDefined(t *testing.T) {
-	// These variables should always be defined (with default values)
-	// When built with ldflags, they will be overridden
-
-	// Temporarily store original values
 	origVersion := version
 	origCommit := commit
 	origDate := date
-
-	// Restore after test
 	defer func() {
 		version = origVersion
 		commit = origCommit
 		date = origDate
 	}()
 
-	// Verify defaults exist (should be "dev", "none", "unknown" when not built with ldflags)
 	if version == "" {
 		t.Error("version variable should not be empty")
 	}
@@ -34,28 +27,22 @@ func TestVersionVariablesAreDefined(t *testing.T) {
 }
 
 func TestRootCommand(t *testing.T) {
-	// Test that root command is properly configured with new flag-based interface
 	if rootCmd.Use != "git-workspace" {
 		t.Errorf("Expected root command Use to be 'git-workspace', got '%s'", rootCmd.Use)
 	}
-
 	if rootCmd.Short == "" {
 		t.Error("Root command Short description should not be empty")
 	}
-
 	if rootCmd.Long == "" {
 		t.Error("Root command Long description should not be empty")
 	}
 }
 
 func TestRootCommandHasVersionSet(t *testing.T) {
-	// Cobra's built-in --version/v flag requires rootCmd.Version to be set
-	// We set it in main() before Execute(), so test the mechanism
 	origVersion := version
 	defer func() { version = origVersion }()
 
 	version = "v1.0.0-test"
-	// Simulate what main() does
 	rootCmd.Version = version
 
 	if rootCmd.Version != "v1.0.0-test" {
@@ -64,7 +51,6 @@ func TestRootCommandHasVersionSet(t *testing.T) {
 }
 
 func TestCommandFlagsRegistered(t *testing.T) {
-	// Verify all command flags are registered on the root command
 	flags := []struct {
 		name      string
 		shorthand string
@@ -94,7 +80,6 @@ func TestCommandFlagsRegistered(t *testing.T) {
 }
 
 func TestTagFlagOnRoot(t *testing.T) {
-	// --tag remains on root for user operations
 	flag := rootCmd.Flags().Lookup("tag")
 	if flag == nil {
 		t.Fatal("--tag flag not found on root command")
@@ -105,7 +90,6 @@ func TestTagFlagOnRoot(t *testing.T) {
 }
 
 func TestSubcommandsRegistered(t *testing.T) {
-	// Verify core subcommands are registered on rootCmd
 	expectedSubcommands := []string{"list", "init", "add", "refresh", "print-workspace"}
 
 	for _, name := range expectedSubcommands {
@@ -125,35 +109,33 @@ func TestSubcommandsRegistered(t *testing.T) {
 }
 
 func TestAliasFlagsAreHidden(t *testing.T) {
-	// Verify alias flags on root are hidden (users should use subcommands)
-	hiddenFlags := []string{"list", "init", "add", "recursive", "refresh", "print-workspace"}
+	hiddenFlags := []string{"list", "init", "add", "recursive", "refresh", "print-workspace", "go",
+		"type", "tag", "name", "path", "output", "status", "show-user"}
 
 	for _, name := range hiddenFlags {
 		t.Run(name, func(t *testing.T) {
 			flag := rootCmd.Flags().Lookup(name)
 			if flag == nil {
-				t.Errorf("Alias flag --%s not found on root command", name)
+				t.Errorf("Deprecated flag --%s not found on root command", name)
 				return
 			}
 			if !flag.Hidden {
-				t.Errorf("Alias flag --%s should be hidden", name)
+				t.Errorf("Deprecated flag --%s should be hidden", name)
 			}
 		})
 	}
 }
 
 func TestMutualExclusivity(t *testing.T) {
-	// Test that setting multiple command flags returns an error
-	// We test this by checking the error message pattern
-	origList := flagList
-	origInit := flagInit
+	origList := depList
+	origInit := depInit
 	defer func() {
-		flagList = origList
-		flagInit = origInit
+		depList = origList
+		depInit = origInit
 	}()
 
-	flagList = true
-	flagInit = true
+	depList = true
+	depInit = true
 
 	err := rootCmd.RunE(rootCmd, []string{})
 	if err == nil {
@@ -168,16 +150,15 @@ func TestMutualExclusivity(t *testing.T) {
 }
 
 func TestTagRequiresListOrUser(t *testing.T) {
-	// --tag on root requires --list or --user
-	origList := flagList
+	origList := depList
 	origUser := flagUser
 	defer func() {
-		flagList = origList
+		depList = origList
 		flagUser = origUser
 		rootCmd.Flags().Lookup("tag").Changed = false
 	}()
 
-	flagList = false
+	depList = false
 	flagUser = false
 	rootCmd.Flags().Lookup("tag").Changed = true
 
@@ -192,7 +173,6 @@ func TestTagRequiresListOrUser(t *testing.T) {
 }
 
 func TestUserFlagValidation(t *testing.T) {
-	// Helper to reset all user flags after each sub-test
 	resetUserFlags := func() {
 		flagUser = false
 		flagUpdate = false
@@ -201,8 +181,8 @@ func TestUserFlagValidation(t *testing.T) {
 		flagVerbose = false
 		flagInlineName = ""
 		flagInlineEmail = ""
-		flagList = false
-		flagInit = false
+		depList = false
+		depInit = false
 	}
 
 	t.Run("update without user returns error", func(t *testing.T) {
@@ -234,7 +214,7 @@ func TestUserFlagValidation(t *testing.T) {
 	t.Run("list-users is mutually exclusive with list", func(t *testing.T) {
 		defer resetUserFlags()
 		flagListUsers = true
-		flagList = true
+		depList = true
 
 		err := rootCmd.RunE(rootCmd, []string{})
 		if err == nil {
@@ -280,7 +260,7 @@ func TestUserFlagValidation(t *testing.T) {
 		defer resetUserFlags()
 		flagUser = true
 		flagUpdate = true
-		flagList = true
+		depList = true
 
 		err := rootCmd.RunE(rootCmd, []string{})
 		if err == nil {

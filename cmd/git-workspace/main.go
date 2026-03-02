@@ -18,21 +18,10 @@ var (
 	date    = "unknown"
 )
 
-// Root alias flags — hidden shortcuts that delegate to subcommands.
-var (
-	flagList           bool
-	flagInit           bool
-	flagAdd            string
-	flagRecursive      bool
-	flagRefresh        bool
-	flagPrintWorkspace bool
-)
-
-// Command flags that remain on root (tag, user, navigation — migrated in specs 10/11).
+// Command flags that remain on root (tag, user — migrated in specs 10/11).
 var (
 	flagAddTag    bool
 	flagRemoveTag bool
-	flagGo        string
 	flagQuiet     bool
 	flagUser      bool
 	flagUpdate    bool
@@ -44,10 +33,9 @@ var (
 	flagListUsers bool
 )
 
-// Filter flags — --tag remains on root (used by user operations); other filters scoped to listCmd.
-var (
-	filterTags []string
-)
+// filterTags is shared between the deprecated --tag flag on root (registered in deprecated.go)
+// and user operations (userupdate.go, userdelete.go). It will move to the user subcommand in spec 11.
+var filterTags []string
 
 var rootCmd = &cobra.Command{
 	Use:              "git-workspace",
@@ -70,8 +58,6 @@ Commands:
 
 Navigation:
   gws my-repo                           # Navigate to repository by name
-  gws --go my-repo                      # Navigate using flag (same as above)
-  gws -g my-repo -q                     # Quiet mode: print only the path
   gws "api-*"                           # Wildcard match with interactive selection
 
 Shell integration (add to ~/.bashrc or ~/.zshrc):
@@ -84,38 +70,10 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
   function cdgws() { cd "$(gws print-workspace)"; }
   alias gcd=cdgws`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Count active alias flags for mutual exclusivity
-		activeCount := 0
-		if flagList {
-			activeCount++
-		}
-		if flagInit {
-			activeCount++
-		}
-		if flagAdd != "" {
-			activeCount++
-		}
-		if flagAddTag {
-			activeCount++
-		}
-		if flagRemoveTag {
-			activeCount++
-		}
-		if flagRefresh {
-			activeCount++
-		}
-		if flagPrintWorkspace {
-			activeCount++
-		}
-		if flagGo != "" {
-			activeCount++
-		}
-		if flagUser || flagListUsers {
-			activeCount++
-		}
-
-		if activeCount > 1 {
-			return fmt.Errorf("only one command can be used at a time")
+		// Handle deprecated flags first (--list, --init, --add, --refresh, etc.)
+		handled, err := handleDeprecatedFlags(cmd, args)
+		if handled {
+			return err
 		}
 
 		// Validate --user flag dependencies
@@ -138,35 +96,12 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return fmt.Errorf("--verbose requires --user to be set")
 		}
 
-		// Validate --tag on root requires --list or --user (other filters are scoped to listCmd)
-		if !flagList && !flagUser && cmd.Flags().Changed("tag") {
-			return fmt.Errorf("--tag requires --list/-l or --user to be set")
-		}
-
-		// Validate --recursive requires --add
-		if flagRecursive && flagAdd == "" {
-			return fmt.Errorf("--recursive/-v requires --add/-a to be set")
-		}
-
 		// Validate --quiet applies to navigation and user operations
-		if flagQuiet && flagGo == "" && len(args) == 0 && !flagUser {
+		if flagQuiet && len(args) == 0 && !flagUser {
 			return fmt.Errorf("--quiet/-q can only be used with navigation or --user operations")
 		}
 
-		// Validate --go and positional args are not both provided
-		if flagGo != "" && len(args) > 0 {
-			return fmt.Errorf("cannot use both --go flag and positional argument for navigation")
-		}
-
-		// Dispatch alias flags to subcommand logic
-		if flagInit {
-			return runInit("")
-		}
-		if flagAdd != "" {
-			return runAdd(flagAdd, flagRecursive)
-		}
-
-		// All other commands require workspace to be initialized
+		// All remaining commands require workspace to be initialized
 		exists, err := config.Exists()
 		if err != nil {
 			return fmt.Errorf("failed to check workspace status: %w", err)
@@ -180,33 +115,18 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return fmt.Errorf("workspace not initialized")
 		}
 
-		if flagPrintWorkspace {
-			return runPrintWorkspace()
-		}
-
-		if flagList {
-			return runList(ListOptions{
-				FilterTags:   filterTags,
-				OutputFormat: "table",
-			})
-		}
-
+		// Tag operations (remain on root until spec 10)
 		if flagAddTag {
 			return runTag(cmd, args)
 		}
-
 		if flagRemoveTag {
 			return runUntag(cmd, args)
 		}
 
-		if flagRefresh {
-			return runRefresh()
-		}
-
+		// User operations (remain on root until spec 11)
 		if flagListUsers {
 			return runListUsers(cmd, args)
 		}
-
 		if flagUser {
 			if flagUpdate {
 				return runUserUpdate(cmd, args)
@@ -216,15 +136,6 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			}
 			// --user alone: list profiles
 			return runListUsers(cmd, args)
-		}
-
-		// Navigation via --go flag
-		if flagGo != "" {
-			cfg, err := config.Load()
-			if err != nil {
-				return fmt.Errorf("failed to load workspace configuration: %w", err)
-			}
-			return runNavigate(flagGo, flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
 		}
 
 		// Navigation via positional argument
@@ -255,29 +166,14 @@ func init() {
 	// Register print-workspace subcommand
 	rootCmd.AddCommand(printWorkspaceCmd)
 
-	// Hidden alias flags — shortcuts that delegate to subcommands from root.
-	// These allow `gws -l` as shorthand for `gws list`, etc.
-	rootCmd.Flags().BoolVarP(&flagList, "list", "l", false, "Shorthand for 'list' subcommand")
-	rootCmd.Flags().BoolVarP(&flagInit, "init", "i", false, "Shorthand for 'init' subcommand")
-	rootCmd.Flags().StringVarP(&flagAdd, "add", "a", "", "Shorthand for 'add' subcommand")
-	rootCmd.Flags().Lookup("add").NoOptDefVal = "."
-	rootCmd.Flags().BoolVarP(&flagRecursive, "recursive", "v", false, "Recursively add all git repositories (use with --add/-a)")
-	rootCmd.Flags().BoolVarP(&flagRefresh, "refresh", "r", false, "Shorthand for 'refresh' subcommand")
-	rootCmd.Flags().BoolVarP(&flagPrintWorkspace, "print-workspace", "w", false, "Shorthand for 'print-workspace' subcommand")
-	// Hide alias flags from help — users should use subcommands
-	_ = rootCmd.Flags().MarkHidden("list")
-	_ = rootCmd.Flags().MarkHidden("init")
-	_ = rootCmd.Flags().MarkHidden("add")
-	_ = rootCmd.Flags().MarkHidden("recursive")
-	_ = rootCmd.Flags().MarkHidden("refresh")
-	_ = rootCmd.Flags().MarkHidden("print-workspace")
+	// Register deprecated flags (hidden, emit warnings when used)
+	registerDeprecatedFlags(rootCmd)
 
 	// Tag command flags (remain on root — migrated to tag subcommand in spec 10)
 	rootCmd.Flags().BoolVarP(&flagAddTag, "add-tag", "d", false, "Add a tag to repositories (args: <repo> <tag>)")
 	rootCmd.Flags().BoolVarP(&flagRemoveTag, "remove-tag", "x", false, "Remove a tag from repositories (args: <repo> <tag>)")
 
 	// Navigation flags
-	rootCmd.Flags().StringVarP(&flagGo, "go", "g", "", "Navigate to a repository by name (prints path)")
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
 
 	// User operation flags (remain on root — migrated to user subcommand in spec 11)
@@ -289,9 +185,6 @@ func init() {
 	rootCmd.Flags().StringVar(&flagInlineName, "git-name", "", "Inline git user.name for --user --update")
 	rootCmd.Flags().StringVar(&flagInlineEmail, "git-email", "", "Inline git user.email for --user --update")
 	rootCmd.Flags().BoolVar(&flagListUsers, "list-users", false, "List all available user profiles")
-
-	// Tag filter flag remains on root (used by user operations; other filters scoped to listCmd)
-	rootCmd.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
 
 	// Register template helpers for grouped flag display
 	flagGroup := func(names []string) func(*cobra.Command) string {
@@ -306,7 +199,7 @@ func init() {
 		}
 	}
 	cobra.AddTemplateFunc("userFlagUsages", flagGroup([]string{"user", "update", "delete", "all", "verbose", "git-name", "git-email", "list-users"}))
-	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"go", "quiet"}))
+	cobra.AddTemplateFunc("navigationFlagUsages", flagGroup([]string{"quiet"}))
 
 	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
 	rootCmd.InitDefaultCompletionCmd()

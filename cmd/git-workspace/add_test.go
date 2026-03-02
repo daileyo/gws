@@ -315,15 +315,15 @@ func TestRunAddRecursive_NoRepos(t *testing.T) {
 }
 
 func TestRunAddRecursive_RequiresAdd(t *testing.T) {
-	origRecursive := flagRecursive
-	origAdd := flagAdd
+	origRecursive := depRecursive
+	origAdd := depAdd
 	defer func() {
-		flagRecursive = origRecursive
-		flagAdd = origAdd
+		depRecursive = origRecursive
+		depAdd = origAdd
 	}()
 
-	flagRecursive = true
-	flagAdd = ""
+	depRecursive = true
+	depAdd = ""
 
 	err := rootCmd.RunE(rootCmd, []string{})
 	if err == nil {
