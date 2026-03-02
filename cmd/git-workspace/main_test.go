@@ -93,32 +93,14 @@ func TestCommandFlagsRegistered(t *testing.T) {
 	}
 }
 
-func TestFilterFlagsRegistered(t *testing.T) {
-	// Verify all filter flags are registered on the root command with shorthands
-	flags := []struct {
-		name      string
-		shorthand string
-	}{
-		{"type", "y"},
-		{"tag", "t"},
-		{"name", "n"},
-		{"path", "p"},
-		{"output", "o"},
-		{"status", "s"},
-		{"show-user", ""},
+func TestTagFlagOnRoot(t *testing.T) {
+	// --tag remains on root for user operations
+	flag := rootCmd.Flags().Lookup("tag")
+	if flag == nil {
+		t.Fatal("--tag flag not found on root command")
 	}
-
-	for _, f := range flags {
-		t.Run(f.name, func(t *testing.T) {
-			flag := rootCmd.Flags().Lookup(f.name)
-			if flag == nil {
-				t.Errorf("Filter flag --%s not found on root command", f.name)
-				return
-			}
-			if flag.Shorthand != f.shorthand {
-				t.Errorf("Filter flag --%s shorthand: expected '%s', got '%s'", f.name, f.shorthand, flag.Shorthand)
-			}
-		})
+	if flag.Shorthand != "t" {
+		t.Errorf("--tag shorthand: expected 't', got '%s'", flag.Shorthand)
 	}
 }
 
@@ -185,29 +167,28 @@ func TestMutualExclusivity(t *testing.T) {
 	}
 }
 
-func TestFilterFlagsRequireList(t *testing.T) {
-	// Test that filter flags without --list produce an error
+func TestTagRequiresListOrUser(t *testing.T) {
+	// --tag on root requires --list or --user
 	origList := flagList
+	origUser := flagUser
 	defer func() {
 		flagList = origList
-		rootCmd.Flags().Lookup("type").Changed = false
+		flagUser = origUser
+		rootCmd.Flags().Lookup("tag").Changed = false
 	}()
 
 	flagList = false
-	rootCmd.Flags().Lookup("type").Changed = true
+	flagUser = false
+	rootCmd.Flags().Lookup("tag").Changed = true
 
 	err := rootCmd.RunE(rootCmd, []string{})
-
 	if err == nil {
-		t.Error("Expected error when filter flag used without --list")
+		t.Error("Expected error when --tag used without --list or --user")
 		return
 	}
-
-	expected := "filter flags (--type, --name, --path, --output, --status) require --list/-l to be set"
-	if !strings.Contains(err.Error(), "require --list") {
-		t.Errorf("Expected error containing 'require --list', got: %s", err.Error())
+	if !strings.Contains(err.Error(), "--tag requires") {
+		t.Errorf("Expected error about --tag, got: %s", err.Error())
 	}
-	_ = expected
 }
 
 func TestUserFlagValidation(t *testing.T) {

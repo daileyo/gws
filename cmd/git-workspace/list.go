@@ -12,6 +12,16 @@ import (
 	"github.com/daileyo/gws/internal/git"
 )
 
+// Filter flags scoped to the list subcommand.
+var (
+	filterType   string
+	filterName   string
+	filterPath   string
+	outputFormat string
+	showStatus   bool
+	showUser     bool
+)
+
 // listCmd is the Cobra subcommand for listing repositories.
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -41,7 +51,7 @@ Examples:
 func init() {
 	rootCmd.AddCommand(listCmd)
 
-	// Register filter flags on listCmd (also registered on root for backward compat until task 3.0)
+	// Filter flags scoped to listCmd only
 	listCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
 	listCmd.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
 	listCmd.Flags().StringVarP(&filterName, "name", "n", "", "Filter by repository name (partial match, supports wildcards)")
