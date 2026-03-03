@@ -38,7 +38,7 @@ function gws() {
   case "$1" in
     list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@" ;;
     -p|--parent|parent)
-      _dest="$({BIN} parent "$2" -q 2>/dev/null)"
+      _dest="$({BIN} parent "$2" -q 2>/dev/tty </dev/tty)"
       [[ -n "$_dest" ]] && cd "$_dest"
       ;;
     -*)
@@ -46,9 +46,9 @@ function gws() {
       ;;
     *)
       if [[ "$2" == "-p" || "$2" == "--parent" ]]; then
-        _dest="$({BIN} parent "$1" -q 2>/dev/null)"
+        _dest="$({BIN} parent "$1" -q 2>/dev/tty </dev/tty)"
       else
-        _dest="$({BIN} -g "$1" -q 2>/dev/null)"
+        _dest="$({BIN} -g "$1" -q 2>/dev/tty </dev/tty)"
       fi
       [[ -n "$_dest" ]] && cd "$_dest"
       ;;
@@ -64,7 +64,7 @@ function gws() {
   case "$1" in
     list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@"; return ;;
     -p|--parent|parent)
-      dest="$({BIN} parent "$2" -q 2>/dev/null)"
+      dest="$({BIN} parent "$2" -q 2>/dev/tty </dev/tty)"
       [[ -n "$dest" ]] && cd "$dest"
       ;;
     -*)
@@ -72,9 +72,9 @@ function gws() {
       ;;
     *)
       if [[ "$2" == "-p" || "$2" == "--parent" ]]; then
-        dest="$({BIN} parent "$1" -q 2>/dev/null)"
+        dest="$({BIN} parent "$1" -q 2>/dev/tty </dev/tty)"
       else
-        dest="$({BIN} -g "$1" -q 2>/dev/null)"
+        dest="$({BIN} -g "$1" -q 2>/dev/tty </dev/tty)"
       fi
       [[ -n "$dest" ]] && cd "$dest"
       ;;
