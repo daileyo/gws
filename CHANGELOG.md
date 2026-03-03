@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.2](https://github.com/daileyo/gws/compare/v2.9.1...v2.9.2) (2026-03-03)
+
+
+### Bug Fixes
+
+* correct the shorthand for recursive ([9666006](https://github.com/daileyo/gws/commit/9666006b863f62976da74afc6ef8f26f5d83f515))
+
 ## [2.9.1](https://github.com/daileyo/gws/compare/v2.9.0...v2.9.1) (2026-03-02)
 
 
