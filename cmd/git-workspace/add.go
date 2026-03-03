@@ -113,6 +113,9 @@ func runAdd(path string, recursive bool) error {
 	detectUserForRepos(singleRepo, cfg.Profiles)
 	*newRepo = singleRepo[0]
 
+	// Append new repo before syncing profiles so syncProfilesFromRepos can see it
+	cfg.Repositories = append(cfg.Repositories, *newRepo)
+
 	// Sync profiles from detected repo users
 	syncProfilesFromRepos(cfg)
 
@@ -123,8 +126,6 @@ func runAdd(path string, recursive bool) error {
 		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
 	}
 
-	// Save updated config
-	cfg.Repositories = append(cfg.Repositories, *newRepo)
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}
