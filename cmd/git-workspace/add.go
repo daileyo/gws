@@ -27,8 +27,8 @@ Use --recursive to scan and add all git repositories found under the given path.
 Examples:
   gws add                          # Add current directory
   gws add ~/projects/my-repo       # Add a specific repo
-  gws add -v                       # Recursively add all repos in current directory
-  gws add ~/projects -v            # Recursively add all repos under a path`,
+  gws add -r                       # Recursively add all repos in current directory
+  gws add ~/projects -r            # Recursively add all repos under a path`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path := "."
@@ -41,7 +41,7 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(addCmd)
-	addCmd.Flags().BoolVarP(&addRecursive, "recursive", "v", false, "Recursively add all git repositories found under the path")
+	addCmd.Flags().BoolVarP(&addRecursive, "recursive", "r", false, "Recursively add all git repositories found under the path")
 }
 
 // runAdd handles the add logic for adding a single repository.
