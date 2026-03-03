@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.3](https://github.com/daileyo/gws/compare/v2.9.2...v2.9.3) (2026-03-03)
+
+
+### Bug Fixes
+
+* fix user profile refresh ([e3951b5](https://github.com/daileyo/gws/commit/e3951b5c36d4c8eaa944194974bfdb72ea16c5d0))
+
 ## [2.9.2](https://github.com/daileyo/gws/compare/v2.9.1...v2.9.2) (2026-03-03)
 
 
