@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.1](https://github.com/daileyo/gws/compare/v2.10.0...v2.10.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* fix shell navigation hanging on multiple repo matches ([27d1b20](https://github.com/daileyo/gws/commit/27d1b20c7b59f3f0edfc2cd569f2294e19bc0990))
+
 ## [2.10.0](https://github.com/daileyo/gws/compare/v2.9.3...v2.10.0) (2026-03-03)
 
 
