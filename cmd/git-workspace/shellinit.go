@@ -34,9 +34,24 @@ if ! type compdef &>/dev/null; then
   autoload -U compinit && compinit
 fi
 function gws() {
+  local _dest
   case "$1" in
-    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|-*|__*) {BIN} "$@" ;;
-    *) cd "$({BIN} -g "$1" -q)" ;;
+    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@" ;;
+    -p|--parent|parent)
+      _dest="$({BIN} parent "$2" -q 2>/dev/null)"
+      [[ -n "$_dest" ]] && cd "$_dest"
+      ;;
+    -*)
+      {BIN} "$@"
+      ;;
+    *)
+      if [[ "$2" == "-p" || "$2" == "--parent" ]]; then
+        _dest="$({BIN} parent "$1" -q 2>/dev/null)"
+      else
+        _dest="$({BIN} -g "$1" -q 2>/dev/null)"
+      fi
+      [[ -n "$_dest" ]] && cd "$_dest"
+      ;;
   esac
 }
 source <({BIN} completion zsh)
@@ -45,11 +60,22 @@ compdef _git-workspace gws
 
 const bashInitTemplate = `# git-workspace shell integration — do not edit, managed via shell-init
 function gws() {
+  local dest
   case "$1" in
-    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|-*|__*) {BIN} "$@"; return ;;
+    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@"; return ;;
+    -p|--parent|parent)
+      dest="$({BIN} parent "$2" -q 2>/dev/null)"
+      [[ -n "$dest" ]] && cd "$dest"
+      ;;
+    -*)
+      {BIN} "$@"
+      ;;
     *)
-      local dest
-      dest="$({BIN} -g "$1" -q 2>/dev/null)"
+      if [[ "$2" == "-p" || "$2" == "--parent" ]]; then
+        dest="$({BIN} parent "$1" -q 2>/dev/null)"
+      else
+        dest="$({BIN} -g "$1" -q 2>/dev/null)"
+      fi
       [[ -n "$dest" ]] && cd "$dest"
       ;;
   esac
