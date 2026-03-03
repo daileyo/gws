@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.0](https://github.com/daileyo/gws/compare/v2.9.3...v2.10.0) (2026-03-03)
+
+
+### Features
+
+* add parent navigation command and shell variants ([fede029](https://github.com/daileyo/gws/commit/fede029666324dcc6e69ddab32fbe5042b9bba47))
+
 ## [2.9.3](https://github.com/daileyo/gws/compare/v2.9.2...v2.9.3) (2026-03-03)
 
 
