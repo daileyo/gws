@@ -5,7 +5,7 @@
 ### Install via Homebrew
 
 ```bash
-brew install daileyo/gws/gws
+brew install daileyo/gws/git-workspace
 ```
 
 ### Build from Source
