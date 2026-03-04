@@ -63,7 +63,7 @@ brews:
     directory: Formula
     homepage: "https://github.com/daileyo/gws"
     description: "A lightweight CLI tool for discovering, organizing, and navigating git repositories"
-    license: "MIT"
+    license: "Apache-2.0"
 
 checksum:
   name_template: 'checksums.txt'
