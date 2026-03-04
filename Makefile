@@ -22,7 +22,7 @@ DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Linker flags to embed version information
 LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)"
 
-.PHONY: all build test clean install uninstall help lint coverage snapshot ci vet fmt setup-hooks
+.PHONY: all build test clean install uninstall help lint coverage snapshot ci vet fmt setup-hooks docs
 
 all: build
 
@@ -96,6 +96,11 @@ snapshot:
 		echo "  go install github.com/goreleaser/goreleaser/v2@latest"; \
 		exit 1; \
 	fi
+
+## docs: Serve MkDocs site locally for preview (http://127.0.0.1:8000)
+docs:
+	@echo "Starting MkDocs dev server..."
+	python3 -m mkdocs serve
 
 ## ci: Run all CI checks (vet, lint, test with race detector)
 ci: vet lint test-race
