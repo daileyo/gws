@@ -21,10 +21,10 @@ Once set up, use `gws` to jump to any tracked repository by name:
 # Navigate to a repository by name — changes your directory
 gws my-repo
 
-# Pass any flag through to git-workspace as normal
-gws --list
-gws -l --tag personal --status
-gws --refresh
+# Use subcommands directly through gws
+gws list
+gws list --tag personal --status
+gws refresh
 ```
 
 **Wildcard matching:**
@@ -92,7 +92,7 @@ autoload -U compinit && compinit
 source <(git-workspace completion zsh)
 function gws() {
   case "$1" in
-    -*|__*|completion|shell-init|help) git-workspace "$@" ;;
+    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|-*|__*) git-workspace "$@" ;;
     *) cd "$(git-workspace -g "$1" -q)" ;;
   esac
 }
@@ -106,6 +106,6 @@ compdef _git-workspace gws
 Print the workspace root path (useful for scripting):
 
 ```bash
-git-workspace --print-workspace
+gws print-workspace
 # Output: /home/user/projects
 ```
