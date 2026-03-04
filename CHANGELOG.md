@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.2](https://github.com/daileyo/gws/compare/v2.11.1...v2.11.2) (2026-03-04)
+
+
+### Bug Fixes
+
+* rename Homebrew formula from gws to git-workspace ([327ef59](https://github.com/daileyo/gws/commit/327ef596b9a91261e668e2e42a5a87f1c23d4111))
+
 ## [2.11.1](https://github.com/daileyo/gws/compare/v2.11.0...v2.11.1) (2026-03-04)
 
 
