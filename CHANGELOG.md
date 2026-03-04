@@ -1,5 +1,72 @@
 # Changelog
 
+## [3.0.0](https://github.com/daileyo/gws/compare/v2.11.0...v3.0.0) (2026-03-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* binary is now named git-workspace
+
+### Features
+
+* add --path and --repo targeting flags to tag add/remove ([dc775cc](https://github.com/daileyo/gws/commit/dc775cce594a5f5e2de480bc09aa9849ee47e68e))
+* add commit-msg hook for conventional commit alignment ([f0ef8bd](https://github.com/daileyo/gws/commit/f0ef8bda2f9311821e62f7e1a8019ce7d87eee77))
+* add deprecation layer for old flag forms ([47af8ea](https://github.com/daileyo/gws/commit/47af8ea36f2c3169e2923883ffb84feed9f5beb3))
+* add findRepositoriesWithFilters with path and repo filter logic ([868cab5](https://github.com/daileyo/gws/commit/868cab5c8f00b676dda63ed0e4c00780d196f751))
+* add logo and tagline to README ([5ec212d](https://github.com/daileyo/gws/commit/5ec212d93e261c375f7ddba377e707e8636dbe8c))
+* add logo to mkdocs nav bar, favicon, and homepage hero ([84f8b84](https://github.com/daileyo/gws/commit/84f8b84a4c78e9637287f06476d20ee3dce4c02f))
+* add optimized logo variants for branding ([09a19e5](https://github.com/daileyo/gws/commit/09a19e54acf6f4acc8e7eba1ef42810aa5bdb93f))
+* add parent navigation command and shell variants ([fede029](https://github.com/daileyo/gws/commit/fede029666324dcc6e69ddab32fbe5042b9bba47))
+* add repo user update/delete commands and profile sync ([a067e0e](https://github.com/daileyo/gws/commit/a067e0e6782a35a59493d1ea12114eab15d2ea6c))
+* add repository navigation and rename binary to git-workspace ([#4](https://github.com/daileyo/gws/issues/4)) ([fb4a6ff](https://github.com/daileyo/gws/commit/fb4a6ff133241fb1f640278fe83a6bfe351f6713))
+* add short-flag aliases (-a, -d, -l, -s) to user subcommand ([56e8f0f](https://github.com/daileyo/gws/commit/56e8f0fa0f715d0cca45f1cb9e70b78153175bb0))
+* add short-flag tests and tab completion for user subcommand ([e14ce5d](https://github.com/daileyo/gws/commit/e14ce5d35f54020b928f34f83fdd63f199f8baf2))
+* add tab completion for tag operations ([e8c3497](https://github.com/daileyo/gws/commit/e8c3497aca7f85f190437586ed9b5d73650f6326))
+* clean up shared state and update help text ([b13864f](https://github.com/daileyo/gws/commit/b13864ff8177c2c5579293cf0061596219e4c8fe))
+* complete questionare ([9d83e51](https://github.com/daileyo/gws/commit/9d83e51154943a387e89279b1ccde362d82471ca))
+* complete tag path targeting - proofs and ci verification ([35d53df](https://github.com/daileyo/gws/commit/35d53dfaf83a1623abc45e7deea0ccc2dc4c3047))
+* **config:** extend model with user profiles and repository user fields ([5fd4bf7](https://github.com/daileyo/gws/commit/5fd4bf7f9b8eaca8c68375f4d51d982c82f6e5dd))
+* configure GoReleaser to auto-publish Homebrew formula ([86f6dec](https://github.com/daileyo/gws/commit/86f6dec9c84d84b74b206885479017589b5411a2))
+* configure mkdocs theme with branded colors and fonts ([c60b0aa](https://github.com/daileyo/gws/commit/c60b0aa4b9eea74e91dc9384ff48eae82a3435b5))
+* create core subcommands (list, init, add, refresh, print-workspace) ([6ef1318](https://github.com/daileyo/gws/commit/6ef1318d8cf7b9e7b86273c444a1f2fe019d5763))
+* create tag subcommand with add/remove sub-operations ([1af4150](https://github.com/daileyo/gws/commit/1af41501077136577c26598a4bb818f1a4deebeb))
+* deprecate old tag flags and clean up root command ([d5639b9](https://github.com/daileyo/gws/commit/d5639b9f53fac05bc6786b9a9ea7ec6ea9875cfb))
+* deprecate root-level user flags to deprecated.go ([0957660](https://github.com/daileyo/gws/commit/0957660d8f93b96f4959805eca0e7f0b43a5b98a))
+* generate initial spec ([49666c7](https://github.com/daileyo/gws/commit/49666c7ff4874050bcdd9d7807f832f38338fbc7))
+* **git:** implement user detection from repositories ([11f7310](https://github.com/daileyo/gws/commit/11f73103a7295f6d91c28c48a45a48be93f72768))
+* implement step 6 ([8787dae](https://github.com/daileyo/gws/commit/8787dae2d3bb6153297907cd0316b82e7f38d520))
+* implement task 4 ([1b95999](https://github.com/daileyo/gws/commit/1b95999c99984a2496517342d35dfe389ee58abb))
+* **list:** add --user flag to display git user information ([00476f9](https://github.com/daileyo/gws/commit/00476f9adf6cf402a4eaf55e3b0a405bb5358cb9))
+* project setup and basic CLI framework ([8eb3ed1](https://github.com/daileyo/gws/commit/8eb3ed15636660a9d5dd6056dbc5e2653a3983d5))
+* refactor init/add, shell completions, and shell-init integration ([#6](https://github.com/daileyo/gws/issues/6)) ([e9d1564](https://github.com/daileyo/gws/commit/e9d156448ac012460050bca78dd2f06ff4d63bb5))
+* repository discovery and workspace initialization ([15cf8b4](https://github.com/daileyo/gws/commit/15cf8b474d9ca1c3beb0e5f5298cd6f8a4723343))
+* rework CLI to flag-based command pattern ([#2](https://github.com/daileyo/gws/issues/2)) ([7256c97](https://github.com/daileyo/gws/commit/7256c97df4a19d18317dad84f2b40ff59b1d2a32))
+* scope filter flags to list subcommand ([cccb7a5](https://github.com/daileyo/gws/commit/cccb7a53505d73fb708b6b3a3854c4044da54e5e))
+* update setup-hooks messaging and document in README ([d7dd3d7](https://github.com/daileyo/gws/commit/d7dd3d7ca598d93ffe7016bb184b6d915ed539c8))
+* update shell templates to route subcommand names to binary ([727c62b](https://github.com/daileyo/gws/commit/727c62b1dfb93a8c82aabc06da5c70bb95d2d47a))
+* **user:** add assign and sync commands for repository user management ([3dda5f1](https://github.com/daileyo/gws/commit/3dda5f14c774c463b9bf19d2a5e5b6e1125d7547))
+* **user:** add user profile management commands ([418e3ed](https://github.com/daileyo/gws/commit/418e3ed2edeb64de0e1a2235ab450c0720137876))
+* **user:** implement profile auto-detection from gitconfig ([c560843](https://github.com/daileyo/gws/commit/c5608432b5b1118d07cd0c436f62364bcd8c7fe2))
+
+
+### Bug Fixes
+
+* addres linting issues ([05c57bc](https://github.com/daileyo/gws/commit/05c57bcbe9e30ac80295e67ff300fdacb550e652))
+* correct Homebrew formula license from MIT to Apache-2.0 ([bddb71f](https://github.com/daileyo/gws/commit/bddb71fadff1775dffc7095221fd67b20fc04050))
+* correct license badge in docds ([697ccbe](https://github.com/daileyo/gws/commit/697ccbecd41e0f8fdd0488526af625c388a01dab))
+* correct project structure paths and remove premature brew install references ([ec1208e](https://github.com/daileyo/gws/commit/ec1208efb1ef1f52193e5735fa923cc7fd9187d1))
+* correct the shorthand for recursive ([9666006](https://github.com/daileyo/gws/commit/9666006b863f62976da74afc6ef8f26f5d83f515))
+* fix shell navigation hanging on multiple repo matches ([27d1b20](https://github.com/daileyo/gws/commit/27d1b20c7b59f3f0edfc2cd569f2294e19bc0990))
+* fix user profile refresh ([e3951b5](https://github.com/daileyo/gws/commit/e3951b5c36d4c8eaa944194974bfdb72ea16c5d0))
+* path-first validation and symlink-aware workspace scan in refresh ([74af9f0](https://github.com/daileyo/gws/commit/74af9f0355ba72dda6036108911eeaf548de8383))
+* prevent TestUserProfileCompletion from corrupting real config ([9a49d7e](https://github.com/daileyo/gws/commit/9a49d7ea534131d7bf5768539dfab5cd178b9083))
+* resolve lint issues in main.go and deprecated_test.go ([2bf107c](https://github.com/daileyo/gws/commit/2bf107cd2792837380f5e605953869ea81c391dd))
+* resolve lint issues in main.go and deprecated_test.go ([cb06381](https://github.com/daileyo/gws/commit/cb06381755b83e878f5a5024233cc4dab79f958c))
+* resolve linting issues ([c846fe0](https://github.com/daileyo/gws/commit/c846fe0b26585215f4a73ea01b5dd33e111e6027))
+* run GoReleaser from release-please workflow ([890cd6e](https://github.com/daileyo/gws/commit/890cd6e2651e09c51b55db4ccf33109016b49652))
+* update target go version ([91636ae](https://github.com/daileyo/gws/commit/91636ae24f3436e2f6ec643947784cb8e6f9efe9))
+* validate deprecated tag flag args before workspace check ([b556d2e](https://github.com/daileyo/gws/commit/b556d2ef01686a06fe59c1d6f684fa283c1c0c86))
+
 ## [2.11.0](https://github.com/daileyo/gws/compare/v2.10.1...v2.11.0) (2026-03-04)
 
 
