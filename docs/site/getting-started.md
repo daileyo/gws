@@ -2,6 +2,12 @@
 
 ## Installation
 
+### Install via Homebrew
+
+```bash
+brew install daileyo/gws/gws
+```
+
 ### Build from Source
 
 ```bash
