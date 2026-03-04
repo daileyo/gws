@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.11.0](https://github.com/daileyo/gws/compare/v2.10.1...v2.11.0) (2026-03-04)
+
+
+### Features
+
+* configure GoReleaser to auto-publish Homebrew formula ([86f6dec](https://github.com/daileyo/gws/commit/86f6dec9c84d84b74b206885479017589b5411a2))
+
+
+### Bug Fixes
+
+* correct Homebrew formula license from MIT to Apache-2.0 ([bddb71f](https://github.com/daileyo/gws/commit/bddb71fadff1775dffc7095221fd67b20fc04050))
+
 ## [2.10.1](https://github.com/daileyo/gws/compare/v2.10.0...v2.10.1) (2026-03-03)
 
 
