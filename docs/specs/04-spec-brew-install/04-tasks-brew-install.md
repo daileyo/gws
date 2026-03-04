@@ -88,7 +88,7 @@
 
 ---
 
-### [ ] 3.0 Update README.md with Homebrew Install Instructions
+### [x] 3.0 Update README.md with Homebrew Install Instructions
 
 #### 3.0 Proof Artifact(s)
 
@@ -96,7 +96,7 @@
 
 #### 3.0 Tasks
 
-- [ ] 3.1 In `README.md`, locate the `## Installation` heading (currently at line 24). Immediately after the `## Installation` line and before the `### Build from Source` line, insert a new subsection with the Homebrew install commands:
+- [x] 3.1 In `README.md`, locate the `## Installation` heading (currently at line 24). Immediately after the `## Installation` line and before the `### Build from Source` line, insert a new subsection with the Homebrew install commands:
   ```markdown
   ### Install via Homebrew
 
@@ -105,7 +105,7 @@
   brew install gws
   ```
   ```
-- [ ] 3.2 Verify the README renders correctly by previewing it in a Markdown viewer or pushing to the branch and checking the GitHub preview. Confirm that:
+- [x] 3.2 Verify the README renders correctly by previewing it in a Markdown viewer or pushing to the branch and checking the GitHub preview. Confirm that:
   - The "Install via Homebrew" section appears before "Build from Source"
   - The code block uses `bash` syntax highlighting
   - The two commands (`brew tap` and `brew install`) are on separate lines
