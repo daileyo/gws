@@ -34,8 +34,7 @@ Full documentation is available at **https://daileyo.github.io/gws**
 ### Install via Homebrew
 
 ```bash
-brew tap daileyo/gws
-brew install gws
+brew install daileyo/gws/gws
 ```
 
 See the [Getting Started](https://daileyo.github.io/gws/getting-started/) guide for additional installation options.
