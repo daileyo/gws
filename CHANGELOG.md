@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.1](https://github.com/daileyo/gws/compare/v2.11.0...v2.11.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* run GoReleaser from release-please workflow ([890cd6e](https://github.com/daileyo/gws/commit/890cd6e2651e09c51b55db4ccf33109016b49652))
+
 ## [2.11.0](https://github.com/daileyo/gws/compare/v2.10.1...v2.11.0) (2026-03-04)
 
 
