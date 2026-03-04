@@ -34,7 +34,7 @@ Full documentation is available at **https://daileyo.github.io/gws**
 ### Install via Homebrew
 
 ```bash
-brew install daileyo/gws/gws
+brew install daileyo/gws/git-workspace
 ```
 
 See the [Getting Started](https://daileyo.github.io/gws/getting-started/) guide for additional installation options.

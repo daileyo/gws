@@ -52,7 +52,7 @@ archives:
       - LICENSE*
 
 brews:
-  - name: gws
+  - name: git-workspace
     repository:
       owner: daileyo
       name: homebrew-gws
