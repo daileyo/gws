@@ -1,9 +1,8 @@
-<table><tr>
-<td><img src="docs/site/assets/images/gws-logo-hero.png" alt="gws logo" width="200"></td>
-<td><h1>git-workspace</h1></td>
-</tr></table>
-
-*Your Git workspace, simplified*
+<p align="center">
+  <img src="docs/site/assets/images/gws-logo-hero.png" alt="gws logo" width="300">
+</p>
+<h1 align="center">git-workspace</h1>
+<p align="center"><em>Your Git workspace, simplified</em></p>
 
 [![CI](https://github.com/daileyo/gws/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/gws/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/daileyo/gws)](https://goreportcard.com/report/github.com/daileyo/gws)

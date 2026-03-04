@@ -1,6 +1,8 @@
 site_name: git-workspace
 site_url: https://daileyo.github.io/gws
 docs_dir: docs/site
+repo_url: https://github.com/daileyo/gws
+repo_name: gws
 
 theme:
   name: material
@@ -29,6 +31,10 @@ extra_css:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
-  - Commands Reference: commands.md
+  - Commands:
+      - Core: commands-core.md
+      - User Management: commands-user.md
+      - Tagging: commands-tagging.md
+      - Legacy Flags: commands-legacy.md
   - Shell Integration: shell-integration.md
   - Configuration: configuration.md
