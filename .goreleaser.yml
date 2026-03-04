@@ -51,6 +51,20 @@ archives:
       - README.md
       - LICENSE*
 
+brews:
+  - name: gws
+    repository:
+      owner: daileyo
+      name: homebrew-gws
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    directory: Formula
+    homepage: "https://github.com/daileyo/gws"
+    description: "A lightweight CLI tool for discovering, organizing, and navigating git repositories"
+    license: "MIT"
+
 checksum:
   name_template: 'checksums.txt'
   algorithm: sha256
