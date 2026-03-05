@@ -127,7 +127,7 @@ func runList(opts ListOptions) error {
 	// Display results based on format
 	switch opts.OutputFormat {
 	case "json":
-		return displayJSON(filtered)
+		return displayJSON(filtered, opts.ShowRemote)
 	default:
 		displayTable(filtered, statusCache, opts.ShowUser, opts.ShowRemote)
 	}
@@ -421,9 +421,37 @@ func formatStatusShort(status *git.Status) string {
 	return result
 }
 
+// repoJSONWithRemote extends Repository with remote inspection fields for JSON output
+type repoJSONWithRemote struct {
+	config.Repository
+	HasMultipleRemotes bool `json:"has_multiple_remotes"`
+}
+
 // displayJSON outputs repositories in JSON format
-func displayJSON(repos []config.Repository) error {
-	data, err := json.MarshalIndent(repos, "", "  ")
+func displayJSON(repos []config.Repository, showRemote bool) error {
+	if !showRemote {
+		data, err := json.MarshalIndent(repos, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON: %w", err)
+		}
+		fmt.Println(string(data))
+		return nil
+	}
+
+	// Build extended entries with remote info
+	entries := make([]repoJSONWithRemote, len(repos))
+	for i, repo := range repos {
+		entries[i] = repoJSONWithRemote{Repository: repo}
+		remoteInfo, err := git.GetRemoteInfo(repo.Path)
+		if err == nil {
+			if remoteInfo.OriginURL != "" {
+				entries[i].RemoteURL = remoteInfo.OriginURL
+			}
+			entries[i].HasMultipleRemotes = remoteInfo.HasMultiple
+		}
+	}
+
+	data, err := json.MarshalIndent(entries, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
