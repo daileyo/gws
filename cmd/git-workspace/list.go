@@ -289,8 +289,8 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 	if showRemote {
 		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxPathLen, "PATH"))
 		separatorParts = append(separatorParts, strings.Repeat("-", maxPathLen))
-		headerParts = append(headerParts, "REMOTE")
-		separatorParts = append(separatorParts, strings.Repeat("-", 6))
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxRemoteLen, "REMOTE"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxRemoteLen))
 	} else {
 		headerParts = append(headerParts, "PATH")
 		separatorParts = append(separatorParts, strings.Repeat("-", 4))
