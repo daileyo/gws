@@ -148,6 +148,7 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 	maxUserLen := 4    // "USER"
 	maxEmailLen := 5   // "EMAIL"
 	maxRemoteLen := 6  // "REMOTE"
+	maxPathLen := 4    // "PATH"
 
 	// Pre-compute user info and drift status for width calculation and display
 	type repoUserInfo struct {
@@ -179,9 +180,14 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 			maxTagsLen = len(tags)
 		}
 
-		// Calculate remote column width
-		if showRemote && len(repo.RemoteURL) > maxRemoteLen {
-			maxRemoteLen = len(repo.RemoteURL)
+		// Calculate path and remote column widths
+		if showRemote {
+			if len(repo.Path) > maxPathLen {
+				maxPathLen = len(repo.Path)
+			}
+			if len(repo.RemoteURL) > maxRemoteLen {
+				maxRemoteLen = len(repo.RemoteURL)
+			}
 		}
 
 		// Calculate status column width
@@ -280,12 +286,14 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 	separatorParts = append(separatorParts, strings.Repeat("-", maxVisLen))
 	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxTagsLen, "TAGS"))
 	separatorParts = append(separatorParts, strings.Repeat("-", maxTagsLen))
-	headerParts = append(headerParts, "PATH")
-	separatorParts = append(separatorParts, strings.Repeat("-", 4))
-
 	if showRemote {
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxPathLen, "PATH"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxPathLen))
 		headerParts = append(headerParts, "REMOTE")
 		separatorParts = append(separatorParts, strings.Repeat("-", 6))
+	} else {
+		headerParts = append(headerParts, "PATH")
+		separatorParts = append(separatorParts, strings.Repeat("-", 4))
 	}
 
 	fmt.Println(strings.Join(headerParts, "  "))
@@ -343,13 +351,12 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 		}
 		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxTagsLen, tags))
 
-		// Path column
-		rowParts = append(rowParts, repo.Path)
-
-		// Remote column (optional)
+		// Path column (padded when remote column follows)
 		if showRemote {
-			remoteDisplay := repo.RemoteURL
-			rowParts = append(rowParts, remoteDisplay)
+			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxPathLen, repo.Path))
+			rowParts = append(rowParts, repo.RemoteURL)
+		} else {
+			rowParts = append(rowParts, repo.Path)
 		}
 
 		fmt.Println(strings.Join(rowParts, "  "))
