@@ -253,6 +253,7 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 			OutputFormat: depOutputFormat,
 			ShowStatus:   depShowStatus,
 			ShowUser:     depShowUser,
+			ShowRemote:   false,
 		})
 	}
 

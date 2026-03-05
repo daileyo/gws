@@ -20,6 +20,7 @@ var (
 	outputFormat string
 	showStatus   bool
 	showUser     bool
+	showRemote   bool
 )
 
 // listCmd is the Cobra subcommand for listing repositories.
@@ -33,7 +34,8 @@ Examples:
   gws list --type github            # List only GitHub repositories
   gws list -t personal -s           # List repos tagged "personal" with git status
   gws list -n "api-*" -o json       # Filter by name with wildcard, output as JSON
-  gws list -su                      # List with status and user columns`,
+  gws list -su                      # List with status and user columns
+  gws list -r                       # List with remote URL column`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runList(ListOptions{
@@ -44,6 +46,7 @@ Examples:
 			OutputFormat: outputFormat,
 			ShowStatus:   showStatus,
 			ShowUser:     showUser,
+			ShowRemote:   showRemote,
 		})
 	},
 }
@@ -59,6 +62,7 @@ func init() {
 	listCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
 	listCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
 	listCmd.Flags().BoolVarP(&showUser, "show-user", "u", false, "Show git user info (USER, EMAIL, SIGN columns)")
+	listCmd.Flags().BoolVarP(&showRemote, "remote", "r", false, "Show remote URL (origin) for each repository")
 }
 
 // ListOptions holds all parameters for the list operation.
@@ -70,6 +74,7 @@ type ListOptions struct {
 	OutputFormat string
 	ShowStatus   bool
 	ShowUser     bool
+	ShowRemote   bool
 }
 
 // runList handles the list logic with explicit options.
@@ -124,14 +129,14 @@ func runList(opts ListOptions) error {
 	case "json":
 		return displayJSON(filtered)
 	default:
-		displayTable(filtered, statusCache, opts.ShowUser)
+		displayTable(filtered, statusCache, opts.ShowUser, opts.ShowRemote)
 	}
 
 	return nil
 }
 
 // displayTable shows repositories in a formatted table
-func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bool) {
+func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bool, showRemote bool) {
 	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize(len(repos), "repository", "repositories"))
 
 	// Calculate column widths
@@ -140,8 +145,9 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 	maxVisLen := 10   // "VISIBILITY"
 	maxTagsLen := 4   // "TAGS"
 	maxStatusLen := 6 // "STATUS"
-	maxUserLen := 4   // "USER"
-	maxEmailLen := 5  // "EMAIL"
+	maxUserLen := 4    // "USER"
+	maxEmailLen := 5   // "EMAIL"
+	maxRemoteLen := 6  // "REMOTE"
 
 	// Pre-compute user info and drift status for width calculation and display
 	type repoUserInfo struct {
@@ -171,6 +177,11 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 		tags := strings.Join(repo.Tags, ", ")
 		if len(tags) > maxTagsLen {
 			maxTagsLen = len(tags)
+		}
+
+		// Calculate remote column width
+		if showRemote && len(repo.RemoteURL) > maxRemoteLen {
+			maxRemoteLen = len(repo.RemoteURL)
 		}
 
 		// Calculate status column width
@@ -272,6 +283,11 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 	headerParts = append(headerParts, "PATH")
 	separatorParts = append(separatorParts, strings.Repeat("-", 4))
 
+	if showRemote {
+		headerParts = append(headerParts, "REMOTE")
+		separatorParts = append(separatorParts, strings.Repeat("-", 6))
+	}
+
 	fmt.Println(strings.Join(headerParts, "  "))
 	fmt.Println(strings.Join(separatorParts, "  "))
 
@@ -329,6 +345,12 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 
 		// Path column
 		rowParts = append(rowParts, repo.Path)
+
+		// Remote column (optional)
+		if showRemote {
+			remoteDisplay := repo.RemoteURL
+			rowParts = append(rowParts, remoteDisplay)
+		}
 
 		fmt.Println(strings.Join(rowParts, "  "))
 	}
