@@ -63,7 +63,7 @@
 - [x] 3.2 Update `displayJSON` (or create a new `displayJSONWithRemote`) to accept a `showRemote bool` parameter; when true, call `GetRemoteInfo` for each repo and populate the extended struct before marshalling
 - [x] 3.3 Update the `runList` JSON dispatch to pass `showRemote` through to the JSON display function
 
-### [ ] 4.0 Unit tests
+### [x] 4.0 Unit tests
 
 #### 4.0 Proof Artifact(s)
 
@@ -72,6 +72,6 @@
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Add `{"remote", "r"}` to the flag table in `TestFilterFlagsOnListCmd` to verify the flag is registered with correct shorthand
-- [ ] 4.2 Add a `TestListCmdFlagStackingWithRemote` test that parses `-rsu` and verifies all three booleans (`showRemote`, `showStatus`, `showUser`) are true
-- [ ] 4.3 Add `TestGetRemoteInfo` in `internal/git/remote_test.go` covering: origin-only repo, origin+upstream repo, no-origin repo with other remotes, no remotes, and invalid path (use `git.PlainInit` to create temp repos in tests)
+- [x] 4.1 Add `{"remote", "r"}` to the flag table in `TestFilterFlagsOnListCmd` to verify the flag is registered with correct shorthand
+- [x] 4.2 Add a `TestListCmdFlagStackingWithRemote` test that parses `-rsu` and verifies all three booleans (`showRemote`, `showStatus`, `showUser`) are true
+- [x] 4.3 Add `TestGetRemoteInfo` in `internal/git/remote_test.go` covering: origin-only repo, origin+upstream repo, no-origin repo with other remotes, no remotes, and invalid path (use `git.PlainInit` to create temp repos in tests)

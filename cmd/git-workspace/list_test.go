@@ -17,6 +17,7 @@ func TestFilterFlagsOnListCmd(t *testing.T) {
 		{"output", "o"},
 		{"status", "s"},
 		{"show-user", "u"},
+		{"remote", "r"},
 	}
 
 	for _, f := range flags {
@@ -75,5 +76,38 @@ func TestListCmdFlagStacking(t *testing.T) {
 	}
 	if !showUser {
 		t.Error("Expected showUser to be true after -su")
+	}
+}
+
+func TestListCmdFlagStackingWithRemote(t *testing.T) {
+	// Verify POSIX flag stacking: -rsu should set showRemote, showStatus, and showUser
+	origStatus := showStatus
+	origUser := showUser
+	origRemote := showRemote
+	defer func() {
+		showStatus = origStatus
+		showUser = origUser
+		showRemote = origRemote
+	}()
+
+	// Reset
+	showStatus = false
+	showUser = false
+	showRemote = false
+
+	// Parse stacked flags
+	err := listCmd.Flags().Parse([]string{"-rsu"})
+	if err != nil {
+		t.Fatalf("Failed to parse -rsu: %v", err)
+	}
+
+	if !showRemote {
+		t.Error("Expected showRemote to be true after -rsu")
+	}
+	if !showStatus {
+		t.Error("Expected showStatus to be true after -rsu")
+	}
+	if !showUser {
+		t.Error("Expected showUser to be true after -rsu")
 	}
 }
