@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.12.0](https://github.com/daileyo/gws/compare/v2.11.2...v2.12.0) (2026-03-05)
+
+
+### Features
+
+* add --remote/-r flag to list command for displaying origin URL ([3005260](https://github.com/daileyo/gws/commit/3005260c8fabe6a278217ffefdce3e19dec7d572))
+* add asterisk indicator for multiple remotes via live git inspection ([91bd679](https://github.com/daileyo/gws/commit/91bd679337b41ddc1d11661b5726a4054490d59a))
+* add remote info to JSON output with has_multiple_remotes field ([532f2b5](https://github.com/daileyo/gws/commit/532f2b512619743bc615b09186bac3e2abed83fa))
+
+
+### Bug Fixes
+
+* pad PATH column when REMOTE column follows for proper alignment ([4b78c95](https://github.com/daileyo/gws/commit/4b78c95006e524173183af16bd37cb7c45bf2ae7))
+* use dynamic width for REMOTE column separator ([81d8124](https://github.com/daileyo/gws/commit/81d8124029c1267236c1ab020fb6ea01ce2f4b47))
+
 ## [2.11.2](https://github.com/daileyo/gws/compare/v2.11.1...v2.11.2) (2026-03-04)
 
 
