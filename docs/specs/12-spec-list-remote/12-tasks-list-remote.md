@@ -34,7 +34,7 @@
 - [x] 1.4 Add REMOTE column rendering in `displayTable`: calculate `maxRemoteLen` from `repo.RemoteURL` values, add REMOTE header/separator after PATH, and append remote URL to each row (when `showRemote` is true)
 - [x] 1.5 Add an example line to the `listCmd.Long` help text showing `--remote` usage (e.g., `gws list -r`)
 
-### [ ] 2.0 Add asterisk indicator via live remote inspection
+### [x] 2.0 Add asterisk indicator via live remote inspection
 
 #### 2.0 Proof Artifact(s)
 
@@ -45,9 +45,9 @@
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Create `internal/git/remote.go` with a `GetRemoteInfo(repoPath string) (originURL string, hasMultiple bool, err error)` function that opens the repo with `git.PlainOpen`, iterates remotes, finds origin URL, and determines if non-origin remotes exist
-- [ ] 2.2 In `displayTable`, when `showRemote` is true, call `GetRemoteInfo` for each repo to build a `remoteDisplay` string: origin-only → URL, origin+others → `* URL`, no-origin+others → `*`, error/no-remotes → stored `repo.RemoteURL`
-- [ ] 2.3 Update `maxRemoteLen` calculation to account for the `* ` prefix (2 extra chars) when applicable
+- [x] 2.1 Create `internal/git/remote.go` with a `GetRemoteInfo(repoPath string) (originURL string, hasMultiple bool, err error)` function that opens the repo with `git.PlainOpen`, iterates remotes, finds origin URL, and determines if non-origin remotes exist
+- [x] 2.2 In `displayTable`, when `showRemote` is true, call `GetRemoteInfo` for each repo to build a `remoteDisplay` string: origin-only → URL, origin+others → `* URL`, no-origin+others → `*`, error/no-remotes → stored `repo.RemoteURL`
+- [x] 2.3 Update `maxRemoteLen` calculation to account for the `* ` prefix (2 extra chars) when applicable
 
 ### [ ] 3.0 JSON output support for remote info
 

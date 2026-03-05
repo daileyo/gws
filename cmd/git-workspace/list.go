@@ -159,6 +159,29 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 	}
 	userInfoMap := make(map[string]repoUserInfo)
 
+	// Pre-compute remote display strings
+	remoteDisplayMap := make(map[string]string)
+	if showRemote {
+		for _, repo := range repos {
+			remoteInfo, err := git.GetRemoteInfo(repo.Path)
+			if err != nil {
+				// Graceful fallback: use stored URL without asterisk
+				remoteDisplayMap[repo.Path] = repo.RemoteURL
+				continue
+			}
+			switch {
+			case remoteInfo.OriginURL != "" && remoteInfo.HasMultiple:
+				remoteDisplayMap[repo.Path] = "* " + remoteInfo.OriginURL
+			case remoteInfo.OriginURL != "":
+				remoteDisplayMap[repo.Path] = remoteInfo.OriginURL
+			case remoteInfo.HasMultiple:
+				remoteDisplayMap[repo.Path] = "*"
+			default:
+				remoteDisplayMap[repo.Path] = repo.RemoteURL
+			}
+		}
+	}
+
 	// Get global default user for marking repos using the default identity
 	var globalDefaultUser *git.GlobalUserConfig
 	if showUser {
@@ -185,8 +208,8 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 			if len(repo.Path) > maxPathLen {
 				maxPathLen = len(repo.Path)
 			}
-			if len(repo.RemoteURL) > maxRemoteLen {
-				maxRemoteLen = len(repo.RemoteURL)
+			if rd := remoteDisplayMap[repo.Path]; len(rd) > maxRemoteLen {
+				maxRemoteLen = len(rd)
 			}
 		}
 
@@ -354,7 +377,7 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 		// Path column (padded when remote column follows)
 		if showRemote {
 			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxPathLen, repo.Path))
-			rowParts = append(rowParts, repo.RemoteURL)
+			rowParts = append(rowParts, remoteDisplayMap[repo.Path])
 		} else {
 			rowParts = append(rowParts, repo.Path)
 		}
