@@ -49,7 +49,7 @@
 - [x] 2.2 In `displayTable`, when `showRemote` is true, call `GetRemoteInfo` for each repo to build a `remoteDisplay` string: origin-only → URL, origin+others → `* URL`, no-origin+others → `*`, error/no-remotes → stored `repo.RemoteURL`
 - [x] 2.3 Update `maxRemoteLen` calculation to account for the `* ` prefix (2 extra chars) when applicable
 
-### [ ] 3.0 JSON output support for remote info
+### [x] 3.0 JSON output support for remote info
 
 #### 3.0 Proof Artifact(s)
 
@@ -59,9 +59,9 @@
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Create a `listJSONEntry` struct (or similar) that embeds/mirrors `config.Repository` fields and adds `RemoteURL string` and `HasMultipleRemotes bool` JSON fields for remote-aware output
-- [ ] 3.2 Update `displayJSON` (or create a new `displayJSONWithRemote`) to accept a `showRemote bool` parameter; when true, call `GetRemoteInfo` for each repo and populate the extended struct before marshalling
-- [ ] 3.3 Update the `runList` JSON dispatch to pass `showRemote` through to the JSON display function
+- [x] 3.1 Create a `listJSONEntry` struct (or similar) that embeds/mirrors `config.Repository` fields and adds `RemoteURL string` and `HasMultipleRemotes bool` JSON fields for remote-aware output
+- [x] 3.2 Update `displayJSON` (or create a new `displayJSONWithRemote`) to accept a `showRemote bool` parameter; when true, call `GetRemoteInfo` for each repo and populate the extended struct before marshalling
+- [x] 3.3 Update the `runList` JSON dispatch to pass `showRemote` through to the JSON display function
 
 ### [ ] 4.0 Unit tests
 
