@@ -145,10 +145,10 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 	maxVisLen := 10   // "VISIBILITY"
 	maxTagsLen := 4   // "TAGS"
 	maxStatusLen := 6 // "STATUS"
-	maxUserLen := 4    // "USER"
-	maxEmailLen := 5   // "EMAIL"
-	maxRemoteLen := 6  // "REMOTE"
-	maxPathLen := 4    // "PATH"
+	maxUserLen := 4   // "USER"
+	maxEmailLen := 5  // "EMAIL"
+	maxRemoteLen := 6 // "REMOTE"
+	maxPathLen := 4   // "PATH"
 
 	// Pre-compute user info and drift status for width calculation and display
 	type repoUserInfo struct {
