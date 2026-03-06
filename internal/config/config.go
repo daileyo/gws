@@ -16,6 +16,12 @@ type Config struct {
 	Workspace    string       `json:"workspace"`
 	Profiles     []Profile    `json:"profiles,omitempty"`
 	Repositories []Repository `json:"repositories"`
+	Preferences  *Preferences `json:"preferences,omitempty"`
+}
+
+// Preferences holds user-configurable settings
+type Preferences struct {
+	StatusWorkers int `json:"status_workers,omitempty"`
 }
 
 // RepositoryType represents the type of git hosting provider

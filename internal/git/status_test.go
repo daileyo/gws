@@ -368,3 +368,79 @@ func TestCache(t *testing.T) {
 		}
 	})
 }
+
+func TestFetchAll(t *testing.T) {
+	// Helper to create a test repo with a commit
+	makeRepo := func(t *testing.T) string {
+		t.Helper()
+		dir := createTestRepo(t)
+		f := filepath.Join(dir, "file.txt")
+		if err := os.WriteFile(f, []byte("content"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command("git", "add", ".")
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git add: %v\n%s", err, out)
+		}
+		cmd = exec.Command("git", "commit", "-m", "init")
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=t@t.com",
+			"GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=t@t.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git commit: %v\n%s", err, out)
+		}
+		return dir
+	}
+
+	t.Run("fetches multiple repos concurrently", func(t *testing.T) {
+		repo1 := makeRepo(t)
+		repo2 := makeRepo(t)
+		repo3 := makeRepo(t)
+
+		cache := NewCache(5 * time.Minute)
+		results := cache.FetchAll([]string{repo1, repo2, repo3}, 2)
+
+		if len(results) != 3 {
+			t.Errorf("expected 3 results, got %d", len(results))
+		}
+		for _, path := range []string{repo1, repo2, repo3} {
+			if results[path] == nil {
+				t.Errorf("missing result for %s", path)
+			}
+			if results[path].Branch != "main" {
+				t.Errorf("expected branch 'main', got %q for %s", results[path].Branch, path)
+			}
+		}
+	})
+
+	t.Run("uses cached entries without re-fetching", func(t *testing.T) {
+		repo1 := makeRepo(t)
+
+		cache := NewCache(5 * time.Minute)
+		// Pre-populate cache
+		cache.Set(repo1, &Status{Branch: "cached-branch", IsClean: true, LastChecked: time.Now()})
+
+		results := cache.FetchAll([]string{repo1}, 2)
+		if results[repo1].Branch != "cached-branch" {
+			t.Errorf("expected cached branch, got %q", results[repo1].Branch)
+		}
+	})
+
+	t.Run("handles bad repo gracefully", func(t *testing.T) {
+		repo1 := makeRepo(t)
+		badPath := "/nonexistent/repo/path"
+
+		cache := NewCache(5 * time.Minute)
+		results := cache.FetchAll([]string{repo1, badPath}, 2)
+
+		if results[repo1] == nil {
+			t.Error("expected result for valid repo")
+		}
+		if results[badPath] != nil {
+			t.Error("expected nil for bad repo")
+		}
+	})
+}
