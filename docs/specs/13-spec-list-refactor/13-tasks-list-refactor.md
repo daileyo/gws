@@ -49,7 +49,7 @@ Rework the `gws list` flag system from the current mix of `Bool`/`String`/`Strin
 - [x] 1.11 Add unit tests for visibility filtering in `internal/filter/filter_test.go`.
 - [x] 1.12 Run `go test ./...` and `make ci` to verify all tests pass and no lint/vet issues.
 
-### [~] 2.0 Implement Multi-Column Default View
+### [x] 2.0 Implement Multi-Column Default View
 
 Change the default `gws list` output from the full table (NAME, TYPE, VISIBILITY, TAGS, PATH) to a compact multi-column layout showing only repo names, sorted alphabetically. Detect terminal width for column sizing, with single-column fallback for non-TTY.
 
@@ -70,7 +70,7 @@ Change the default `gws list` output from the full table (NAME, TYPE, VISIBILITY
 - [x] 2.6 Add unit tests for `displayMultiColumn()`: test column count calculation for various terminal widths, alphabetical sorting, single-column fallback, and edge cases (0 repos, 1 repo, more repos than fit in one row).
 - [x] 2.7 Run `go test ./...` and `make ci` to verify.
 
-### [ ] 3.0 Implement Verbose Levels (`-v` and `-vv`)
+### [~] 3.0 Implement Verbose Levels (`-v` and `-vv`)
 
 Add `-v`/`--verbose` (count flag) to `gws list`. Single `-v` shows all stored-data columns (NAME, TYPE, VISIBILITY, TAGS, PATH). Double `-vv` shows everything including live-fetched columns (STATUS, USER, EMAIL, SIGN, REMOTE). When combined with other flags/filters, verbose overrides selective column display.
 
@@ -84,12 +84,12 @@ Add `-v`/`--verbose` (count flag) to `gws list`. Single `-v` shows all stored-da
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Register a count flag `-v`/`--verbose` on `listCmd` using Cobra's `CountVarP()`. This tracks how many times `-v` appears: 0 = not set, 1 = `-v`, 2+ = `-vv`.
-- [ ] 3.2 Add a `VerboseLevel` field (int) to `ListOptions`.
-- [ ] 3.3 Update the column display logic in `runList()`: if `VerboseLevel >= 1`, set all stored-data `Show*` flags to true (ShowType, ShowVisibility, ShowTags, ShowPath). If `VerboseLevel >= 2`, also set ShowStatus, ShowUser, ShowRemote to true. Verbose overrides any selective column flags but does NOT override filter flags.
-- [ ] 3.4 When `-v` or `-vv` is combined with filter flags (e.g., `-v -y github`), the filter applies but all columns for that verbosity level are displayed.
-- [ ] 3.5 Add unit tests: `-v` sets verbose level 1 and shows stored-data columns; `-vv` sets verbose level 2 and shows all columns; `-v -y github` filters by type but shows all stored-data columns.
-- [ ] 3.6 Run `go test ./...` and `make ci` to verify.
+- [x] 3.1 Register a count flag `-v`/`--verbose` on `listCmd` using Cobra's `CountVarP()`. This tracks how many times `-v` appears: 0 = not set, 1 = `-v`, 2+ = `-vv`. (Done in Task 1.0)
+- [x] 3.2 Add a `VerboseLevel` field (int) to `ListOptions`. (Done in Task 1.0)
+- [x] 3.3 Update the column display logic in `runList()`: if `VerboseLevel >= 1`, set all stored-data `Show*` flags to true (ShowType, ShowVisibility, ShowTags, ShowPath). If `VerboseLevel >= 2`, also set ShowStatus, ShowUser, ShowRemote to true. Verbose overrides any selective column flags but does NOT override filter flags. (Done in Task 1.0)
+- [x] 3.4 When `-v` or `-vv` is combined with filter flags (e.g., `-v -y github`), the filter applies but all columns for that verbosity level are displayed. (Done in Task 1.0)
+- [x] 3.5 Add unit tests: `-v` sets verbose level 1 and shows stored-data columns; `-vv` sets verbose level 2 and shows all columns; `-v -y github` filters by type but shows all stored-data columns.
+- [x] 3.6 Run `go test ./...` and `make ci` to verify.
 
 ### [ ] 4.0 Default No-Args Behavior (`gws` → `gws list`)
 

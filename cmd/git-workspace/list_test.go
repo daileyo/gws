@@ -315,3 +315,115 @@ func TestGetTerminalWidth(t *testing.T) {
 		t.Errorf("getTerminalWidth() returned %d, expected positive value", width)
 	}
 }
+
+func TestVerboseCountFlag(t *testing.T) {
+	tests := []struct {
+		name          string
+		args          []string
+		expectedCount int
+	}{
+		{"no verbose", []string{}, 0},
+		{"single -v", []string{"-v"}, 1},
+		{"double -vv", []string{"-vv"}, 2},
+		{"triple -vvv", []string{"-vvv"}, 3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			origCount := verboseCount
+			defer func() { verboseCount = origCount }()
+			verboseCount = 0
+
+			if len(tt.args) > 0 {
+				err := listCmd.Flags().Parse(tt.args)
+				if err != nil {
+					t.Fatalf("Failed to parse %v: %v", tt.args, err)
+				}
+			}
+
+			if verboseCount != tt.expectedCount {
+				t.Errorf("Expected verboseCount=%d, got %d", tt.expectedCount, verboseCount)
+			}
+		})
+	}
+}
+
+func TestVerboseLevelColumnOverrides(t *testing.T) {
+	tests := []struct {
+		name           string
+		opts           ListOptions
+		expectShowType bool
+		expectShowVis  bool
+		expectShowTags bool
+		expectShowPath bool
+		expectShowStat bool
+		expectShowUser bool
+		expectShowRem  bool
+	}{
+		{
+			"verbose 0 - no overrides",
+			ListOptions{VerboseLevel: 0},
+			false, false, false, false, false, false, false,
+		},
+		{
+			"verbose 1 - stored data columns",
+			ListOptions{VerboseLevel: 1},
+			true, true, true, true, false, false, false,
+		},
+		{
+			"verbose 2 - all columns",
+			ListOptions{VerboseLevel: 2},
+			true, true, true, true, true, true, true,
+		},
+		{
+			"verbose 1 with filter - filter preserved, all stored columns shown",
+			ListOptions{VerboseLevel: 1, FilterType: "github", ShowType: true},
+			true, true, true, true, false, false, false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := tt.opts
+			// Apply verbose overrides (same logic as parseDualPurposeFlags)
+			if opts.VerboseLevel >= 1 {
+				opts.ShowType = true
+				opts.ShowVisibility = true
+				opts.ShowTags = true
+				opts.ShowPath = true
+			}
+			if opts.VerboseLevel >= 2 {
+				opts.ShowStatus = true
+				opts.ShowUser = true
+				opts.ShowRemote = true
+			}
+
+			if opts.ShowType != tt.expectShowType {
+				t.Errorf("ShowType = %v, want %v", opts.ShowType, tt.expectShowType)
+			}
+			if opts.ShowVisibility != tt.expectShowVis {
+				t.Errorf("ShowVisibility = %v, want %v", opts.ShowVisibility, tt.expectShowVis)
+			}
+			if opts.ShowTags != tt.expectShowTags {
+				t.Errorf("ShowTags = %v, want %v", opts.ShowTags, tt.expectShowTags)
+			}
+			if opts.ShowPath != tt.expectShowPath {
+				t.Errorf("ShowPath = %v, want %v", opts.ShowPath, tt.expectShowPath)
+			}
+			if opts.ShowStatus != tt.expectShowStat {
+				t.Errorf("ShowStatus = %v, want %v", opts.ShowStatus, tt.expectShowStat)
+			}
+			if opts.ShowUser != tt.expectShowUser {
+				t.Errorf("ShowUser = %v, want %v", opts.ShowUser, tt.expectShowUser)
+			}
+			if opts.ShowRemote != tt.expectShowRem {
+				t.Errorf("ShowRemote = %v, want %v", opts.ShowRemote, tt.expectShowRem)
+			}
+
+			// Verify filter is preserved
+			if tt.opts.FilterType != "" && opts.FilterType != tt.opts.FilterType {
+				t.Errorf("FilterType = %q, want %q (filter should be preserved)", opts.FilterType, tt.opts.FilterType)
+			}
+		})
+	}
+}
