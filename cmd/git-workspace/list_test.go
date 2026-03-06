@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/git"
 )
 
 func TestFilterFlagsOnListCmd(t *testing.T) {
@@ -512,6 +513,207 @@ func mapKeys(m map[string]interface{}) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func TestColorize(t *testing.T) {
+	tests := []struct {
+		name     string
+		text     string
+		code     string
+		expected string
+	}{
+		{"green check", "✓", ansiGreen, "\033[32m✓\033[0m"},
+		{"red cross", "✗", ansiRed, "\033[31m✗\033[0m"},
+		{"cyan ahead", "↑3", ansiCyan, "\033[36m↑3\033[0m"},
+		{"magenta behind", "↓2", ansiMagenta, "\033[35m↓2\033[0m"},
+		{"empty text", "", ansiGreen, "\033[32m\033[0m"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := colorize(tt.text, tt.code)
+			if got != tt.expected {
+				t.Errorf("colorize(%q, %q) = %q, want %q", tt.text, tt.code, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestStripANSI(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"no ansi", "hello", "hello"},
+		{"green text", "\033[32m✓\033[0m", "✓"},
+		{"multiple codes", "\033[31m✗\033[0m \033[36m↑3\033[0m", "✗ ↑3"},
+		{"empty", "", ""},
+		{"plain unicode", "main ✓ ↑3", "main ✓ ↑3"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripANSI(tt.input)
+			if got != tt.expected {
+				t.Errorf("stripANSI(%q) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDisplayWidth(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{"ascii", "main", 4},
+		{"unicode check", "✓", 1},
+		{"unicode cross", "✗", 1},
+		{"unicode arrows", "↑3↓2", 4},
+		{"mixed", "main ✓ ↑3", 9},
+		{"colored", "\033[32m✓\033[0m", 1},
+		{"colored mixed", "\033[31m✗\033[0m \033[36m↑3\033[0m", 4},
+		{"empty", "", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := displayWidth(tt.input)
+			if got != tt.expected {
+				t.Errorf("displayWidth(%q) = %d, want %d", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestTruncateBranch(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		maxLen   int
+		expected string
+	}{
+		{"short name", "main", 30, "main"},
+		{"exact limit", "abcdefghij", 10, "abcdefghij"},
+		{"one over", "abcdefghijk", 10, "abcdefg..."},
+		{"very long", "feature/JIRA-1234-implement-user-authentication-flow", 30, "feature/JIRA-1234-implement..."},
+		{"max 3", "abcdef", 3, "abc"},
+		{"max 2", "abcdef", 2, "ab"},
+		{"max 1", "abcdef", 1, "a"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncateBranch(tt.input, tt.maxLen)
+			if got != tt.expected {
+				t.Errorf("truncateBranch(%q, %d) = %q, want %q", tt.input, tt.maxLen, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFormatStatusBranch(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   *git.Status
+		expected string
+	}{
+		{"simple branch", &git.Status{Branch: "main"}, "main"},
+		{"no commits", &git.Status{Branch: ""}, "no commits"},
+		{"long branch", &git.Status{Branch: "feature/very-long-branch-name-that-exceeds-the-limit"}, "feature/very-long-branch-na..."},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatStatusBranch(tt.status)
+			if got != tt.expected {
+				t.Errorf("formatStatusBranch() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFormatStatusIcons(t *testing.T) {
+	tests := []struct {
+		name         string
+		status       *git.Status
+		colorEnabled bool
+		expected     string
+	}{
+		{"clean no color", &git.Status{Branch: "main", IsClean: true}, false, "✓"},
+		{"dirty no color", &git.Status{Branch: "main", HasChanges: true}, false, "✗"},
+		{"ahead no color", &git.Status{Branch: "main", Ahead: 3}, false, "✓ ↑3"},
+		{"behind no color", &git.Status{Branch: "main", Behind: 2}, false, "✓ ↓2"},
+		{"ahead+behind no color", &git.Status{Branch: "main", HasChanges: true, Ahead: 5, Behind: 3}, false, "✗ ↑5 ↓3"},
+		{"no commits", &git.Status{Branch: ""}, false, ""},
+		{"clean with color", &git.Status{Branch: "main", IsClean: true}, true, "\033[32m✓\033[0m"},
+		{"dirty with color", &git.Status{Branch: "main", HasChanges: true}, true, "\033[31m✗\033[0m"},
+		{"ahead with color", &git.Status{Branch: "main", Ahead: 3}, true, "\033[32m✓\033[0m \033[36m↑3\033[0m"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatStatusIcons(tt.status, tt.colorEnabled)
+			if got != tt.expected {
+				t.Errorf("formatStatusIcons() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFormatStatusIconsColorWidthParity(t *testing.T) {
+	statuses := []*git.Status{
+		{Branch: "main", IsClean: true},
+		{Branch: "main", HasChanges: true},
+		{Branch: "main", Ahead: 3},
+		{Branch: "main", Behind: 2},
+		{Branch: "main", HasChanges: true, Ahead: 5, Behind: 3},
+	}
+
+	for _, s := range statuses {
+		colored := formatStatusIcons(s, true)
+		uncolored := formatStatusIcons(s, false)
+		if displayWidth(colored) != displayWidth(uncolored) {
+			t.Errorf("display width mismatch for %+v: colored=%d, uncolored=%d",
+				s, displayWidth(colored), displayWidth(uncolored))
+		}
+	}
+}
+
+func TestFormatStatusShort(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   *git.Status
+		expected string
+	}{
+		{"clean", &git.Status{Branch: "main"}, "main ✓"},
+		{"dirty", &git.Status{Branch: "main", HasChanges: true}, "main ✗"},
+		{"ahead", &git.Status{Branch: "feature", Ahead: 3}, "feature ✓ ↑3"},
+		{"behind", &git.Status{Branch: "main", Behind: 2}, "main ✓ ↓2"},
+		{"ahead+behind", &git.Status{Branch: "develop", HasChanges: true, Ahead: 5, Behind: 3}, "develop ✗ ↑5 ↓3"},
+		{"no commits", &git.Status{Branch: ""}, "no commits"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatStatusShort(tt.status)
+			if got != tt.expected {
+				t.Errorf("formatStatusShort() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestColorFlagRegistered(t *testing.T) {
+	flag := listCmd.Flags().Lookup("color")
+	if flag == nil {
+		t.Fatal("--color flag not found on listCmd")
+	}
+	if flag.DefValue != "auto" {
+		t.Errorf("--color default value = %q, want %q", flag.DefValue, "auto")
+	}
 }
 
 func TestDeprecatedListDispatchPopulatesListOptions(t *testing.T) {
