@@ -552,8 +552,8 @@ func getTerminalWidth() int {
 }
 
 // displayMultiColumn prints names in a compact multi-column layout like ls.
-// Names are sorted alphabetically and fill left-to-right, top-to-bottom.
-// Falls back to single-column when stdout is not a TTY.
+// Names are sorted alphabetically and fill top-to-bottom, then left-to-right
+// (column-first order). Falls back to single-column when stdout is not a TTY.
 func displayMultiColumn(names []string) {
 	if len(names) == 0 {
 		return
@@ -587,19 +587,27 @@ func displayMultiColumn(names []string) {
 		numCols = 1
 	}
 
-	// Print names left-to-right, wrapping at numCols
-	for i, name := range names {
-		if i > 0 && i%numCols == 0 {
-			fmt.Println()
+	// Calculate rows needed (column-first layout)
+	numRows := (len(names) + numCols - 1) / numCols
+
+	// Print in column-first order: row by row, picking items that belong
+	// to each column. Item at column c, row r = names[c*numRows + r].
+	for r := 0; r < numRows; r++ {
+		for c := 0; c < numCols; c++ {
+			idx := c*numRows + r
+			if idx >= len(names) {
+				break
+			}
+			// Last column in this row or last item: no trailing padding
+			isLastCol := c == numCols-1 || (c+1)*numRows+r >= len(names)
+			if isLastCol {
+				fmt.Print(names[idx])
+			} else {
+				fmt.Printf("%-*s", colWidth, names[idx])
+			}
 		}
-		if (i+1)%numCols == 0 || i == len(names)-1 {
-			// Last column or last item: no trailing padding
-			fmt.Print(name)
-		} else {
-			fmt.Printf("%-*s", colWidth, name)
-		}
+		fmt.Println()
 	}
-	fmt.Println()
 }
 
 // formatStatusShort returns a short status string with visual indicators
