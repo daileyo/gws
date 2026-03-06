@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"io"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -224,5 +228,90 @@ func TestAnyColumnSelected(t *testing.T) {
 				t.Errorf("AnyColumnSelected() = %v, expected %v", result, tt.expected)
 			}
 		})
+	}
+}
+
+// captureStdout redirects stdout to capture printed output.
+// Since displayMultiColumn uses term.IsTerminal which will return false
+// for a pipe, we test the non-TTY (single-column) path directly.
+func captureStdout(fn func()) string {
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	fn()
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	return buf.String()
+}
+
+func TestDisplayMultiColumn_NonTTY(t *testing.T) {
+	// When stdout is a pipe (non-TTY), displayMultiColumn outputs one name per line
+	tests := []struct {
+		name     string
+		names    []string
+		expected []string
+	}{
+		{
+			"empty list",
+			[]string{},
+			[]string{},
+		},
+		{
+			"single repo",
+			[]string{"my-repo"},
+			[]string{"my-repo"},
+		},
+		{
+			"multiple repos sorted",
+			[]string{"charlie", "alpha", "bravo"},
+			[]string{"alpha", "bravo", "charlie"}, // alphabetical
+		},
+		{
+			"already sorted",
+			[]string{"aaa", "bbb", "ccc"},
+			[]string{"aaa", "bbb", "ccc"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := captureStdout(func() {
+				displayMultiColumn(tt.names)
+			})
+
+			if len(tt.expected) == 0 {
+				if output != "" {
+					t.Errorf("Expected empty output, got %q", output)
+				}
+				return
+			}
+
+			lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+			if len(lines) != len(tt.expected) {
+				t.Errorf("Expected %d lines, got %d: %v", len(tt.expected), len(lines), lines)
+				return
+			}
+			for i, expected := range tt.expected {
+				if lines[i] != expected {
+					t.Errorf("Line %d: expected %q, got %q", i, expected, lines[i])
+				}
+			}
+		})
+	}
+}
+
+func TestGetTerminalWidth(t *testing.T) {
+	// In test environment (non-TTY), should return default of 80
+	width := getTerminalWidth()
+	if width != 80 {
+		t.Logf("Terminal width detected as %d (may be real TTY or default 80)", width)
+	}
+	if width <= 0 {
+		t.Errorf("getTerminalWidth() returned %d, expected positive value", width)
 	}
 }
