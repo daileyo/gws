@@ -444,3 +444,86 @@ func TestFetchAll(t *testing.T) {
 		}
 	})
 }
+
+func TestGetStale(t *testing.T) {
+	t.Run("returns stale entry", func(t *testing.T) {
+		cache := NewCache(1 * time.Millisecond)
+		cache.Set("/repo", &Status{Branch: "main", LastChecked: time.Now().Add(-1 * time.Second)})
+
+		// Get returns nil (stale)
+		if cache.Get("/repo") != nil {
+			t.Error("expected Get to return nil for stale entry")
+		}
+
+		// GetStale returns the entry
+		s := cache.GetStale("/repo")
+		if s == nil {
+			t.Fatal("expected GetStale to return stale entry")
+		}
+		if s.Branch != "main" {
+			t.Errorf("expected branch 'main', got %q", s.Branch)
+		}
+	})
+
+	t.Run("returns nil for missing entry", func(t *testing.T) {
+		cache := NewCache(5 * time.Minute)
+		if cache.GetStale("/nonexistent") != nil {
+			t.Error("expected nil for missing entry")
+		}
+	})
+}
+
+func TestPrefetchInBackground(t *testing.T) {
+	makeRepo := func(t *testing.T) string {
+		t.Helper()
+		dir := createTestRepo(t)
+		f := filepath.Join(dir, "file.txt")
+		if err := os.WriteFile(f, []byte("content"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command("git", "add", ".")
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git add: %v\n%s", err, out)
+		}
+		cmd = exec.Command("git", "commit", "-m", "init")
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=t@t.com",
+			"GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=t@t.com",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git commit: %v\n%s", err, out)
+		}
+		return dir
+	}
+
+	t.Run("refreshes stale entries in background", func(t *testing.T) {
+		repo := makeRepo(t)
+		cache := NewCache(5 * time.Minute)
+
+		// Pre-populate with stale entry (timestamp far in the past)
+		cache.Set(repo, &Status{Branch: "stale-branch", LastChecked: time.Now().Add(-10 * time.Minute)})
+
+		// Verify it's stale via Get (returns nil) but exists via GetStale
+		if cache.Get(repo) != nil {
+			t.Error("expected entry to be stale")
+		}
+		if cache.GetStale(repo) == nil {
+			t.Error("expected stale entry to exist")
+		}
+
+		// Run prefetch and wait for completion
+		done := cache.PrefetchInBackground([]string{repo}, 2, "")
+		<-done
+
+		// Entry should now be fresh
+		s := cache.Get(repo)
+		if s == nil {
+			t.Fatal("expected fresh entry after prefetch")
+		}
+		if s.Branch != "main" {
+			t.Errorf("expected refreshed branch 'main', got %q", s.Branch)
+		}
+	})
+}
