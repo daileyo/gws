@@ -586,6 +586,17 @@ func displayMultiColumn(names []string) {
 	if numCols < 1 {
 		numCols = 1
 	}
+	// Cap columns so we get at least 3 rows for readability,
+	// unless there are very few items (≤3 always single column).
+	if len(names) > 3 {
+		maxCols := len(names) / 3
+		if maxCols < 1 {
+			maxCols = 1
+		}
+		if numCols > maxCols {
+			numCols = maxCols
+		}
+	}
 
 	// Calculate rows needed (column-first layout)
 	numRows := (len(names) + numCols - 1) / numCols
