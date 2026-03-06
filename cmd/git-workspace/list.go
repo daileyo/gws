@@ -825,7 +825,7 @@ func formatStatusBranch(status *git.Status) string {
 	return truncateBranch(status.Branch, maxBranchDisplayLen)
 }
 
-// formatStatusIcons returns the status icons portion (clean/dirty + ahead/behind).
+// formatStatusIcons returns the status icons portion (behind, ahead, clean/dirty).
 // When colorEnabled is true, icons are wrapped with ANSI color codes.
 func formatStatusIcons(status *git.Status, colorEnabled bool) string {
 	if status.Branch == "" {
@@ -833,6 +833,26 @@ func formatStatusIcons(status *git.Status, colorEnabled bool) string {
 	}
 
 	var parts []string
+
+	// Behind indicator
+	if status.Behind > 0 {
+		behind := fmt.Sprintf("↓%d", status.Behind)
+		if colorEnabled {
+			parts = append(parts, colorize(behind, ansiMagenta))
+		} else {
+			parts = append(parts, behind)
+		}
+	}
+
+	// Ahead indicator
+	if status.Ahead > 0 {
+		ahead := fmt.Sprintf("↑%d", status.Ahead)
+		if colorEnabled {
+			parts = append(parts, colorize(ahead, ansiCyan))
+		} else {
+			parts = append(parts, ahead)
+		}
+	}
 
 	// Clean/dirty indicator
 	if status.HasChanges {
@@ -846,24 +866,6 @@ func formatStatusIcons(status *git.Status, colorEnabled bool) string {
 			parts = append(parts, colorize("✓", ansiGreen))
 		} else {
 			parts = append(parts, "✓")
-		}
-	}
-
-	// Ahead/behind indicators
-	if status.Ahead > 0 {
-		ahead := fmt.Sprintf("↑%d", status.Ahead)
-		if colorEnabled {
-			parts = append(parts, colorize(ahead, ansiCyan))
-		} else {
-			parts = append(parts, ahead)
-		}
-	}
-	if status.Behind > 0 {
-		behind := fmt.Sprintf("↓%d", status.Behind)
-		if colorEnabled {
-			parts = append(parts, colorize(behind, ansiMagenta))
-		} else {
-			parts = append(parts, behind)
 		}
 	}
 
