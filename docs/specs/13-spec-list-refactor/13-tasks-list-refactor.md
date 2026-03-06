@@ -21,7 +21,7 @@
 
 ## Tasks
 
-### [~] 1.0 Implement Dual-Purpose Flag Infrastructure
+### [x] 1.0 Implement Dual-Purpose Flag Infrastructure
 
 Rework the `gws list` flag system from the current mix of `Bool`/`String`/`StringSlice` flags to dual-purpose flags that support "no value = show column" and "with value = filter + show column". This is the foundational change that all other tasks depend on.
 
@@ -49,7 +49,7 @@ Rework the `gws list` flag system from the current mix of `Bool`/`String`/`Strin
 - [x] 1.11 Add unit tests for visibility filtering in `internal/filter/filter_test.go`.
 - [x] 1.12 Run `go test ./...` and `make ci` to verify all tests pass and no lint/vet issues.
 
-### [ ] 2.0 Implement Multi-Column Default View
+### [~] 2.0 Implement Multi-Column Default View
 
 Change the default `gws list` output from the full table (NAME, TYPE, VISIBILITY, TAGS, PATH) to a compact multi-column layout showing only repo names, sorted alphabetically. Detect terminal width for column sizing, with single-column fallback for non-TTY.
 
@@ -62,13 +62,13 @@ Change the default `gws list` output from the full table (NAME, TYPE, VISIBILITY
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Add `golang.org/x/term` dependency (`go get golang.org/x/term`) for terminal width detection. This provides `term.GetSize()` to query terminal dimensions.
-- [ ] 2.2 Implement a `displayMultiColumn()` function in `list.go` that takes a list of repo names, sorts them alphabetically, detects terminal width, calculates column count and widths, and prints names left-to-right then top-to-bottom (like `ls`). Use 2-space padding between columns.
-- [ ] 2.3 Implement TTY detection: check if stdout is a terminal using `term.IsTerminal()`. If not a TTY (piped/redirected), output one name per line. Default terminal width to 80 if detection fails.
-- [ ] 2.4 Update `runList()` to call `displayMultiColumn()` when no column display flags are set (no `-y`, `-V`, `-t`, `-p`, `-s`, `-u`, `-r`, `-v`). The table format with headers is only used when at least one column flag or verbose flag is present.
-- [ ] 2.5 Keep the "Found N repositories" header line before the multi-column output.
-- [ ] 2.6 Add unit tests for `displayMultiColumn()`: test column count calculation for various terminal widths, alphabetical sorting, single-column fallback, and edge cases (0 repos, 1 repo, more repos than fit in one row).
-- [ ] 2.7 Run `go test ./...` and `make ci` to verify.
+- [x] 2.1 Add `golang.org/x/term` dependency (`go get golang.org/x/term`) for terminal width detection. This provides `term.GetSize()` to query terminal dimensions.
+- [x] 2.2 Implement a `displayMultiColumn()` function in `list.go` that takes a list of repo names, sorts them alphabetically, detects terminal width, calculates column count and widths, and prints names left-to-right then top-to-bottom (like `ls`). Use 2-space padding between columns.
+- [x] 2.3 Implement TTY detection: check if stdout is a terminal using `term.IsTerminal()`. If not a TTY (piped/redirected), output one name per line. Default terminal width to 80 if detection fails.
+- [x] 2.4 Update `runList()` to call `displayMultiColumn()` when no column display flags are set (no `-y`, `-V`, `-t`, `-p`, `-s`, `-u`, `-r`, `-v`). The table format with headers is only used when at least one column flag or verbose flag is present.
+- [x] 2.5 Keep the "Found N repositories" header line before the multi-column output.
+- [x] 2.6 Add unit tests for `displayMultiColumn()`: test column count calculation for various terminal widths, alphabetical sorting, single-column fallback, and edge cases (0 repos, 1 repo, more repos than fit in one row).
+- [x] 2.7 Run `go test ./...` and `make ci` to verify.
 
 ### [ ] 3.0 Implement Verbose Levels (`-v` and `-vv`)
 

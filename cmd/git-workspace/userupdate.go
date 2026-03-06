@@ -102,9 +102,9 @@ func resolveProfile(cfg *config.Config, args []string) (config.Profile, error) {
 	if !hasProfileName && depInlineEmail == "" {
 		hint := "\n\nUse 'gws --user' to see available profiles."
 		if len(filterTags) > 0 {
-			return profile, fmt.Errorf("usage: gws --user -u --tag <tag> <profile>\n       gws --user -u --tag <tag> --git-email <email> [--git-name <name>]" + hint)
+			return profile, fmt.Errorf("%s", "usage: gws --user -u --tag <tag> <profile>\n       gws --user -u --tag <tag> --git-email <email> [--git-name <name>]"+hint)
 		}
-		return profile, fmt.Errorf("usage: gws --user -u <repo> <profile>\n       gws --user -u <repo> --git-email <email> [--git-name <name>]" + hint)
+		return profile, fmt.Errorf("%s", "usage: gws --user -u <repo> <profile>\n       gws --user -u <repo> --git-email <email> [--git-name <name>]"+hint)
 	}
 
 	// If only inline values with no git name, use email prefix as name
