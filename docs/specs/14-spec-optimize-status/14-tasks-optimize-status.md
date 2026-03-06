@@ -39,7 +39,7 @@ Replace the `go-git` library calls in `internal/git/status.go` with native `git`
 - [x] 1.4 Update `internal/git/status_test.go` with tests for the new CLI-based `GetStatus()`. Create temporary git repos in tests (using `git init`, `git commit`, etc. via `exec.Command`) to verify branch detection, clean/dirty state, and ahead/behind counts. Existing `IsStale` and `String` tests remain unchanged.
 - [x] 1.5 Run `go test -race ./internal/git/...` and `go test -race ./...` to verify all tests pass with no regressions.
 
-### [ ] 2.0 Parallel Status Fetching with Worker Pool
+### [x] 2.0 Parallel Status Fetching with Worker Pool
 
 Add a goroutine-based worker pool to fetch repository statuses concurrently. Introduce a `--workers N` flag on the `list` command (default: 8). Add a `preferences` section to `~/.gws/config.json` to persist the worker count so users can set-and-forget their preferred concurrency. All statuses are collected into a map before rendering begins, ensuring output is never interleaved. Individual repo errors are handled gracefully (skipped, not fatal).
 
@@ -52,12 +52,12 @@ Add a goroutine-based worker pool to fetch repository statuses concurrently. Int
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Add a `FetchAll(repoPaths []string, workers int) map[string]*Status` method to `internal/git/cache.go`. This method uses a buffered channel (size = `workers`) as a semaphore, spawns goroutines for each repo that needs fetching (cache miss or stale), collects results into a `map[string]*Status` protected by the existing `sync.RWMutex`, and returns the complete map. Errors for individual repos are logged/skipped, not fatal.
-- [ ] 2.2 Add a `Preferences` struct to `internal/config/config.go` with a `StatusWorkers int` field (`json:"status_workers,omitempty"`). Add a `Preferences *Preferences` field to the `Config` struct (`json:"preferences,omitempty"`). This is backward-compatible — existing configs without the field will unmarshal with `nil` preferences.
-- [ ] 2.3 Add a `--workers` flag (type `int`, default `0` meaning "use config or default") to the `list` command in `cmd/git-workspace/list.go`. In `runList()`, resolve the effective worker count: use `--workers` value if provided > 0, else use `config.Preferences.StatusWorkers` if set > 0, else default to `8`. Add `Workers int` to `ListOptions`.
-- [ ] 2.4 Refactor `displayTable()` and `displayJSON()` in `list.go` to pre-fetch all statuses using `cache.FetchAll()` before the rendering loop. Replace the per-repo `statusCache.GetOrFetch()` calls in the column-width calculation loop (line ~369) and row rendering loop (line ~503) with lookups from the pre-fetched map. The JSON path (line ~719) should also use the pre-fetched map.
-- [ ] 2.5 Add tests for `FetchAll()` in `internal/git/cache_test.go`. Test with multiple repos, verify concurrency (results arrive for all repos), verify error handling (one bad repo doesn't stop others), and run with `-race` flag.
-- [ ] 2.6 Run `go test -race ./...` to verify no race conditions in the concurrent code.
+- [x] 2.1 Add a `FetchAll(repoPaths []string, workers int) map[string]*Status` method to `internal/git/cache.go`. This method uses a buffered channel (size = `workers`) as a semaphore, spawns goroutines for each repo that needs fetching (cache miss or stale), collects results into a `map[string]*Status` protected by the existing `sync.RWMutex`, and returns the complete map. Errors for individual repos are logged/skipped, not fatal.
+- [x] 2.2 Add a `Preferences` struct to `internal/config/config.go` with a `StatusWorkers int` field (`json:"status_workers,omitempty"`). Add a `Preferences *Preferences` field to the `Config` struct (`json:"preferences,omitempty"`). This is backward-compatible — existing configs without the field will unmarshal with `nil` preferences.
+- [x] 2.3 Add a `--workers` flag (type `int`, default `0` meaning "use config or default") to the `list` command in `cmd/git-workspace/list.go`. In `runList()`, resolve the effective worker count: use `--workers` value if provided > 0, else use `config.Preferences.StatusWorkers` if set > 0, else default to `8`. Add `Workers int` to `ListOptions`.
+- [x] 2.4 Refactor `displayTable()` and `displayJSON()` in `list.go` to pre-fetch all statuses using `cache.FetchAll()` before the rendering loop. Replace the per-repo `statusCache.GetOrFetch()` calls in the column-width calculation loop (line ~369) and row rendering loop (line ~503) with lookups from the pre-fetched map. The JSON path (line ~719) should also use the pre-fetched map.
+- [x] 2.5 Add tests for `FetchAll()` in `internal/git/cache_test.go`. Test with multiple repos, verify concurrency (results arrive for all repos), verify error handling (one bad repo doesn't stop others), and run with `-race` flag.
+- [x] 2.6 Run `go test -race ./...` to verify no race conditions in the concurrent code.
 
 ### [ ] 3.0 Cache Improvements and Background Prefetch
 

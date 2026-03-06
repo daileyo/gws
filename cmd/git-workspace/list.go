@@ -33,6 +33,7 @@ var (
 	flagName       string
 	outputFormat   string
 	verboseCount   int
+	flagWorkers    int
 )
 
 // listCmd is the Cobra subcommand for listing repositories.
@@ -100,6 +101,9 @@ func init() {
 	// Verbose count flag: -v = 1, -vv = 2
 	listCmd.Flags().CountVarP(&verboseCount, "verbose", "v", "Verbose output (-v stored data, -vv all columns)")
 
+	// Worker count for parallel status fetching
+	listCmd.Flags().IntVar(&flagWorkers, "workers", 0, "Number of concurrent workers for status fetching (default: 8)")
+
 	// Custom help function to clean up NoOptDefVal display artifacts.
 	// Cobra renders string flags with NoOptDefVal as: --flag string[="sentinel"]
 	// We strip the string[="..."] part for cleaner help output.
@@ -148,6 +152,9 @@ type ListOptions struct {
 	// Output
 	OutputFormat string
 	VerboseLevel int
+
+	// Concurrency
+	Workers int
 }
 
 // AnyColumnSelected returns true if any column display flag is set.
@@ -206,7 +213,21 @@ func parseDualPurposeFlags(cmd *cobra.Command) ListOptions {
 		opts.ShowRemote = true
 	}
 
+	// Workers flag
+	opts.Workers = flagWorkers
+
 	return opts
+}
+
+// resolveWorkers returns the effective worker count from flag, config, or default.
+func resolveWorkers(flagVal int, cfg *config.Config) int {
+	if flagVal > 0 {
+		return flagVal
+	}
+	if cfg.Preferences != nil && cfg.Preferences.StatusWorkers > 0 {
+		return cfg.Preferences.StatusWorkers
+	}
+	return 8
 }
 
 // runList handles the list logic with explicit options.
@@ -247,29 +268,43 @@ func runList(opts ListOptions) error {
 		return nil
 	}
 
-	// Load git status cache if status display is enabled
+	// Load git status cache and pre-fetch all statuses in parallel
 	var statusCache *git.Cache
+	var statusMap map[string]*git.Status
 	if opts.ShowStatus {
 		statusCache = git.NewCache(git.DefaultTTL)
 		cachePath, err := git.GetCachePath()
 		if err == nil {
-			_ = statusCache.Load(cachePath) // Ignore errors, cache might not exist yet
+			_ = statusCache.Load(cachePath)
+		}
+
+		// Collect repo paths and fetch all statuses concurrently
+		workers := resolveWorkers(opts.Workers, cfg)
+		repoPaths := make([]string, len(filtered))
+		for i, repo := range filtered {
+			repoPaths[i] = repo.Path
+		}
+		statusMap = statusCache.FetchAll(repoPaths, workers)
+
+		// Save cache after fetching
+		if cachePath, err := git.GetCachePath(); err == nil {
+			_ = statusCache.Save(cachePath)
 		}
 	}
 
 	// Display results based on format
 	switch opts.OutputFormat {
 	case "json":
-		return displayJSON(filtered, opts)
+		return displayJSON(filtered, statusMap, opts)
 	default:
-		displayTable(filtered, statusCache, opts)
+		displayTable(filtered, statusMap, opts)
 	}
 
 	return nil
 }
 
 // displayTable shows repositories in a formatted table with selective columns.
-func displayTable(repos []config.Repository, statusCache *git.Cache, opts ListOptions) {
+func displayTable(repos []config.Repository, statusMap map[string]*git.Status, opts ListOptions) {
 	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize(len(repos), "repository", "repositories"))
 
 	// If no columns selected and no verbose, show compact multi-column names
@@ -365,9 +400,8 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, opts ListOp
 		}
 
 		// Calculate status column width
-		if statusCache != nil {
-			status, _ := statusCache.GetOrFetch(repo.Path)
-			if status != nil {
+		if statusMap != nil {
+			if status := statusMap[repo.Path]; status != nil {
 				statusStr := formatStatusShort(status)
 				if len(statusStr) > maxStatusLen {
 					maxStatusLen = len(statusStr)
@@ -440,7 +474,7 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, opts ListOp
 	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxNameLen, "NAME"))
 	separatorParts = append(separatorParts, strings.Repeat("-", maxNameLen))
 
-	if statusCache != nil {
+	if statusMap != nil {
 		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxStatusLen, "STATUS"))
 		separatorParts = append(separatorParts, strings.Repeat("-", maxStatusLen))
 	}
@@ -499,10 +533,9 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, opts ListOp
 		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxNameLen, nameDisplay))
 
 		// Status column (optional)
-		if statusCache != nil {
-			status, _ := statusCache.GetOrFetch(repo.Path)
+		if statusMap != nil {
 			statusStr := "-"
-			if status != nil {
+			if status := statusMap[repo.Path]; status != nil {
 				statusStr = formatStatusShort(status)
 			}
 			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxStatusLen, statusStr))
@@ -556,13 +589,6 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, opts ListOp
 		fmt.Println(strings.Join(rowParts, "  "))
 	}
 
-	// Save cache if we fetched any statuses
-	if statusCache != nil {
-		cachePath, err := git.GetCachePath()
-		if err == nil {
-			_ = statusCache.Save(cachePath) // Ignore save errors
-		}
-	}
 }
 
 // getTerminalWidth returns the terminal width, or 80 if detection fails.
@@ -673,18 +699,8 @@ func formatStatusShort(status *git.Status) string {
 
 // displayJSON outputs repositories in JSON format respecting column selection.
 // Only fields for displayed columns are included; "name" is always present.
-func displayJSON(repos []config.Repository, opts ListOptions) error {
+func displayJSON(repos []config.Repository, statusMap map[string]*git.Status, opts ListOptions) error {
 	entries := make([]map[string]interface{}, len(repos))
-
-	// Load status cache if needed
-	var statusCache *git.Cache
-	if opts.ShowStatus {
-		statusCache = git.NewCache(git.DefaultTTL)
-		cachePath, err := git.GetCachePath()
-		if err == nil {
-			_ = statusCache.Load(cachePath)
-		}
-	}
 
 	for i, repo := range repos {
 		entry := map[string]interface{}{
@@ -715,9 +731,8 @@ func displayJSON(repos []config.Repository, opts ListOptions) error {
 		if opts.ShowPath {
 			entry["path"] = repo.Path
 		}
-		if opts.ShowStatus && statusCache != nil {
-			status, _ := statusCache.GetOrFetch(repo.Path)
-			if status != nil {
+		if opts.ShowStatus && statusMap != nil {
+			if status := statusMap[repo.Path]; status != nil {
 				entry["status"] = formatStatusShort(status)
 			} else {
 				entry["status"] = "-"
@@ -744,14 +759,6 @@ func displayJSON(repos []config.Repository, opts ListOptions) error {
 		}
 
 		entries[i] = entry
-	}
-
-	// Save status cache if used
-	if statusCache != nil {
-		cachePath, err := git.GetCachePath()
-		if err == nil {
-			_ = statusCache.Save(cachePath)
-		}
 	}
 
 	data, err := json.MarshalIndent(entries, "", "  ")

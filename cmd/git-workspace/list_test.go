@@ -479,7 +479,7 @@ func TestDisplayJSON_ColumnSelection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			output := captureStdout(func() {
-				_ = displayJSON(repos, tt.opts)
+				_ = displayJSON(repos, nil, tt.opts)
 			})
 
 			var result []map[string]interface{}
