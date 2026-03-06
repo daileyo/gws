@@ -312,7 +312,11 @@ func runList(opts ListOptions) error {
 			}
 		}
 		if len(uncached) > 0 {
-			freshResults := statusCache.FetchAll(uncached, workers)
+			// Show progress spinner for foreground fetching
+			progress := git.NewProgress(len(uncached))
+			progress.Start()
+			freshResults := statusCache.FetchAll(uncached, workers, progress)
+			progress.Stop()
 			for p, s := range freshResults {
 				statusMap[p] = s
 			}
