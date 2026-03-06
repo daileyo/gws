@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.14.0](https://github.com/daileyo/gws/compare/v2.13.0...v2.14.0) (2026-03-06)
+
+
+### Features
+
+* add background prefetch and stale cache support ([5547ccd](https://github.com/daileyo/gws/commit/5547ccdf014395b6200a1003242cb1501cc0de4f))
+* add parallel status fetching with configurable worker pool ([5e4fe6a](https://github.com/daileyo/gws/commit/5e4fe6a78b363eb289c7d3ea8fc8c32b86aed16e))
+* add progress spinner with count during status fetching ([dbc26ae](https://github.com/daileyo/gws/commit/dbc26aeeb1b3e5ed946a6cf8b130b979d36c3c78))
+
+
+### Performance Improvements
+
+* switch status backend from go-git to git CLI ([0e80cab](https://github.com/daileyo/gws/commit/0e80cab4388a447ea0b17c92b237bd61d042c6ec))
+
 ## [2.13.0](https://github.com/daileyo/gws/compare/v2.12.0...v2.13.0) (2026-03-06)
 
 
