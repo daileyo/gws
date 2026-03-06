@@ -36,19 +36,21 @@ var rootCmd = &cobra.Command{
 and navigating git repositories on your local system. It provides an intelligent
 repository index and navigation layer with powerful search and filtering capabilities.
 
+Running gws with no arguments lists all repositories in a compact multi-column view.
+
 Commands:
-  gws list                              # List all repositories
-  gws list --type github                # List only GitHub repositories
-  gws list -t personal -s               # List repos tagged "personal" with git status
-  gws init                              # Initialize workspace in current directory
-  gws add                               # Add current directory to workspace
-  gws add ~/elsewhere/my-repo           # Add a specific repo to workspace
-  gws refresh                           # Refresh repository metadata
-  gws print-workspace                   # Print workspace root path
+  gws                                    # List repos (default, same as gws list)
+  gws list                               # List all repositories
+  gws list -v                            # Show type, visibility, tags, path
+  gws list -vv                           # Show all columns including status, user, remote
+  gws list -y=github                     # Filter by GitHub, show type column
+  gws init                               # Initialize workspace in current directory
+  gws add                                # Add current directory to workspace
+  gws refresh                            # Refresh repository metadata
 
 Navigation:
-  gws my-repo                           # Navigate to repository by name
-  gws "api-*"                           # Wildcard match with interactive selection
+  gws my-repo                            # Navigate to repository by name
+  gws "api-*"                            # Wildcard match with interactive selection
 
 Shell integration (add to ~/.bashrc or ~/.zshrc):
 
@@ -100,18 +102,8 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return runNavigate(args[0], flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
 		}
 
-		// Default behavior: display workspace information
-		cfg, err := config.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load workspace configuration: %w", err)
-		}
-
-		fmt.Printf("Workspace: %s\n", cfg.Workspace)
-		fmt.Printf("Repositories: %d\n", len(cfg.Repositories))
-		fmt.Println("")
-		fmt.Println("Use 'gws --help' to see available commands")
-
-		return nil
+		// Default behavior: run list with default options (multi-column names)
+		return runList(ListOptions{OutputFormat: "table"})
 	},
 }
 
