@@ -144,6 +144,61 @@ func (c *Cache) Load(cachePath string) error {
 	return nil
 }
 
+// FetchAll fetches status for all given repo paths concurrently using a worker pool.
+// It returns cached (fresh) entries without re-fetching. Errors for individual repos
+// are silently skipped. The results map contains all successfully resolved statuses.
+func (c *Cache) FetchAll(repoPaths []string, workers int) map[string]*Status {
+	if workers <= 0 {
+		workers = 8
+	}
+
+	results := make(map[string]*Status, len(repoPaths))
+	var mu sync.Mutex
+
+	// Separate cached from needs-fetch
+	var toFetch []string
+	for _, p := range repoPaths {
+		if s := c.Get(p); s != nil {
+			mu.Lock()
+			results[p] = s
+			mu.Unlock()
+		} else {
+			toFetch = append(toFetch, p)
+		}
+	}
+
+	if len(toFetch) == 0 {
+		return results
+	}
+
+	// Worker pool using buffered channel as semaphore
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
+
+	for _, repoPath := range toFetch {
+		wg.Add(1)
+		go func(p string) {
+			defer wg.Done()
+			sem <- struct{}{}        // acquire
+			defer func() { <-sem }() // release
+
+			status, err := GetStatus(p)
+			if err != nil {
+				return // skip this repo
+			}
+
+			c.Set(p, status)
+
+			mu.Lock()
+			results[p] = status
+			mu.Unlock()
+		}(repoPath)
+	}
+
+	wg.Wait()
+	return results
+}
+
 // GetCachePath returns the path to the cache file
 func GetCachePath() (string, error) {
 	home, err := os.UserHomeDir()
