@@ -59,7 +59,7 @@ Add a goroutine-based worker pool to fetch repository statuses concurrently. Int
 - [x] 2.5 Add tests for `FetchAll()` in `internal/git/cache_test.go`. Test with multiple repos, verify concurrency (results arrive for all repos), verify error handling (one bad repo doesn't stop others), and run with `-race` flag.
 - [x] 2.6 Run `go test -race ./...` to verify no race conditions in the concurrent code.
 
-### [ ] 3.0 Cache Improvements and Background Prefetch
+### [x] 3.0 Cache Improvements and Background Prefetch
 
 Enhance the cache to return stale entries immediately for display while refreshing them in background goroutines. After the user sees results, the cache is updated in the background using the same worker pool concurrency limits. The updated cache is saved to disk once background refresh completes. This makes repeated `gws list` calls near-instant even after TTL expiry.
 
@@ -71,12 +71,12 @@ Enhance the cache to return stale entries immediately for display while refreshi
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Add a `GetStale(repoPath string) *Status` method to `internal/git/cache.go` that returns a cached entry even if it's past TTL (returns `nil` only if no entry exists at all). This is used to show stale data immediately while background refresh happens.
-- [ ] 3.2 Modify `FetchAll()` to accept a `staleOnly bool` parameter. When `staleOnly` is true, it only fetches repos whose cache entries are stale (past TTL) rather than all repos. This is used for background prefetch.
-- [ ] 3.3 Add a `PrefetchInBackground(repoPaths []string, workers int, cachePath string)` method to `internal/git/cache.go`. This spawns a goroutine that calls `FetchAll(repoPaths, workers)` for stale entries only, then saves the cache to disk. It is fire-and-forget from the caller's perspective.
-- [ ] 3.4 Update `displayTable()` and `displayJSON()` in `list.go` to use a two-phase approach: (1) build the display map using `GetStale()` for any repos not in the fresh cache, so rendering can proceed immediately; (2) after rendering, call `PrefetchInBackground()` for any stale entries. Use `sync.WaitGroup` or similar to ensure the background goroutine has a chance to finish before the process exits (or accept that it may be cut short on fast exits).
-- [ ] 3.5 Add tests for `GetStale()` and `PrefetchInBackground()` in `internal/git/cache_test.go`. Verify that `GetStale()` returns expired entries, and that `PrefetchInBackground()` updates the cache asynchronously.
-- [ ] 3.6 Run `go test -race ./internal/git/...` to verify cache concurrency safety.
+- [x] 3.1 Add a `GetStale(repoPath string) *Status` method to `internal/git/cache.go` that returns a cached entry even if it's past TTL (returns `nil` only if no entry exists at all). This is used to show stale data immediately while background refresh happens.
+- [x] 3.2 Add `FetchAllStale()` method that only fetches repos whose cache entries are stale (past TTL). This is used for background prefetch.
+- [x] 3.3 Add a `PrefetchInBackground(repoPaths []string, workers int, cachePath string)` method to `internal/git/cache.go`. This spawns a goroutine that calls `FetchAllStale()`, then saves the cache to disk. Returns a channel for optional waiting.
+- [x] 3.4 Update `runList()` in `list.go` to use a two-phase approach: (1) build the display map from fresh cache + stale fallback, fetch only uncached repos; (2) after rendering, `PrefetchInBackground()` refreshes stale entries with `defer <-done` to wait before exit.
+- [x] 3.5 Add tests for `GetStale()` and `PrefetchInBackground()` in `status_test.go`. Verify that `GetStale()` returns expired entries, and that `PrefetchInBackground()` updates the cache asynchronously.
+- [x] 3.6 Run `go test -race ./...` to verify cache concurrency safety.
 
 ### [ ] 4.0 Progress Feedback (Spinner with Count)
 

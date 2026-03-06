@@ -271,24 +271,62 @@ func runList(opts ListOptions) error {
 	// Load git status cache and pre-fetch all statuses in parallel
 	var statusCache *git.Cache
 	var statusMap map[string]*git.Status
+	var repoPaths []string
+	var workers int
+	var cachePath string
 	if opts.ShowStatus {
 		statusCache = git.NewCache(git.DefaultTTL)
-		cachePath, err := git.GetCachePath()
-		if err == nil {
+		if cp, err := git.GetCachePath(); err == nil {
+			cachePath = cp
 			_ = statusCache.Load(cachePath)
 		}
 
-		// Collect repo paths and fetch all statuses concurrently
-		workers := resolveWorkers(opts.Workers, cfg)
-		repoPaths := make([]string, len(filtered))
+		// Collect repo paths
+		workers = resolveWorkers(opts.Workers, cfg)
+		repoPaths = make([]string, len(filtered))
 		for i, repo := range filtered {
 			repoPaths[i] = repo.Path
 		}
-		statusMap = statusCache.FetchAll(repoPaths, workers)
 
-		// Save cache after fetching
-		if cachePath, err := git.GetCachePath(); err == nil {
+		// Two-phase approach:
+		// Phase 1: Build display map from fresh cache + stale fallback
+		statusMap = make(map[string]*git.Status, len(repoPaths))
+		needsFetch := false
+		for _, p := range repoPaths {
+			if s := statusCache.Get(p); s != nil {
+				statusMap[p] = s
+			} else if s := statusCache.GetStale(p); s != nil {
+				statusMap[p] = s
+				needsFetch = true
+			} else {
+				needsFetch = true
+			}
+		}
+
+		// If any repos need fresh data and we have no stale data for them,
+		// we must fetch now to have something to display
+		var uncached []string
+		for _, p := range repoPaths {
+			if statusMap[p] == nil {
+				uncached = append(uncached, p)
+			}
+		}
+		if len(uncached) > 0 {
+			freshResults := statusCache.FetchAll(uncached, workers)
+			for p, s := range freshResults {
+				statusMap[p] = s
+			}
+		}
+
+		// Save cache after foreground fetching
+		if cachePath != "" {
 			_ = statusCache.Save(cachePath)
+		}
+
+		// Phase 2: Background prefetch for stale entries
+		if needsFetch {
+			done := statusCache.PrefetchInBackground(repoPaths, workers, cachePath)
+			defer func() { <-done }() // wait for background prefetch before exit
 		}
 	}
 

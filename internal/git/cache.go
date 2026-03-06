@@ -51,6 +51,16 @@ func (c *Cache) Get(repoPath string) *Status {
 	return status
 }
 
+// GetStale retrieves cached status for a repository even if it's past TTL.
+// Returns nil only if no entry exists at all. Used to show stale data immediately
+// while background refresh happens.
+func (c *Cache) GetStale(repoPath string) *Status {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.data[repoPath]
+}
+
 // Set stores status for a repository
 func (c *Cache) Set(repoPath string, status *Status) {
 	c.mu.Lock()
@@ -197,6 +207,64 @@ func (c *Cache) FetchAll(repoPaths []string, workers int) map[string]*Status {
 
 	wg.Wait()
 	return results
+}
+
+// FetchAllStale fetches status only for repos whose cache entries are stale (past TTL).
+// Fresh entries and entries with no prior cache are skipped. Used for background prefetch.
+func (c *Cache) FetchAllStale(repoPaths []string, workers int) {
+	if workers <= 0 {
+		workers = 8
+	}
+
+	// Find only stale entries that need refreshing
+	var toFetch []string
+	for _, p := range repoPaths {
+		if s := c.Get(p); s == nil {
+			// Not fresh — check if there's a stale entry to refresh
+			if c.GetStale(p) != nil {
+				toFetch = append(toFetch, p)
+			}
+		}
+	}
+
+	if len(toFetch) == 0 {
+		return
+	}
+
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
+
+	for _, repoPath := range toFetch {
+		wg.Add(1)
+		go func(p string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			status, err := GetStatus(p)
+			if err != nil {
+				return
+			}
+			c.Set(p, status)
+		}(repoPath)
+	}
+
+	wg.Wait()
+}
+
+// PrefetchInBackground spawns a goroutine that refreshes stale cache entries
+// and saves the updated cache to disk. Returns a channel that is closed when
+// the prefetch completes (callers can optionally wait on it).
+func (c *Cache) PrefetchInBackground(repoPaths []string, workers int, cachePath string) <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		c.FetchAllStale(repoPaths, workers)
+		if cachePath != "" {
+			_ = c.Save(cachePath)
+		}
+	}()
+	return done
 }
 
 // GetCachePath returns the path to the cache file
