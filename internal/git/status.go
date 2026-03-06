@@ -2,11 +2,10 @@ package git
 
 import (
 	"fmt"
+	"os/exec"
+	"strconv"
+	"strings"
 	"time"
-
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // Status represents the git status of a repository
@@ -19,10 +18,10 @@ type Status struct {
 	LastChecked time.Time // When status was last checked
 }
 
-// GetStatus reads the current git status of a repository
+// GetStatus reads the current git status of a repository using the git CLI
 func GetStatus(repoPath string) (*Status, error) {
-	// Open the repository
-	repo, err := git.PlainOpen(repoPath)
+	// Verify this is a git repository
+	_, err := gitCommand(repoPath, "rev-parse", "--git-dir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open repository: %w", err)
 	}
@@ -31,8 +30,8 @@ func GetStatus(repoPath string) (*Status, error) {
 		LastChecked: time.Now(),
 	}
 
-	// Get current branch
-	head, err := repo.Head()
+	// Get current branch name
+	branch, err := gitCommand(repoPath, "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		// Repository might not have any commits yet
 		status.Branch = ""
@@ -40,31 +39,24 @@ func GetStatus(repoPath string) (*Status, error) {
 		return status, nil
 	}
 
-	// Extract branch name
-	if head.Name().IsBranch() {
-		status.Branch = head.Name().Short()
-	} else {
+	if branch == "HEAD" {
 		status.Branch = "HEAD detached"
+	} else {
+		status.Branch = branch
 	}
 
 	// Get working tree status
-	worktree, err := repo.Worktree()
+	porcelain, err := gitCommand(repoPath, "status", "--porcelain")
 	if err != nil {
-		return status, nil // Return what we have
+		return status, nil
 	}
 
-	wStatus, err := worktree.Status()
-	if err != nil {
-		return status, nil // Return what we have
-	}
+	status.IsClean = porcelain == ""
+	status.HasChanges = porcelain != ""
 
-	// Check if there are uncommitted changes
-	status.IsClean = wStatus.IsClean()
-	status.HasChanges = !wStatus.IsClean()
-
-	// Get ahead/behind info
-	ahead, behind, err := getAheadBehind(repo, head)
-	if err == nil {
+	// Get ahead/behind info (only for branches with an upstream)
+	if status.Branch != "HEAD detached" {
+		ahead, behind := getAheadBehind(repoPath, status.Branch)
 		status.Ahead = ahead
 		status.Behind = behind
 	}
@@ -73,86 +65,41 @@ func GetStatus(repoPath string) (*Status, error) {
 }
 
 // getAheadBehind calculates commits ahead and behind the remote branch
-func getAheadBehind(repo *git.Repository, head *plumbing.Reference) (ahead int, behind int, error error) {
-	// Get the remote reference for the current branch
-	branchName := head.Name().Short()
-
-	// Try to get the remote tracking branch
-	remoteBranch := plumbing.NewRemoteReferenceName("origin", branchName)
-	remoteRef, err := repo.Reference(remoteBranch, true)
+func getAheadBehind(repoPath, branch string) (ahead int, behind int) {
+	// Use rev-list to count commits ahead and behind in one call
+	output, err := gitCommand(repoPath, "rev-list", "--count", "--left-right", branch+"...origin/"+branch)
 	if err != nil {
-		// No remote tracking branch
-		return 0, 0, nil
+		// No remote tracking branch or other error
+		return 0, 0
 	}
 
-	// Get commit iterators
-	headCommit, err := repo.CommitObject(head.Hash())
-	if err != nil {
-		return 0, 0, err
+	parts := strings.Fields(output)
+	if len(parts) != 2 {
+		return 0, 0
 	}
 
-	remoteCommit, err := repo.CommitObject(remoteRef.Hash())
+	a, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return 0, 0, err
+		return 0, 0
 	}
 
-	// Count commits ahead (local commits not in remote)
-	ahead, err = countCommitsAhead(repo, headCommit.Hash, remoteCommit.Hash)
+	b, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return 0, 0, err
+		return 0, 0
 	}
 
-	// Count commits behind (remote commits not in local)
-	behind, err = countCommitsAhead(repo, remoteCommit.Hash, headCommit.Hash)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return ahead, behind, nil
+	return a, b
 }
 
-// countCommitsAhead counts commits reachable from 'from' but not from 'to'
-func countCommitsAhead(repo *git.Repository, from, to plumbing.Hash) (int, error) {
-	if from == to {
-		return 0, nil
-	}
-
-	// Get all commits reachable from 'from'
-	fromIter, err := repo.Log(&git.LogOptions{From: from})
+// gitCommand runs a git command in the given directory and returns trimmed stdout
+func gitCommand(repoPath string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
 	if err != nil {
-		return 0, err
+		return "", fmt.Errorf("git %s failed: %w", strings.Join(args, " "), err)
 	}
-	defer fromIter.Close()
-
-	// Get all commits reachable from 'to'
-	toCommits := make(map[plumbing.Hash]bool)
-	toIter, err := repo.Log(&git.LogOptions{From: to})
-	if err != nil {
-		return 0, err
-	}
-	defer toIter.Close()
-
-	err = toIter.ForEach(func(c *object.Commit) error {
-		toCommits[c.Hash] = true
-		return nil
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	// Count commits in 'from' that are not in 'to'
-	count := 0
-	err = fromIter.ForEach(func(c *object.Commit) error {
-		if !toCommits[c.Hash] {
-			count++
-		}
-		return nil
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return count, nil
+	return strings.TrimSpace(string(out)), nil
 }
 
 // IsStale checks if the status is older than the given duration
