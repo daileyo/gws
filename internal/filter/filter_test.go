@@ -499,6 +499,34 @@ func TestByPath_Wildcard(t *testing.T) {
 	}
 }
 
+func TestByVisibility(t *testing.T) {
+	tests := []struct {
+		name       string
+		visibility string
+		expected   int
+	}{
+		{"Filter by private", "private", 1},      // work-api
+		{"Filter by unknown", "unknown", 4},       // my-project, client-site, internal-tool, local-repo
+		{"Filter by public", "public", 0},         // none in test data
+		{"Case insensitive", "PRIVATE", 1},        // work-api
+		{"Non-existent value", "internal", 0},     // no match
+		{"Wildcard priv*", "priv*", 1},            // work-api
+		{"Wildcard *known", "*known", 4},          // unknown matches
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ByVisibility(testRepos, tt.visibility)
+			if len(result) != tt.expected {
+				t.Errorf("ByVisibility(%q) returned %d repos, expected %d", tt.visibility, len(result), tt.expected)
+				for _, r := range result {
+					t.Logf("  - %s (visibility: %s)", r.Name, r.Visibility)
+				}
+			}
+		})
+	}
+}
+
 func TestMatchesCriteria(t *testing.T) {
 	repo := config.Repository{
 		Name:       "test-repo",

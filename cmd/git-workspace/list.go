@@ -12,15 +12,24 @@ import (
 	"github.com/daileyo/gws/internal/git"
 )
 
-// Filter flags scoped to the list subcommand.
+// showColumnSentinel is the NoOptDefVal used to distinguish "flag present
+// without a value" (show column only) from "flag not present at all".
+const showColumnSentinel = "\x00show"
+
+// Dual-purpose flag variables scoped to the list subcommand.
+// When the value equals showColumnSentinel the column is shown but no filter
+// is applied. Any other non-empty value means filter + show.
 var (
-	filterType   string
-	filterName   string
-	filterPath   string
-	outputFormat string
-	showStatus   bool
-	showUser     bool
-	showRemote   bool
+	flagType       string
+	flagVisibility string
+	flagTag        string
+	flagPath       string
+	flagStatus     string
+	flagUser       string
+	flagRemote     string
+	flagName       string
+	outputFormat   string
+	verboseCount   int
 )
 
 // listCmd is the Cobra subcommand for listing repositories.
@@ -29,52 +38,149 @@ var listCmd = &cobra.Command{
 	Short: "List all tracked repositories",
 	Long: `List all repositories tracked by gws with optional filtering.
 
+By default, only repository names are shown in a compact multi-column layout.
+Use flags to add columns or filter results. A flag without a value shows the
+column; a flag with a value filters by that value AND shows the column.
+
 Examples:
-  gws list                          # List all repositories
-  gws list --type github            # List only GitHub repositories
-  gws list -t personal -s           # List repos tagged "personal" with git status
-  gws list -n "api-*" -o json       # Filter by name with wildcard, output as JSON
-  gws list -su                      # List with status and user columns
-  gws list -r                       # List with remote URL column`,
+  gws list                          # Multi-column repo names
+  gws list -v                       # Table with type, visibility, tags, path
+  gws list -vv                      # Table with all columns (status, user, remote, etc.)
+  gws list -yVtp                    # Show type, visibility, tags, path columns
+  gws list -y=github                # Filter by GitHub, show type column
+  gws list -y=github -V=private     # Filter by GitHub + private
+  gws list -y=github -tp            # Filter by GitHub, show type, tags, path
+  gws list -n "api-*"               # Filter by name pattern
+  gws list -su                      # Show status and user columns
+  gws list -r                       # Show remote URL column
+  gws list -o json                  # Output as JSON
+
+Note: dual-purpose flags use = for values (e.g., -y=github, --type=github).
+Without =, the flag shows the column without filtering.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runList(ListOptions{
-			FilterType:   filterType,
-			FilterTags:   filterTags,
-			FilterName:   filterName,
-			FilterPath:   filterPath,
-			OutputFormat: outputFormat,
-			ShowStatus:   showStatus,
-			ShowUser:     showUser,
-			ShowRemote:   showRemote,
-		})
+		opts := parseDualPurposeFlags(cmd)
+		return runList(opts)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
 
-	// Filter flags scoped to listCmd only
-	listCmd.Flags().StringVarP(&filterType, "type", "y", "", "Filter by repository type (github, gitlab, ado, bitbucket)")
-	listCmd.Flags().StringSliceVarP(&filterTags, "tag", "t", []string{}, "Filter by custom tag(s) - can be specified multiple times for AND logic")
-	listCmd.Flags().StringVarP(&filterName, "name", "n", "", "Filter by repository name (partial match, supports wildcards)")
-	listCmd.Flags().StringVarP(&filterPath, "path", "p", "", "Filter by repository path (partial match, supports wildcards)")
+	// Dual-purpose flags: NoOptDefVal makes them work as optional-value flags.
+	// -y (no value) = show TYPE column; -y github = filter by github + show TYPE
+	listCmd.Flags().StringVarP(&flagType, "type", "y", "", "Show type column, or filter by type value")
+	listCmd.Flags().Lookup("type").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagVisibility, "visibility", "V", "", "Show visibility column, or filter by visibility value")
+	listCmd.Flags().Lookup("visibility").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagTag, "tag", "t", "", "Show tags column, or filter by tag value (repeatable for AND logic)")
+	listCmd.Flags().Lookup("tag").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagPath, "path", "p", "", "Show path column, or filter by path pattern")
+	listCmd.Flags().Lookup("path").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagStatus, "status", "s", "", "Show git status column, or filter by status pattern")
+	listCmd.Flags().Lookup("status").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagUser, "show-user", "u", "", "Show user/email/sign columns, or filter by user name")
+	listCmd.Flags().Lookup("show-user").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagRemote, "remote", "r", "", "Show remote URL column, or filter by remote URL pattern")
+	listCmd.Flags().Lookup("remote").NoOptDefVal = showColumnSentinel
+
+	// Filter-only flags
+	listCmd.Flags().StringVarP(&flagName, "name", "n", "", "Filter by repository name (partial match, supports wildcards)")
 	listCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
-	listCmd.Flags().BoolVarP(&showStatus, "status", "s", false, "Show git status (branch, clean/dirty, ahead/behind)")
-	listCmd.Flags().BoolVarP(&showUser, "show-user", "u", false, "Show git user info (USER, EMAIL, SIGN columns)")
-	listCmd.Flags().BoolVarP(&showRemote, "remote", "r", false, "Show remote URL (origin) for each repository")
+
+	// Verbose count flag: -v = 1, -vv = 2
+	listCmd.Flags().CountVarP(&verboseCount, "verbose", "v", "Verbose output (-v stored data, -vv all columns)")
 }
 
 // ListOptions holds all parameters for the list operation.
 type ListOptions struct {
-	FilterType   string
-	FilterTags   []string
-	FilterName   string
-	FilterPath   string
+	// Filter values (empty = no filter)
+	FilterType       string
+	FilterVisibility string
+	FilterTags       []string
+	FilterName       string
+	FilterPath       string
+	FilterStatus     string
+	FilterUser       string
+	FilterRemote     string
+
+	// Column display toggles
+	ShowType       bool
+	ShowVisibility bool
+	ShowTags       bool
+	ShowPath       bool
+	ShowStatus     bool
+	ShowUser       bool
+	ShowRemote     bool
+
+	// Output
 	OutputFormat string
-	ShowStatus   bool
-	ShowUser     bool
-	ShowRemote   bool
+	VerboseLevel int
+}
+
+// AnyColumnSelected returns true if any column display flag is set.
+func (o ListOptions) AnyColumnSelected() bool {
+	return o.ShowType || o.ShowVisibility || o.ShowTags || o.ShowPath ||
+		o.ShowStatus || o.ShowUser || o.ShowRemote
+}
+
+// parseDualPurposeFlags reads cobra flag state and builds ListOptions.
+func parseDualPurposeFlags(cmd *cobra.Command) ListOptions {
+	opts := ListOptions{
+		OutputFormat: outputFormat,
+		VerboseLevel: verboseCount,
+	}
+
+	// Helper: for a dual-purpose flag, if Changed and value is sentinel → show only.
+	// If Changed and value is not sentinel → filter + show.
+	parseDual := func(flagName string, value string) (filterVal string, show bool) {
+		if !cmd.Flags().Changed(flagName) {
+			return "", false
+		}
+		if value == showColumnSentinel {
+			return "", true
+		}
+		return value, true
+	}
+
+	opts.FilterType, opts.ShowType = parseDual("type", flagType)
+	opts.FilterVisibility, opts.ShowVisibility = parseDual("visibility", flagVisibility)
+	opts.FilterPath, opts.ShowPath = parseDual("path", flagPath)
+	opts.FilterStatus, opts.ShowStatus = parseDual("status", flagStatus)
+	opts.FilterUser, opts.ShowUser = parseDual("show-user", flagUser)
+	opts.FilterRemote, opts.ShowRemote = parseDual("remote", flagRemote)
+
+	// Tag: dual-purpose. Multiple -t values collected via repeated flag.
+	if cmd.Flags().Changed("tag") {
+		opts.ShowTags = true
+		if flagTag != showColumnSentinel && flagTag != "" {
+			opts.FilterTags = []string{flagTag}
+		}
+	}
+
+	// Name is filter-only
+	opts.FilterName = flagName
+
+	// Apply verbose overrides
+	if opts.VerboseLevel >= 1 {
+		opts.ShowType = true
+		opts.ShowVisibility = true
+		opts.ShowTags = true
+		opts.ShowPath = true
+	}
+	if opts.VerboseLevel >= 2 {
+		opts.ShowStatus = true
+		opts.ShowUser = true
+		opts.ShowRemote = true
+	}
+
+	return opts
 }
 
 // runList handles the list logic with explicit options.
@@ -96,10 +202,11 @@ func runList(opts ListOptions) error {
 
 	// Build filter criteria
 	criteria := filter.Criteria{
-		Type: opts.FilterType,
-		Tags: opts.FilterTags,
-		Name: opts.FilterName,
-		Path: opts.FilterPath,
+		Type:       opts.FilterType,
+		Visibility: opts.FilterVisibility,
+		Tags:       opts.FilterTags,
+		Name:       opts.FilterName,
+		Path:       opts.FilterPath,
 	}
 
 	// Apply filters
@@ -127,17 +234,25 @@ func runList(opts ListOptions) error {
 	// Display results based on format
 	switch opts.OutputFormat {
 	case "json":
-		return displayJSON(filtered, opts.ShowRemote)
+		return displayJSON(filtered, opts)
 	default:
-		displayTable(filtered, statusCache, opts.ShowUser, opts.ShowRemote)
+		displayTable(filtered, statusCache, opts)
 	}
 
 	return nil
 }
 
-// displayTable shows repositories in a formatted table
-func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bool, showRemote bool) {
+// displayTable shows repositories in a formatted table with selective columns.
+func displayTable(repos []config.Repository, statusCache *git.Cache, opts ListOptions) {
 	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize(len(repos), "repository", "repositories"))
+
+	// If no columns selected and no verbose, show just names (placeholder for multi-column in Task 2.0)
+	if !opts.AnyColumnSelected() && opts.VerboseLevel == 0 {
+		for _, repo := range repos {
+			fmt.Println(repo.Name)
+		}
+		return
+	}
 
 	// Calculate column widths
 	maxNameLen := 4   // "NAME"
@@ -161,7 +276,7 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 
 	// Pre-compute remote display strings
 	remoteDisplayMap := make(map[string]string)
-	if showRemote {
+	if opts.ShowRemote {
 		for _, repo := range repos {
 			remoteInfo, err := git.GetRemoteInfo(repo.Path)
 			if err != nil {
@@ -184,7 +299,7 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 
 	// Get global default user for marking repos using the default identity
 	var globalDefaultUser *git.GlobalUserConfig
-	if showUser {
+	if opts.ShowUser {
 		globalDefaultUser, _ = git.GetGlobalDefaultUser()
 	}
 
@@ -192,22 +307,30 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 		if len(repo.Name) > maxNameLen {
 			maxNameLen = len(repo.Name)
 		}
-		if len(repo.Type) > maxTypeLen {
-			maxTypeLen = len(repo.Type)
+		if opts.ShowType {
+			if len(repo.Type) > maxTypeLen {
+				maxTypeLen = len(repo.Type)
+			}
 		}
-		if len(repo.Visibility) > maxVisLen {
-			maxVisLen = len(repo.Visibility)
+		if opts.ShowVisibility {
+			if len(repo.Visibility) > maxVisLen {
+				maxVisLen = len(repo.Visibility)
+			}
 		}
-		tags := strings.Join(repo.Tags, ", ")
-		if len(tags) > maxTagsLen {
-			maxTagsLen = len(tags)
+		if opts.ShowTags {
+			tags := strings.Join(repo.Tags, ", ")
+			if len(tags) > maxTagsLen {
+				maxTagsLen = len(tags)
+			}
 		}
 
 		// Calculate path and remote column widths
-		if showRemote {
+		if opts.ShowPath || opts.ShowRemote {
 			if len(repo.Path) > maxPathLen {
 				maxPathLen = len(repo.Path)
 			}
+		}
+		if opts.ShowRemote {
 			if rd := remoteDisplayMap[repo.Path]; len(rd) > maxRemoteLen {
 				maxRemoteLen = len(rd)
 			}
@@ -225,7 +348,7 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 		}
 
 		// Calculate user column widths and pre-compute display values
-		if showUser {
+		if opts.ShowUser {
 			info := repoUserInfo{}
 
 			// Start with stored config values
@@ -294,7 +417,7 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 		separatorParts = append(separatorParts, strings.Repeat("-", maxStatusLen))
 	}
 
-	if showUser {
+	if opts.ShowUser {
 		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxUserLen, "USER"))
 		separatorParts = append(separatorParts, strings.Repeat("-", maxUserLen))
 		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxEmailLen, "EMAIL"))
@@ -303,20 +426,32 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 		separatorParts = append(separatorParts, strings.Repeat("-", 4))
 	}
 
-	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxTypeLen, "TYPE"))
-	separatorParts = append(separatorParts, strings.Repeat("-", maxTypeLen))
-	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxVisLen, "VISIBILITY"))
-	separatorParts = append(separatorParts, strings.Repeat("-", maxVisLen))
-	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxTagsLen, "TAGS"))
-	separatorParts = append(separatorParts, strings.Repeat("-", maxTagsLen))
-	if showRemote {
+	if opts.ShowType {
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxTypeLen, "TYPE"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxTypeLen))
+	}
+
+	if opts.ShowVisibility {
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxVisLen, "VISIBILITY"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxVisLen))
+	}
+
+	if opts.ShowTags {
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxTagsLen, "TAGS"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxTagsLen))
+	}
+
+	if opts.ShowPath && opts.ShowRemote {
 		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxPathLen, "PATH"))
 		separatorParts = append(separatorParts, strings.Repeat("-", maxPathLen))
 		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxRemoteLen, "REMOTE"))
 		separatorParts = append(separatorParts, strings.Repeat("-", maxRemoteLen))
-	} else {
+	} else if opts.ShowPath {
 		headerParts = append(headerParts, "PATH")
 		separatorParts = append(separatorParts, strings.Repeat("-", 4))
+	} else if opts.ShowRemote {
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxRemoteLen, "REMOTE"))
+		separatorParts = append(separatorParts, strings.Repeat("-", maxRemoteLen))
 	}
 
 	fmt.Println(strings.Join(headerParts, "  "))
@@ -328,7 +463,7 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 
 		// Name column - add drift indicator if applicable
 		nameDisplay := repo.Name
-		if showUser {
+		if opts.ShowUser {
 			if info, ok := userInfoMap[repo.Path]; ok && info.hasDrift {
 				nameDisplay += " ⚠"
 			}
@@ -346,40 +481,48 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, showUser bo
 		}
 
 		// User columns (optional)
-		if showUser {
+		if opts.ShowUser {
 			info := userInfoMap[repo.Path]
 			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxUserLen, info.userDisplay))
 			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxEmailLen, info.email))
 			rowParts = append(rowParts, fmt.Sprintf("%-4s", info.signStr))
 		}
 
-		// Type column
-		typeStr := string(repo.Type)
-		if typeStr == "" {
-			typeStr = "unknown"
+		// Type column (optional)
+		if opts.ShowType {
+			typeStr := string(repo.Type)
+			if typeStr == "" {
+				typeStr = "unknown"
+			}
+			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxTypeLen, typeStr))
 		}
-		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxTypeLen, typeStr))
 
-		// Visibility column
-		visStr := string(repo.Visibility)
-		if visStr == "" {
-			visStr = "unknown"
+		// Visibility column (optional)
+		if opts.ShowVisibility {
+			visStr := string(repo.Visibility)
+			if visStr == "" {
+				visStr = "unknown"
+			}
+			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxVisLen, visStr))
 		}
-		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxVisLen, visStr))
 
-		// Tags column
-		tags := strings.Join(repo.Tags, ", ")
-		if tags == "" {
-			tags = "-"
+		// Tags column (optional)
+		if opts.ShowTags {
+			tags := strings.Join(repo.Tags, ", ")
+			if tags == "" {
+				tags = "-"
+			}
+			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxTagsLen, tags))
 		}
-		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxTagsLen, tags))
 
-		// Path column (padded when remote column follows)
-		if showRemote {
+		// Path column (optional, padded when remote column follows)
+		if opts.ShowPath && opts.ShowRemote {
 			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxPathLen, repo.Path))
 			rowParts = append(rowParts, remoteDisplayMap[repo.Path])
-		} else {
+		} else if opts.ShowPath {
 			rowParts = append(rowParts, repo.Path)
+		} else if opts.ShowRemote {
+			rowParts = append(rowParts, remoteDisplayMap[repo.Path])
 		}
 
 		fmt.Println(strings.Join(rowParts, "  "))
@@ -427,9 +570,9 @@ type repoJSONWithRemote struct {
 	HasMultipleRemotes bool `json:"has_multiple_remotes"`
 }
 
-// displayJSON outputs repositories in JSON format
-func displayJSON(repos []config.Repository, showRemote bool) error {
-	if !showRemote {
+// displayJSON outputs repositories in JSON format respecting column selection.
+func displayJSON(repos []config.Repository, opts ListOptions) error {
+	if !opts.ShowRemote {
 		data, err := json.MarshalIndent(repos, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal JSON: %w", err)

@@ -23,9 +23,8 @@ var (
 	flagQuiet    bool
 )
 
-// filterTags is shared between the list subcommand (list.go --tag/-t) and
-// the deprecated root --tag flag (deprecated.go) for backward compat with
-// --list and deprecated user operations (--user -u --tag).
+// filterTags is used by the deprecated root --tag flag (deprecated.go)
+// for backward compat with --list and deprecated user operations (--user -u --tag).
 var filterTags []string
 
 var rootCmd = &cobra.Command{
