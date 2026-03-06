@@ -1,9 +1,186 @@
 package git
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 )
+
+// createTestRepo creates a temporary git repo and returns its path.
+// The caller is responsible for cleanup via t.TempDir().
+func createTestRepo(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=Test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	run("init", "-b", "main")
+	return dir
+}
+
+func TestGetStatus_EmptyRepo(t *testing.T) {
+	dir := createTestRepo(t)
+
+	status, err := GetStatus(dir)
+	if err != nil {
+		t.Fatalf("GetStatus() error = %v", err)
+	}
+
+	if status.Branch != "" {
+		t.Errorf("expected empty branch, got %q", status.Branch)
+	}
+	if !status.IsClean {
+		t.Error("expected empty repo to be clean")
+	}
+}
+
+func TestGetStatus_CleanBranch(t *testing.T) {
+	dir := createTestRepo(t)
+
+	// Create a commit
+	f := filepath.Join(dir, "file.txt")
+	if err := os.WriteFile(f, []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("git", "add", ".")
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git add failed: %v\n%s", err, out)
+	}
+	cmd = exec.Command("git", "commit", "-m", "initial")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=Test",
+		"GIT_AUTHOR_EMAIL=test@test.com",
+		"GIT_COMMITTER_NAME=Test",
+		"GIT_COMMITTER_EMAIL=test@test.com",
+	)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git commit failed: %v\n%s", err, out)
+	}
+
+	status, err := GetStatus(dir)
+	if err != nil {
+		t.Fatalf("GetStatus() error = %v", err)
+	}
+
+	if status.Branch != "main" {
+		t.Errorf("expected branch 'main', got %q", status.Branch)
+	}
+	if !status.IsClean {
+		t.Error("expected clean status")
+	}
+	if status.HasChanges {
+		t.Error("expected no changes")
+	}
+}
+
+func TestGetStatus_DirtyRepo(t *testing.T) {
+	dir := createTestRepo(t)
+
+	// Create initial commit
+	f := filepath.Join(dir, "file.txt")
+	if err := os.WriteFile(f, []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("git", "add", ".")
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git add failed: %v\n%s", err, out)
+	}
+	cmd = exec.Command("git", "commit", "-m", "initial")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=Test",
+		"GIT_AUTHOR_EMAIL=test@test.com",
+		"GIT_COMMITTER_NAME=Test",
+		"GIT_COMMITTER_EMAIL=test@test.com",
+	)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git commit failed: %v\n%s", err, out)
+	}
+
+	// Make a dirty change
+	if err := os.WriteFile(f, []byte("modified"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := GetStatus(dir)
+	if err != nil {
+		t.Fatalf("GetStatus() error = %v", err)
+	}
+
+	if status.IsClean {
+		t.Error("expected dirty status")
+	}
+	if !status.HasChanges {
+		t.Error("expected changes")
+	}
+}
+
+func TestGetStatus_DetachedHead(t *testing.T) {
+	dir := createTestRepo(t)
+
+	// Create a commit
+	f := filepath.Join(dir, "file.txt")
+	if err := os.WriteFile(f, []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=Test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+		)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	run("add", ".")
+	run("commit", "-m", "initial")
+
+	// Detach HEAD
+	run("checkout", "--detach", "HEAD")
+
+	status, err := GetStatus(dir)
+	if err != nil {
+		t.Fatalf("GetStatus() error = %v", err)
+	}
+
+	if status.Branch != "HEAD detached" {
+		t.Errorf("expected 'HEAD detached', got %q", status.Branch)
+	}
+}
+
+func TestGetStatus_InvalidPath(t *testing.T) {
+	_, err := GetStatus("/nonexistent/path")
+	if err == nil {
+		t.Error("expected error for invalid path")
+	}
+}
 
 func TestStatus_IsStale(t *testing.T) {
 	tests := []struct {
