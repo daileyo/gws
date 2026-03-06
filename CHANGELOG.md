@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.15.0](https://github.com/daileyo/gws/compare/v2.14.0...v2.15.0) (2026-03-06)
+
+
+### Features
+
+* add status column alignment, truncation, and colored icons ([4696958](https://github.com/daileyo/gws/commit/4696958aedf5e459311ef859064e58cfcd5de607))
+* reorder status icons to behind, ahead, clean/dirty ([99020da](https://github.com/daileyo/gws/commit/99020da86d12c9628887df8afc3e5d1d6bfb3cb5))
+
+
+### Bug Fixes
+
+* address lint issues in status alignment code ([fcacac7](https://github.com/daileyo/gws/commit/fcacac74fb504f76caab61a793a4df5617f89677))
+
 ## [2.14.0](https://github.com/daileyo/gws/compare/v2.13.0...v2.14.0) (2026-03-06)
 
 
