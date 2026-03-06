@@ -248,7 +248,7 @@ func captureStdout(fn func()) string {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, r)
 	return buf.String()
 }
 
@@ -445,10 +445,10 @@ func TestDisplayJSON_ColumnSelection(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		opts         ListOptions
-		expectKeys   []string
-		excludeKeys  []string
+		name        string
+		opts        ListOptions
+		expectKeys  []string
+		excludeKeys []string
 	}{
 		{
 			"default - name only",

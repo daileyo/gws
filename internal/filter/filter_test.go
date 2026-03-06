@@ -505,13 +505,13 @@ func TestByVisibility(t *testing.T) {
 		visibility string
 		expected   int
 	}{
-		{"Filter by private", "private", 1},      // work-api
-		{"Filter by unknown", "unknown", 4},       // my-project, client-site, internal-tool, local-repo
-		{"Filter by public", "public", 0},         // none in test data
-		{"Case insensitive", "PRIVATE", 1},        // work-api
-		{"Non-existent value", "internal", 0},     // no match
-		{"Wildcard priv*", "priv*", 1},            // work-api
-		{"Wildcard *known", "*known", 4},          // unknown matches
+		{"Filter by private", "private", 1},   // work-api
+		{"Filter by unknown", "unknown", 4},   // my-project, client-site, internal-tool, local-repo
+		{"Filter by public", "public", 0},     // none in test data
+		{"Case insensitive", "PRIVATE", 1},    // work-api
+		{"Non-existent value", "internal", 0}, // no match
+		{"Wildcard priv*", "priv*", 1},        // work-api
+		{"Wildcard *known", "*known", 4},      // unknown matches
 	}
 
 	for _, tt := range tests {
