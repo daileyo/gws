@@ -85,7 +85,7 @@ func truncateBranch(name string, maxLen int) string {
 
 // resolveColorEnabled determines if color output should be enabled
 // based on the --color flag value and TTY detection.
-func resolveColorEnabled(cmd *cobra.Command) bool {
+func resolveColorEnabled(_ *cobra.Command) bool {
 	switch flagColor {
 	case "always":
 		return true
@@ -427,16 +427,16 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 	}
 
 	// Calculate column widths
-	maxNameLen := 4    // "NAME"
-	maxTypeLen := 4    // "TYPE"
-	maxVisLen := 10    // "VISIBILITY"
-	maxTagsLen := 4    // "TAGS"
-	maxBranchLen := 0  // branch sub-column within STATUS
-	maxIconsLen := 0   // icons sub-column within STATUS
-	maxUserLen := 4    // "USER"
-	maxEmailLen := 5   // "EMAIL"
-	maxRemoteLen := 6  // "REMOTE"
-	maxPathLen := 4    // "PATH"
+	maxNameLen := 4   // "NAME"
+	maxTypeLen := 4   // "TYPE"
+	maxVisLen := 10   // "VISIBILITY"
+	maxTagsLen := 4   // "TAGS"
+	maxBranchLen := 0 // branch sub-column within STATUS
+	maxIconsLen := 0  // icons sub-column within STATUS
+	maxUserLen := 4   // "USER"
+	maxEmailLen := 5  // "EMAIL"
+	maxRemoteLen := 6 // "REMOTE"
+	maxPathLen := 4   // "PATH"
 
 	// Pre-compute user info and drift status for width calculation and display
 	type repoUserInfo struct {
