@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -34,7 +36,65 @@ var (
 	outputFormat   string
 	verboseCount   int
 	flagWorkers    int
+	flagColor      string
 )
+
+// ANSI color codes
+const (
+	ansiReset   = "\033[0m"
+	ansiRed     = "\033[31m"
+	ansiGreen   = "\033[32m"
+	ansiMagenta = "\033[35m"
+	ansiCyan    = "\033[36m"
+)
+
+// maxBranchDisplayLen is the maximum display length for branch names before truncation.
+const maxBranchDisplayLen = 30
+
+// ansiPattern matches ANSI escape sequences for stripping from display width calculations.
+var ansiPattern = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// colorize wraps text with an ANSI color code and reset sequence.
+func colorize(text, code string) string {
+	return code + text + ansiReset
+}
+
+// stripANSI removes all ANSI escape sequences from a string.
+func stripANSI(s string) string {
+	return ansiPattern.ReplaceAllString(s, "")
+}
+
+// displayWidth returns the visible character count of a string,
+// ignoring ANSI escape codes and counting Unicode runes.
+func displayWidth(s string) int {
+	return utf8.RuneCountInString(stripANSI(s))
+}
+
+// truncateBranch truncates a branch name to maxLen characters,
+// appending "..." if truncation occurs.
+func truncateBranch(name string, maxLen int) string {
+	if utf8.RuneCountInString(name) <= maxLen {
+		return name
+	}
+	runes := []rune(name)
+	if maxLen <= 3 {
+		return string(runes[:maxLen])
+	}
+	return string(runes[:maxLen-3]) + "..."
+}
+
+// resolveColorEnabled determines if color output should be enabled
+// based on the --color flag value and TTY detection.
+func resolveColorEnabled(cmd *cobra.Command) bool {
+	switch flagColor {
+	case "always":
+		return true
+	case "never":
+		return false
+	default: // "auto"
+		return term.IsTerminal(int(os.Stdout.Fd()))
+	}
+}
 
 // listCmd is the Cobra subcommand for listing repositories.
 var listCmd = &cobra.Command{
@@ -64,6 +124,7 @@ Without =, the flag shows the column without filtering.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := parseDualPurposeFlags(cmd)
+		opts.ColorEnabled = resolveColorEnabled(cmd)
 		return runList(opts)
 	},
 }
@@ -103,6 +164,9 @@ func init() {
 
 	// Worker count for parallel status fetching
 	listCmd.Flags().IntVar(&flagWorkers, "workers", 0, "Number of concurrent workers for status fetching (default: 8)")
+
+	// Color output control
+	listCmd.Flags().StringVar(&flagColor, "color", "auto", "Color output: auto, always, never")
 
 	// Custom help function to clean up NoOptDefVal display artifacts.
 	// Cobra renders string flags with NoOptDefVal as: --flag string[="sentinel"]
@@ -155,6 +219,9 @@ type ListOptions struct {
 
 	// Concurrency
 	Workers int
+
+	// Color output
+	ColorEnabled bool
 }
 
 // AnyColumnSelected returns true if any column display flag is set.
@@ -360,15 +427,16 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 	}
 
 	// Calculate column widths
-	maxNameLen := 4   // "NAME"
-	maxTypeLen := 4   // "TYPE"
-	maxVisLen := 10   // "VISIBILITY"
-	maxTagsLen := 4   // "TAGS"
-	maxStatusLen := 6 // "STATUS"
-	maxUserLen := 4   // "USER"
-	maxEmailLen := 5  // "EMAIL"
-	maxRemoteLen := 6 // "REMOTE"
-	maxPathLen := 4   // "PATH"
+	maxNameLen := 4    // "NAME"
+	maxTypeLen := 4    // "TYPE"
+	maxVisLen := 10    // "VISIBILITY"
+	maxTagsLen := 4    // "TAGS"
+	maxBranchLen := 0  // branch sub-column within STATUS
+	maxIconsLen := 0   // icons sub-column within STATUS
+	maxUserLen := 4    // "USER"
+	maxEmailLen := 5   // "EMAIL"
+	maxRemoteLen := 6  // "REMOTE"
+	maxPathLen := 4    // "PATH"
 
 	// Pre-compute user info and drift status for width calculation and display
 	type repoUserInfo struct {
@@ -441,12 +509,16 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 			}
 		}
 
-		// Calculate status column width
+		// Calculate status sub-column widths
 		if statusMap != nil {
 			if status := statusMap[repo.Path]; status != nil {
-				statusStr := formatStatusShort(status)
-				if len(statusStr) > maxStatusLen {
-					maxStatusLen = len(statusStr)
+				branchStr := formatStatusBranch(status)
+				iconsStr := formatStatusIcons(status, false)
+				if bw := displayWidth(branchStr); bw > maxBranchLen {
+					maxBranchLen = bw
+				}
+				if iw := displayWidth(iconsStr); iw > maxIconsLen {
+					maxIconsLen = iw
 				}
 			}
 		}
@@ -517,8 +589,17 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 	separatorParts = append(separatorParts, strings.Repeat("-", maxNameLen))
 
 	if statusMap != nil {
-		headerParts = append(headerParts, fmt.Sprintf("%-*s", maxStatusLen, "STATUS"))
-		separatorParts = append(separatorParts, strings.Repeat("-", maxStatusLen))
+		// STATUS column width = branch sub-column + space + icons sub-column
+		// Ensure minimum width fits the "STATUS" header (6 chars)
+		statusColWidth := maxBranchLen
+		if maxIconsLen > 0 {
+			statusColWidth += 1 + maxIconsLen // 1 for space separator
+		}
+		if statusColWidth < 6 {
+			statusColWidth = 6
+		}
+		headerParts = append(headerParts, fmt.Sprintf("%-*s", statusColWidth, "STATUS"))
+		separatorParts = append(separatorParts, strings.Repeat("-", statusColWidth))
 	}
 
 	if opts.ShowUser {
@@ -574,13 +655,36 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 		}
 		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxNameLen, nameDisplay))
 
-		// Status column (optional)
+		// Status column (optional) - branch left-justified, icons right-justified
 		if statusMap != nil {
-			statusStr := "-"
-			if status := statusMap[repo.Path]; status != nil {
-				statusStr = formatStatusShort(status)
+			statusColWidth := maxBranchLen
+			if maxIconsLen > 0 {
+				statusColWidth += 1 + maxIconsLen
 			}
-			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxStatusLen, statusStr))
+			if statusColWidth < 6 {
+				statusColWidth = 6
+			}
+
+			status := statusMap[repo.Path]
+			if status == nil || status.Branch == "" {
+				// No status or "no commits" — span full column left-justified
+				display := "-"
+				if status != nil {
+					display = formatStatusBranch(status)
+				}
+				rowParts = append(rowParts, fmt.Sprintf("%-*s", statusColWidth, display))
+			} else {
+				branch := formatStatusBranch(status)
+				icons := formatStatusIcons(status, opts.ColorEnabled)
+				iconsVisWidth := displayWidth(icons)
+				// Left-justify branch, right-justify icons
+				// Padding = total width - branch width - icons visible width
+				padding := statusColWidth - displayWidth(branch) - iconsVisWidth
+				if padding < 1 {
+					padding = 1
+				}
+				rowParts = append(rowParts, branch+strings.Repeat(" ", padding)+icons)
+			}
 		}
 
 		// User columns (optional)
@@ -712,31 +816,69 @@ func displayMultiColumn(names []string) {
 	}
 }
 
-// formatStatusShort returns a short status string with visual indicators
-func formatStatusShort(status *git.Status) string {
+// formatStatusBranch returns the branch name portion of the status,
+// truncated if it exceeds maxBranchDisplayLen.
+func formatStatusBranch(status *git.Status) string {
 	if status.Branch == "" {
 		return "no commits"
 	}
+	return truncateBranch(status.Branch, maxBranchDisplayLen)
+}
 
-	result := status.Branch
+// formatStatusIcons returns the status icons portion (clean/dirty + ahead/behind).
+// When colorEnabled is true, icons are wrapped with ANSI color codes.
+func formatStatusIcons(status *git.Status, colorEnabled bool) string {
+	if status.Branch == "" {
+		return ""
+	}
 
-	// Add clean/dirty indicator
+	var parts []string
+
+	// Clean/dirty indicator
 	if status.HasChanges {
-		result += " ✗"
+		if colorEnabled {
+			parts = append(parts, colorize("✗", ansiRed))
+		} else {
+			parts = append(parts, "✗")
+		}
 	} else {
-		result += " ✓"
+		if colorEnabled {
+			parts = append(parts, colorize("✓", ansiGreen))
+		} else {
+			parts = append(parts, "✓")
+		}
 	}
 
-	// Add ahead/behind indicators
-	if status.Ahead > 0 && status.Behind > 0 {
-		result += fmt.Sprintf(" ↑%d↓%d", status.Ahead, status.Behind)
-	} else if status.Ahead > 0 {
-		result += fmt.Sprintf(" ↑%d", status.Ahead)
-	} else if status.Behind > 0 {
-		result += fmt.Sprintf(" ↓%d", status.Behind)
+	// Ahead/behind indicators
+	if status.Ahead > 0 {
+		ahead := fmt.Sprintf("↑%d", status.Ahead)
+		if colorEnabled {
+			parts = append(parts, colorize(ahead, ansiCyan))
+		} else {
+			parts = append(parts, ahead)
+		}
+	}
+	if status.Behind > 0 {
+		behind := fmt.Sprintf("↓%d", status.Behind)
+		if colorEnabled {
+			parts = append(parts, colorize(behind, ansiMagenta))
+		} else {
+			parts = append(parts, behind)
+		}
 	}
 
-	return result
+	return strings.Join(parts, " ")
+}
+
+// formatStatusShort returns a short status string with visual indicators.
+// Used by displayJSON and other callers that need a single combined string without color.
+func formatStatusShort(status *git.Status) string {
+	branch := formatStatusBranch(status)
+	icons := formatStatusIcons(status, false)
+	if icons == "" {
+		return branch
+	}
+	return branch + " " + icons
 }
 
 // displayJSON outputs repositories in JSON format respecting column selection.
