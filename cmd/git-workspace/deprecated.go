@@ -251,9 +251,14 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 			FilterName:   depFilterName,
 			FilterPath:   depFilterPath,
 			OutputFormat: depOutputFormat,
-			ShowStatus:   depShowStatus,
-			ShowUser:     depShowUser,
-			ShowRemote:   false,
+			// Old default: always show stored-data columns
+			ShowType:       true,
+			ShowVisibility: true,
+			ShowTags:       true,
+			ShowPath:       true,
+			ShowStatus:     depShowStatus,
+			ShowUser:       depShowUser,
+			ShowRemote:     false,
 		})
 	}
 
