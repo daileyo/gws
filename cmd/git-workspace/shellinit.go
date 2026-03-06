@@ -35,6 +35,10 @@ if ! type compdef &>/dev/null; then
 fi
 function gws() {
   local _dest
+  if [[ $# -eq 0 ]]; then
+    {BIN}
+    return
+  fi
   case "$1" in
     list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@" ;;
     -p|--parent|parent)
@@ -61,6 +65,10 @@ compdef _git-workspace gws
 const bashInitTemplate = `# git-workspace shell integration — do not edit, managed via shell-init
 function gws() {
   local dest
+  if [[ $# -eq 0 ]]; then
+    {BIN}
+    return
+  fi
   case "$1" in
     list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@"; return ;;
     -p|--parent|parent)
