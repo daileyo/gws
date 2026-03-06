@@ -644,13 +644,13 @@ func TestFormatStatusIcons(t *testing.T) {
 	}{
 		{"clean no color", &git.Status{Branch: "main", IsClean: true}, false, "✓"},
 		{"dirty no color", &git.Status{Branch: "main", HasChanges: true}, false, "✗"},
-		{"ahead no color", &git.Status{Branch: "main", Ahead: 3}, false, "✓ ↑3"},
-		{"behind no color", &git.Status{Branch: "main", Behind: 2}, false, "✓ ↓2"},
-		{"ahead+behind no color", &git.Status{Branch: "main", HasChanges: true, Ahead: 5, Behind: 3}, false, "✗ ↑5 ↓3"},
+		{"ahead no color", &git.Status{Branch: "main", Ahead: 3}, false, "↑3 ✓"},
+		{"behind no color", &git.Status{Branch: "main", Behind: 2}, false, "↓2 ✓"},
+		{"ahead+behind no color", &git.Status{Branch: "main", HasChanges: true, Ahead: 5, Behind: 3}, false, "↓3 ↑5 ✗"},
 		{"no commits", &git.Status{Branch: ""}, false, ""},
 		{"clean with color", &git.Status{Branch: "main", IsClean: true}, true, "\033[32m✓\033[0m"},
 		{"dirty with color", &git.Status{Branch: "main", HasChanges: true}, true, "\033[31m✗\033[0m"},
-		{"ahead with color", &git.Status{Branch: "main", Ahead: 3}, true, "\033[32m✓\033[0m \033[36m↑3\033[0m"},
+		{"ahead with color", &git.Status{Branch: "main", Ahead: 3}, true, "\033[36m↑3\033[0m \033[32m✓\033[0m"},
 	}
 
 	for _, tt := range tests {
@@ -690,9 +690,9 @@ func TestFormatStatusShort(t *testing.T) {
 	}{
 		{"clean", &git.Status{Branch: "main"}, "main ✓"},
 		{"dirty", &git.Status{Branch: "main", HasChanges: true}, "main ✗"},
-		{"ahead", &git.Status{Branch: "feature", Ahead: 3}, "feature ✓ ↑3"},
-		{"behind", &git.Status{Branch: "main", Behind: 2}, "main ✓ ↓2"},
-		{"ahead+behind", &git.Status{Branch: "develop", HasChanges: true, Ahead: 5, Behind: 3}, "develop ✗ ↑5 ↓3"},
+		{"ahead", &git.Status{Branch: "feature", Ahead: 3}, "feature ↑3 ✓"},
+		{"behind", &git.Status{Branch: "main", Behind: 2}, "main ↓2 ✓"},
+		{"ahead+behind", &git.Status{Branch: "develop", HasChanges: true, Ahead: 5, Behind: 3}, "develop ↓3 ↑5 ✗"},
 		{"no commits", &git.Status{Branch: ""}, "no commits"},
 	}
 
