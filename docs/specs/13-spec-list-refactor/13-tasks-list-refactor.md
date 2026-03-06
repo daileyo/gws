@@ -91,7 +91,7 @@ Add `-v`/`--verbose` (count flag) to `gws list`. Single `-v` shows all stored-da
 - [x] 3.5 Add unit tests: `-v` sets verbose level 1 and shows stored-data columns; `-vv` sets verbose level 2 and shows all columns; `-v -y github` filters by type but shows all stored-data columns.
 - [x] 3.6 Run `go test ./...` and `make ci` to verify.
 
-### [~] 4.0 Default No-Args Behavior (`gws` → `gws list`)
+### [x] 4.0 Default No-Args Behavior (`gws` → `gws list`)
 
 Change the root command so `gws` with no arguments runs `gws list` (multi-column repo names) instead of the current workspace summary. Navigation via positional args (`gws my-repo`) continues unchanged.
 
@@ -111,7 +111,7 @@ Change the root command so `gws` with no arguments runs `gws list` (multi-column
 - [x] 4.5 Add/update tests in `main_test.go`: `gws` with no args runs list (returns repo names), positional arg still navigates, `--quiet` with positional arg still works. (Existing tests cover navigation; no-args path calls runList which is tested separately)
 - [x] 4.6 Run `go test ./...` and `make ci` to verify.
 
-### [ ] 5.0 JSON Output Column Selection and Help Text Updates
+### [x] 5.0 JSON Output Column Selection and Help Text Updates
 
 Update JSON output (`-o json`) to respect display flags — only include fields for selected columns (always include `name`). Fix `gws list -h` to show all flags including new `-V`/`--visibility` and `-v`/`--verbose`. Ensure deprecated root-level flags continue working with deprecation warnings.
 
@@ -126,12 +126,12 @@ Update JSON output (`-o json`) to respect display flags — only include fields 
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Update `displayJSON()` to accept the `Show*` flags from `ListOptions`. Instead of marshaling the full `config.Repository` struct, build a dynamic `map[string]interface{}` for each repo that only includes fields for displayed columns. Always include `name`.
-- [ ] 5.2 Map column flags to JSON fields: `ShowType` → `type`, `ShowVisibility` → `visibility`, `ShowTags` → `tags`, `ShowPath` → `path`, `ShowStatus` → `status` (format as string), `ShowUser` → `user`/`email`/`signing_enabled`, `ShowRemote` → `remote_url`/`has_multiple_remotes`. When no column flags are set (default multi-column view), JSON outputs only `name`.
-- [ ] 5.3 When `-v` is used with `-o json`, include all stored-data fields. When `-vv` is used, include all fields including live-fetched ones.
-- [ ] 5.4 Verify all flags appear in `gws list -h` output. Ensure none are marked hidden on `listCmd`. Update help text and examples in `listCmd.Long` to reflect the new flag behavior (dual-purpose, verbose levels).
-- [ ] 5.5 Verify deprecated flags in `deprecated.go` still work: `gws --list --type github` should emit deprecation warnings and call `runList()` with appropriate options. Update the deprecated dispatch to populate the new `ListOptions` fields correctly (set `ShowType`, `ShowVisibility`, etc. to match old default behavior — show all stored-data columns).
-- [ ] 5.6 Update `depWarnings` map if any deprecated flag names changed.
-- [ ] 5.7 Add tests for JSON column selection: `-yp -o json` includes only name/type/path; `-v -o json` includes all stored fields; default `-o json` includes only name.
-- [ ] 5.8 Add tests verifying deprecated flag backward compatibility with new `ListOptions` structure.
-- [ ] 5.9 Run `go test ./...` and `make ci` to verify all tests pass.
+- [x] 5.1 Update `displayJSON()` to accept the `Show*` flags from `ListOptions`. Instead of marshaling the full `config.Repository` struct, build a dynamic `map[string]interface{}` for each repo that only includes fields for displayed columns. Always include `name`.
+- [x] 5.2 Map column flags to JSON fields: `ShowType` → `type`, `ShowVisibility` → `visibility`, `ShowTags` → `tags`, `ShowPath` → `path`, `ShowStatus` → `status` (format as string), `ShowUser` → `user`/`email`/`signing_enabled`, `ShowRemote` → `remote_url`/`has_multiple_remotes`. When no column flags are set (default multi-column view), JSON outputs only `name`.
+- [x] 5.3 When `-v` is used with `-o json`, include all stored-data fields. When `-vv` is used, include all fields including live-fetched ones.
+- [x] 5.4 Verify all flags appear in `gws list -h` output. Ensure none are marked hidden on `listCmd`. Update help text and examples in `listCmd.Long` to reflect the new flag behavior (dual-purpose, verbose levels).
+- [x] 5.5 Verify deprecated flags in `deprecated.go` still work: `gws --list --type github` should emit deprecation warnings and call `runList()` with appropriate options. Update the deprecated dispatch to populate the new `ListOptions` fields correctly (set `ShowType`, `ShowVisibility`, etc. to match old default behavior — show all stored-data columns).
+- [x] 5.6 Update `depWarnings` map if any deprecated flag names changed.
+- [x] 5.7 Add tests for JSON column selection: `-yp -o json` includes only name/type/path; `-v -o json` includes all stored fields; default `-o json` includes only name.
+- [x] 5.8 Add tests verifying deprecated flag backward compatibility with new `ListOptions` structure.
+- [x] 5.9 Run `go test ./...` and `make ci` to verify all tests pass.
