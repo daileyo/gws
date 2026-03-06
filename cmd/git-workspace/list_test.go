@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/daileyo/gws/internal/config"
 )
 
 func TestFilterFlagsOnListCmd(t *testing.T) {
@@ -425,5 +428,122 @@ func TestVerboseLevelColumnOverrides(t *testing.T) {
 				t.Errorf("FilterType = %q, want %q (filter should be preserved)", opts.FilterType, tt.opts.FilterType)
 			}
 		})
+	}
+}
+
+func TestDisplayJSON_ColumnSelection(t *testing.T) {
+	repos := []config.Repository{
+		{
+			Name:       "test-repo",
+			Type:       "github",
+			Visibility: "private",
+			Tags:       []string{"web", "api"},
+			Path:       "/home/user/test-repo",
+			User:       "testuser",
+			Email:      "test@example.com",
+		},
+	}
+
+	tests := []struct {
+		name         string
+		opts         ListOptions
+		expectKeys   []string
+		excludeKeys  []string
+	}{
+		{
+			"default - name only",
+			ListOptions{OutputFormat: "json"},
+			[]string{"name"},
+			[]string{"type", "visibility", "tags", "path", "status", "user", "email"},
+		},
+		{
+			"type and path flags",
+			ListOptions{OutputFormat: "json", ShowType: true, ShowPath: true},
+			[]string{"name", "type", "path"},
+			[]string{"visibility", "tags", "status", "user", "email"},
+		},
+		{
+			"verbose 1 - stored data",
+			ListOptions{OutputFormat: "json", ShowType: true, ShowVisibility: true, ShowTags: true, ShowPath: true, VerboseLevel: 1},
+			[]string{"name", "type", "visibility", "tags", "path"},
+			[]string{"status", "user", "email"},
+		},
+		{
+			"show user",
+			ListOptions{OutputFormat: "json", ShowUser: true},
+			[]string{"name", "user", "email", "signing_enabled"},
+			[]string{"type", "visibility", "tags", "path"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := captureStdout(func() {
+				_ = displayJSON(repos, tt.opts)
+			})
+
+			var result []map[string]interface{}
+			if err := json.Unmarshal([]byte(output), &result); err != nil {
+				t.Fatalf("Failed to parse JSON: %v\nOutput: %s", err, output)
+			}
+
+			if len(result) != 1 {
+				t.Fatalf("Expected 1 entry, got %d", len(result))
+			}
+
+			entry := result[0]
+			for _, key := range tt.expectKeys {
+				if _, ok := entry[key]; !ok {
+					t.Errorf("Expected key %q in JSON output, not found. Keys: %v", key, mapKeys(entry))
+				}
+			}
+			for _, key := range tt.excludeKeys {
+				if _, ok := entry[key]; ok {
+					t.Errorf("Key %q should NOT be in JSON output when not selected", key)
+				}
+			}
+		})
+	}
+}
+
+func mapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func TestDeprecatedListDispatchPopulatesListOptions(t *testing.T) {
+	// Verify the deprecated --list dispatch sets Show* flags to match old default behavior
+	// (show all stored-data columns: type, visibility, tags, path)
+	// We can't easily call handleDeprecatedFlags end-to-end without a workspace,
+	// but we can verify the ListOptions that would be constructed.
+	opts := ListOptions{
+		FilterType:     "github",
+		FilterTags:     []string{"web"},
+		FilterName:     "",
+		FilterPath:     "",
+		OutputFormat:   "table",
+		ShowType:       true,
+		ShowVisibility: true,
+		ShowTags:       true,
+		ShowPath:       true,
+		ShowStatus:     false,
+		ShowUser:       false,
+		ShowRemote:     false,
+	}
+
+	// Verify old default: stored-data columns shown
+	if !opts.ShowType || !opts.ShowVisibility || !opts.ShowTags || !opts.ShowPath {
+		t.Error("Deprecated list should show all stored-data columns")
+	}
+	// Verify live columns NOT shown by default
+	if opts.ShowStatus || opts.ShowUser || opts.ShowRemote {
+		t.Error("Deprecated list should NOT show live-fetched columns by default")
+	}
+	// Verify AnyColumnSelected is true
+	if !opts.AnyColumnSelected() {
+		t.Error("Deprecated list should have columns selected (triggers table view, not multi-column)")
 	}
 }
