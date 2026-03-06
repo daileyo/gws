@@ -3,9 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
@@ -246,11 +249,13 @@ func runList(opts ListOptions) error {
 func displayTable(repos []config.Repository, statusCache *git.Cache, opts ListOptions) {
 	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize(len(repos), "repository", "repositories"))
 
-	// If no columns selected and no verbose, show just names (placeholder for multi-column in Task 2.0)
+	// If no columns selected and no verbose, show compact multi-column names
 	if !opts.AnyColumnSelected() && opts.VerboseLevel == 0 {
-		for _, repo := range repos {
-			fmt.Println(repo.Name)
+		names := make([]string, len(repos))
+		for i, repo := range repos {
+			names[i] = repo.Name
 		}
+		displayMultiColumn(names)
 		return
 	}
 
@@ -535,6 +540,66 @@ func displayTable(repos []config.Repository, statusCache *git.Cache, opts ListOp
 			_ = statusCache.Save(cachePath) // Ignore save errors
 		}
 	}
+}
+
+// getTerminalWidth returns the terminal width, or 80 if detection fails.
+func getTerminalWidth() int {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || width <= 0 {
+		return 80
+	}
+	return width
+}
+
+// displayMultiColumn prints names in a compact multi-column layout like ls.
+// Names are sorted alphabetically and fill left-to-right, top-to-bottom.
+// Falls back to single-column when stdout is not a TTY.
+func displayMultiColumn(names []string) {
+	if len(names) == 0 {
+		return
+	}
+
+	sort.Strings(names)
+
+	// Non-TTY: one name per line
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
+		for _, name := range names {
+			fmt.Println(name)
+		}
+		return
+	}
+
+	termWidth := getTerminalWidth()
+	colGap := 2
+
+	// Find the widest name
+	maxLen := 0
+	for _, name := range names {
+		if len(name) > maxLen {
+			maxLen = len(name)
+		}
+	}
+
+	// Calculate number of columns that fit
+	colWidth := maxLen + colGap
+	numCols := termWidth / colWidth
+	if numCols < 1 {
+		numCols = 1
+	}
+
+	// Print names left-to-right, wrapping at numCols
+	for i, name := range names {
+		if i > 0 && i%numCols == 0 {
+			fmt.Println()
+		}
+		if (i+1)%numCols == 0 || i == len(names)-1 {
+			// Last column or last item: no trailing padding
+			fmt.Print(name)
+		} else {
+			fmt.Printf("%-*s", colWidth, name)
+		}
+	}
+	fmt.Println()
 }
 
 // formatStatusShort returns a short status string with visual indicators
