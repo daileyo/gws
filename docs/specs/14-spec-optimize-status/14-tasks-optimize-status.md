@@ -78,7 +78,7 @@ Enhance the cache to return stale entries immediately for display while refreshi
 - [x] 3.5 Add tests for `GetStale()` and `PrefetchInBackground()` in `status_test.go`. Verify that `GetStale()` returns expired entries, and that `PrefetchInBackground()` updates the cache asynchronously.
 - [x] 3.6 Run `go test -race ./...` to verify cache concurrency safety.
 
-### [ ] 4.0 Progress Feedback (Spinner with Count)
+### [x] 4.0 Progress Feedback (Spinner with Count)
 
 Display a spinner with progress count (e.g., "Checking repos... 45/200") when status fetching takes longer than 200ms. The spinner updates as each repo completes, then clears before final output renders. The spinner is suppressed when output is not a TTY (piped/redirected) and when all results come from cache.
 
@@ -90,10 +90,10 @@ Display a spinner with progress count (e.g., "Checking repos... 45/200") when st
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Create `internal/git/progress.go` with a `Progress` struct that manages spinner display. It should accept a `total int` count, have an `Increment()` method (thread-safe via `atomic.Int32`), and a `Start()` method that begins a background goroutine rendering the spinner to stderr. The spinner only appears after a 200ms delay threshold.
-- [ ] 4.2 Add a `Stop()` method to `Progress` that clears the spinner line (write `\r` + spaces + `\r` to stderr) and stops the background goroutine. This must be called before rendering the final table output.
-- [ ] 4.3 Add TTY detection to `Progress.Start()`: check `term.IsTerminal(int(os.Stderr.Fd()))` and skip all spinner output if not a TTY. Use the existing `golang.org/x/term` dependency already in the project.
-- [ ] 4.4 Integrate the `Progress` spinner into `FetchAll()` in `cache.go`. Accept an optional `*Progress` parameter (or nil to disable). Call `progress.Increment()` after each repo status completes. The caller in `list.go` creates the `Progress` instance and passes it to `FetchAll()`.
-- [ ] 4.5 In `list.go`, create the `Progress` spinner only when there are repos to fetch (not all cached) and `ShowStatus` is true. Pass it to `FetchAll()`, then call `Stop()` before rendering. Skip creating the spinner entirely when all statuses come from cache.
-- [ ] 4.6 Add tests for `Progress` in `internal/git/progress_test.go`. Test that `Increment()` is thread-safe (concurrent calls), that `Stop()` clears output, and that spinner is suppressed for non-TTY. Run with `-race` flag.
-- [ ] 4.7 Run `go test -race ./...` to verify all tests pass with no regressions.
+- [x] 4.1 Create `internal/git/progress.go` with a `Progress` struct that manages spinner display. It should accept a `total int` count, have an `Increment()` method (thread-safe via `atomic.Int32`), and a `Start()` method that begins a background goroutine rendering the spinner to stderr. The spinner only appears after a 200ms delay threshold.
+- [x] 4.2 Add a `Stop()` method to `Progress` that clears the spinner line (write `\r` + ANSI clear to stderr) and stops the background goroutine. This must be called before rendering the final table output.
+- [x] 4.3 Add TTY detection to `Progress.Start()`: check `term.IsTerminal(int(os.Stderr.Fd()))` and skip all spinner output if not a TTY. Uses the existing `golang.org/x/term` dependency.
+- [x] 4.4 Integrate the `Progress` spinner into `FetchAll()` in `cache.go`. Accept an optional `*Progress` parameter (or nil to disable). Call `progress.Increment()` after each repo status completes.
+- [x] 4.5 In `list.go`, create the `Progress` spinner only when there are uncached repos to fetch. Pass it to `FetchAll()`, then call `Stop()` before rendering. Skip creating the spinner entirely when all statuses come from cache.
+- [x] 4.6 Add tests for `Progress` in `internal/git/progress_test.go`. Test concurrent increments, non-TTY suppression, start/stop lifecycle, and double-stop safety. Run with `-race` flag.
+- [x] 4.7 Run `go test -race ./...` to verify all tests pass with no regressions.

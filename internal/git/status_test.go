@@ -401,7 +401,7 @@ func TestFetchAll(t *testing.T) {
 		repo3 := makeRepo(t)
 
 		cache := NewCache(5 * time.Minute)
-		results := cache.FetchAll([]string{repo1, repo2, repo3}, 2)
+		results := cache.FetchAll([]string{repo1, repo2, repo3}, 2, nil)
 
 		if len(results) != 3 {
 			t.Errorf("expected 3 results, got %d", len(results))
@@ -423,7 +423,7 @@ func TestFetchAll(t *testing.T) {
 		// Pre-populate cache
 		cache.Set(repo1, &Status{Branch: "cached-branch", IsClean: true, LastChecked: time.Now()})
 
-		results := cache.FetchAll([]string{repo1}, 2)
+		results := cache.FetchAll([]string{repo1}, 2, nil)
 		if results[repo1].Branch != "cached-branch" {
 			t.Errorf("expected cached branch, got %q", results[repo1].Branch)
 		}
@@ -434,7 +434,7 @@ func TestFetchAll(t *testing.T) {
 		badPath := "/nonexistent/repo/path"
 
 		cache := NewCache(5 * time.Minute)
-		results := cache.FetchAll([]string{repo1, badPath}, 2)
+		results := cache.FetchAll([]string{repo1, badPath}, 2, nil)
 
 		if results[repo1] == nil {
 			t.Error("expected result for valid repo")

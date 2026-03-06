@@ -157,7 +157,8 @@ func (c *Cache) Load(cachePath string) error {
 // FetchAll fetches status for all given repo paths concurrently using a worker pool.
 // It returns cached (fresh) entries without re-fetching. Errors for individual repos
 // are silently skipped. The results map contains all successfully resolved statuses.
-func (c *Cache) FetchAll(repoPaths []string, workers int) map[string]*Status {
+// If progress is non-nil, Increment() is called after each repo completes.
+func (c *Cache) FetchAll(repoPaths []string, workers int, progress *Progress) map[string]*Status {
 	if workers <= 0 {
 		workers = 8
 	}
@@ -193,6 +194,9 @@ func (c *Cache) FetchAll(repoPaths []string, workers int) map[string]*Status {
 			defer func() { <-sem }() // release
 
 			status, err := GetStatus(p)
+			if progress != nil {
+				progress.Increment()
+			}
 			if err != nil {
 				return // skip this repo
 			}
