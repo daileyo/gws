@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.13.0](https://github.com/daileyo/gws/compare/v2.12.0...v2.13.0) (2026-03-06)
+
+
+### Features
+
+* add JSON column selection and clean help text for list command ([0eeb304](https://github.com/daileyo/gws/commit/0eeb304a7272b7891656b60c0012ccfb76f1f73b))
+* add multi-column default view for list command ([04f6cd9](https://github.com/daileyo/gws/commit/04f6cd9fd31ff1194341e3f3b9ca7a242777d299))
+* default gws (no args) to list repos in multi-column view ([bb16519](https://github.com/daileyo/gws/commit/bb1651927b66ddc7670cb18c81b3f389e5888ece))
+* implement dual-purpose flag infrastructure for list command ([194762d](https://github.com/daileyo/gws/commit/194762d8f90ce1b5e3210d3d5ed47950cecc0877))
+
+
+### Bug Fixes
+
+* cap multi-column width to ensure at least 3 rows ([9ad5ccc](https://github.com/daileyo/gws/commit/9ad5ccc7f77ba256acdc58e74418de29bdc48aff))
+* handle no-args case in shell function for gws default list ([66f72f5](https://github.com/daileyo/gws/commit/66f72f54c97aa84b0a5f51e17f02e1788dc96c3a))
+* use column-first (top-to-bottom) layout for multi-column view ([b7efdbe](https://github.com/daileyo/gws/commit/b7efdbee4a3d9d8f11dc54ddb5f64825045b5e3f))
+
 ## [2.12.0](https://github.com/daileyo/gws/compare/v2.11.2...v2.12.0) (2026-03-05)
 
 
