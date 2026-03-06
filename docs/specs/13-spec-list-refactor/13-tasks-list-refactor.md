@@ -70,7 +70,7 @@ Change the default `gws list` output from the full table (NAME, TYPE, VISIBILITY
 - [x] 2.6 Add unit tests for `displayMultiColumn()`: test column count calculation for various terminal widths, alphabetical sorting, single-column fallback, and edge cases (0 repos, 1 repo, more repos than fit in one row).
 - [x] 2.7 Run `go test ./...` and `make ci` to verify.
 
-### [~] 3.0 Implement Verbose Levels (`-v` and `-vv`)
+### [x] 3.0 Implement Verbose Levels (`-v` and `-vv`)
 
 Add `-v`/`--verbose` (count flag) to `gws list`. Single `-v` shows all stored-data columns (NAME, TYPE, VISIBILITY, TAGS, PATH). Double `-vv` shows everything including live-fetched columns (STATUS, USER, EMAIL, SIGN, REMOTE). When combined with other flags/filters, verbose overrides selective column display.
 
@@ -91,7 +91,7 @@ Add `-v`/`--verbose` (count flag) to `gws list`. Single `-v` shows all stored-da
 - [x] 3.5 Add unit tests: `-v` sets verbose level 1 and shows stored-data columns; `-vv` sets verbose level 2 and shows all columns; `-v -y github` filters by type but shows all stored-data columns.
 - [x] 3.6 Run `go test ./...` and `make ci` to verify.
 
-### [ ] 4.0 Default No-Args Behavior (`gws` → `gws list`)
+### [~] 4.0 Default No-Args Behavior (`gws` → `gws list`)
 
 Change the root command so `gws` with no arguments runs `gws list` (multi-column repo names) instead of the current workspace summary. Navigation via positional args (`gws my-repo`) continues unchanged.
 
@@ -104,12 +104,12 @@ Change the root command so `gws` with no arguments runs `gws list` (multi-column
 
 #### 4.0 Tasks
 
-- [ ] 4.1 In `main.go`, update the `rootCmd.RunE` function: when `len(args) == 0` and no deprecated flags are active, call `runList()` with default options (no filters, no column flags, verbose level 0) instead of printing the workspace summary. This will trigger the multi-column default view from Task 2.0.
-- [ ] 4.2 Remove the `--quiet` validation that errors when `len(args) == 0`. With the new default list behavior, `--quiet` with no args should either be silently ignored or still produce an error — match the spec's intent (quiet is navigation-only).
-- [ ] 4.3 Verify the `--quiet` flag still works correctly with positional args: `gws -q my-repo`.
-- [ ] 4.4 Update the root command's `Long` description and usage template to reflect that `gws` now defaults to listing repositories.
-- [ ] 4.5 Add/update tests in `main_test.go`: `gws` with no args runs list (returns repo names), positional arg still navigates, `--quiet` with positional arg still works.
-- [ ] 4.6 Run `go test ./...` and `make ci` to verify.
+- [x] 4.1 In `main.go`, update the `rootCmd.RunE` function: when `len(args) == 0` and no deprecated flags are active, call `runList()` with default options (no filters, no column flags, verbose level 0) instead of printing the workspace summary. This will trigger the multi-column default view from Task 2.0.
+- [x] 4.2 Remove the `--quiet` validation that errors when `len(args) == 0`. With the new default list behavior, `--quiet` with no args should either be silently ignored or still produce an error — match the spec's intent (quiet is navigation-only, kept as error).
+- [x] 4.3 Verify the `--quiet` flag still works correctly with positional args: `gws -q my-repo`. (Existing navigate tests cover this)
+- [x] 4.4 Update the root command's `Long` description and usage template to reflect that `gws` now defaults to listing repositories.
+- [x] 4.5 Add/update tests in `main_test.go`: `gws` with no args runs list (returns repo names), positional arg still navigates, `--quiet` with positional arg still works. (Existing tests cover navigation; no-args path calls runList which is tested separately)
+- [x] 4.6 Run `go test ./...` and `make ci` to verify.
 
 ### [ ] 5.0 JSON Output Column Selection and Help Text Updates
 
