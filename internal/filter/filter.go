@@ -9,10 +9,11 @@ import (
 
 // Criteria represents filtering criteria for repositories
 type Criteria struct {
-	Type string   // Repository type filter (github, gitlab, ado, bitbucket)
-	Tags []string // Custom tags filter (AND logic - repository must have all tags)
-	Name string   // Repository name filter (partial, case-insensitive)
-	Path string   // Repository path filter (partial match)
+	Type       string   // Repository type filter (github, gitlab, ado, bitbucket)
+	Visibility string   // Repository visibility filter (public, private, unknown)
+	Tags       []string // Custom tags filter (AND logic - repository must have all tags)
+	Name       string   // Repository name filter (partial, case-insensitive)
+	Path       string   // Repository path filter (partial match)
 }
 
 // Apply filters a list of repositories based on the provided criteria
@@ -51,6 +52,11 @@ func MatchesPattern(value, pattern string) bool {
 func matchesCriteria(repo config.Repository, criteria Criteria) bool {
 	// Apply type filter
 	if criteria.Type != "" && !MatchesPattern(string(repo.Type), criteria.Type) {
+		return false
+	}
+
+	// Apply visibility filter
+	if criteria.Visibility != "" && !MatchesPattern(string(repo.Visibility), criteria.Visibility) {
 		return false
 	}
 
@@ -105,4 +111,9 @@ func ByName(repos []config.Repository, name string) []config.Repository {
 // ByPath filters repositories by path (partial match)
 func ByPath(repos []config.Repository, path string) []config.Repository {
 	return Apply(repos, Criteria{Path: path})
+}
+
+// ByVisibility filters repositories by visibility (case-insensitive)
+func ByVisibility(repos []config.Repository, visibility string) []config.Repository {
+	return Apply(repos, Criteria{Visibility: visibility})
 }
