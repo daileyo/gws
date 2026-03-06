@@ -99,6 +99,29 @@ func init() {
 
 	// Verbose count flag: -v = 1, -vv = 2
 	listCmd.Flags().CountVarP(&verboseCount, "verbose", "v", "Verbose output (-v stored data, -vv all columns)")
+
+	// Custom help function to clean up NoOptDefVal display artifacts.
+	// Cobra renders string flags with NoOptDefVal as: --flag string[="sentinel"]
+	// We strip the string[="..."] part for cleaner help output.
+	defaultUsages := listCmd.Flags().FlagUsages
+	listCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		raw := defaultUsages()
+		// Remove all string[="..."] artifacts from NoOptDefVal flags
+		cleaned := raw
+		for strings.Contains(cleaned, "string[=\"") {
+			start := strings.Index(cleaned, "string[=\"")
+			end := strings.Index(cleaned[start:], "\"]")
+			if end < 0 {
+				break
+			}
+			cleaned = cleaned[:start] + cleaned[start+end+2:]
+		}
+		// Also clean up any remaining " string" type hints on the cleaned flags
+		// (non-NoOptDefVal string flags like --output and --name keep their type hint)
+
+		fmt.Fprint(cmd.OutOrStdout(), cmd.Long+"\n\n")
+		fmt.Fprintf(cmd.OutOrStdout(), "Usage:\n  %s\n\nFlags:\n%s", cmd.UseLine(), cleaned)
+	})
 }
 
 // ListOptions holds all parameters for the list operation.
@@ -648,33 +671,86 @@ func formatStatusShort(status *git.Status) string {
 	return result
 }
 
-// repoJSONWithRemote extends Repository with remote inspection fields for JSON output
-type repoJSONWithRemote struct {
-	config.Repository
-	HasMultipleRemotes bool `json:"has_multiple_remotes"`
-}
-
 // displayJSON outputs repositories in JSON format respecting column selection.
+// Only fields for displayed columns are included; "name" is always present.
 func displayJSON(repos []config.Repository, opts ListOptions) error {
-	if !opts.ShowRemote {
-		data, err := json.MarshalIndent(repos, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal JSON: %w", err)
+	entries := make([]map[string]interface{}, len(repos))
+
+	// Load status cache if needed
+	var statusCache *git.Cache
+	if opts.ShowStatus {
+		statusCache = git.NewCache(git.DefaultTTL)
+		cachePath, err := git.GetCachePath()
+		if err == nil {
+			_ = statusCache.Load(cachePath)
 		}
-		fmt.Println(string(data))
-		return nil
 	}
 
-	// Build extended entries with remote info
-	entries := make([]repoJSONWithRemote, len(repos))
 	for i, repo := range repos {
-		entries[i] = repoJSONWithRemote{Repository: repo}
-		remoteInfo, err := git.GetRemoteInfo(repo.Path)
-		if err == nil {
-			if remoteInfo.OriginURL != "" {
-				entries[i].RemoteURL = remoteInfo.OriginURL
+		entry := map[string]interface{}{
+			"name": repo.Name,
+		}
+
+		if opts.ShowType {
+			t := string(repo.Type)
+			if t == "" {
+				t = "unknown"
 			}
-			entries[i].HasMultipleRemotes = remoteInfo.HasMultiple
+			entry["type"] = t
+		}
+		if opts.ShowVisibility {
+			v := string(repo.Visibility)
+			if v == "" {
+				v = "unknown"
+			}
+			entry["visibility"] = v
+		}
+		if opts.ShowTags {
+			if repo.Tags != nil {
+				entry["tags"] = repo.Tags
+			} else {
+				entry["tags"] = []string{}
+			}
+		}
+		if opts.ShowPath {
+			entry["path"] = repo.Path
+		}
+		if opts.ShowStatus && statusCache != nil {
+			status, _ := statusCache.GetOrFetch(repo.Path)
+			if status != nil {
+				entry["status"] = formatStatusShort(status)
+			} else {
+				entry["status"] = "-"
+			}
+		}
+		if opts.ShowUser {
+			entry["user"] = repo.User
+			entry["email"] = repo.Email
+			entry["signing_enabled"] = repo.SigningEnabled
+		}
+		if opts.ShowRemote {
+			remoteInfo, err := git.GetRemoteInfo(repo.Path)
+			if err == nil {
+				if remoteInfo.OriginURL != "" {
+					entry["remote_url"] = remoteInfo.OriginURL
+				} else {
+					entry["remote_url"] = repo.RemoteURL
+				}
+				entry["has_multiple_remotes"] = remoteInfo.HasMultiple
+			} else {
+				entry["remote_url"] = repo.RemoteURL
+				entry["has_multiple_remotes"] = false
+			}
+		}
+
+		entries[i] = entry
+	}
+
+	// Save status cache if used
+	if statusCache != nil {
+		cachePath, err := git.GetCachePath()
+		if err == nil {
+			_ = statusCache.Save(cachePath)
 		}
 	}
 
