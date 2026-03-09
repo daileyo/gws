@@ -27,6 +27,7 @@ func TestFilterFlagsOnListCmd(t *testing.T) {
 		{"status", "s"},
 		{"show-user", "u"},
 		{"remote", "r"},
+		{"remote-raw", "R"},
 		{"verbose", "v"},
 	}
 
@@ -137,6 +138,39 @@ func TestListCmdFlagStackingWithRemote(t *testing.T) {
 	}
 	if flagUser != showColumnSentinel {
 		t.Errorf("Expected flagUser to be sentinel after -rsu, got %q", flagUser)
+	}
+}
+
+func TestListCmdFlagStackingWithRemoteRaw(t *testing.T) {
+	// Verify POSIX flag stacking: -Rsu should set remote-raw, status, and user
+	origStatus := flagStatus
+	origUser := flagUser
+	origRemoteRaw := flagRemoteRaw
+	defer func() {
+		flagStatus = origStatus
+		flagUser = origUser
+		flagRemoteRaw = origRemoteRaw
+	}()
+
+	// Reset
+	flagStatus = ""
+	flagUser = ""
+	flagRemoteRaw = ""
+
+	// Parse stacked flags
+	err := listCmd.Flags().Parse([]string{"-Rsu"})
+	if err != nil {
+		t.Fatalf("Failed to parse -Rsu: %v", err)
+	}
+
+	if flagRemoteRaw != showColumnSentinel {
+		t.Errorf("Expected flagRemoteRaw to be sentinel after -Rsu, got %q", flagRemoteRaw)
+	}
+	if flagStatus != showColumnSentinel {
+		t.Errorf("Expected flagStatus to be sentinel after -Rsu, got %q", flagStatus)
+	}
+	if flagUser != showColumnSentinel {
+		t.Errorf("Expected flagUser to be sentinel after -Rsu, got %q", flagUser)
 	}
 }
 

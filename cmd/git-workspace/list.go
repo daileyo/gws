@@ -32,6 +32,7 @@ var (
 	flagStatus     string
 	flagUser       string
 	flagRemote     string
+	flagRemoteRaw  string
 	flagName       string
 	outputFormat   string
 	verboseCount   int
@@ -116,7 +117,9 @@ Examples:
   gws list -y=github -tp            # Filter by GitHub, show type, tags, path
   gws list -n "api-*"               # Filter by name pattern
   gws list -su                      # Show status and user columns
-  gws list -r                       # Show remote URL column
+  gws list -r                       # Show formatted remote URL column
+  gws list -R                       # Show raw remote URL column
+  gws list -rR                      # Show raw remote URL (override)
   gws list -o json                  # Output as JSON
 
 Note: dual-purpose flags use = for values (e.g., -y=github, --type=github).
@@ -152,8 +155,11 @@ func init() {
 	listCmd.Flags().StringVarP(&flagUser, "show-user", "u", "", "Show user/email/sign columns, or filter by user name")
 	listCmd.Flags().Lookup("show-user").NoOptDefVal = showColumnSentinel
 
-	listCmd.Flags().StringVarP(&flagRemote, "remote", "r", "", "Show remote URL column, or filter by remote URL pattern")
+	listCmd.Flags().StringVarP(&flagRemote, "remote", "r", "", "Show formatted remote URL column, or filter by remote URL pattern")
 	listCmd.Flags().Lookup("remote").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagRemoteRaw, "remote-raw", "R", "", "Show raw remote URL column, or filter by raw remote URL pattern")
+	listCmd.Flags().Lookup("remote-raw").NoOptDefVal = showColumnSentinel
 
 	// Filter-only flags
 	listCmd.Flags().StringVarP(&flagName, "name", "n", "", "Filter by repository name (partial match, supports wildcards)")
@@ -203,6 +209,7 @@ type ListOptions struct {
 	FilterStatus     string
 	FilterUser       string
 	FilterRemote     string
+	FilterRemoteRaw  string
 
 	// Column display toggles
 	ShowType       bool
@@ -212,6 +219,7 @@ type ListOptions struct {
 	ShowStatus     bool
 	ShowUser       bool
 	ShowRemote     bool
+	ShowRemoteRaw  bool
 
 	// Output
 	OutputFormat string
@@ -227,7 +235,7 @@ type ListOptions struct {
 // AnyColumnSelected returns true if any column display flag is set.
 func (o ListOptions) AnyColumnSelected() bool {
 	return o.ShowType || o.ShowVisibility || o.ShowTags || o.ShowPath ||
-		o.ShowStatus || o.ShowUser || o.ShowRemote
+		o.ShowStatus || o.ShowUser || o.ShowRemote || o.ShowRemoteRaw
 }
 
 // parseDualPurposeFlags reads cobra flag state and builds ListOptions.
@@ -255,6 +263,12 @@ func parseDualPurposeFlags(cmd *cobra.Command) ListOptions {
 	opts.FilterStatus, opts.ShowStatus = parseDual("status", flagStatus)
 	opts.FilterUser, opts.ShowUser = parseDual("show-user", flagUser)
 	opts.FilterRemote, opts.ShowRemote = parseDual("remote", flagRemote)
+	opts.FilterRemoteRaw, opts.ShowRemoteRaw = parseDual("remote-raw", flagRemoteRaw)
+
+	// -R without -r implicitly enables remote display
+	if opts.ShowRemoteRaw && !opts.ShowRemote {
+		opts.ShowRemote = true
+	}
 
 	// Tag: dual-purpose. Multiple -t values collected via repeated flag.
 	if cmd.Flags().Changed("tag") {
@@ -448,24 +462,32 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 	userInfoMap := make(map[string]repoUserInfo)
 
 	// Pre-compute remote display strings
+	// By default, format URLs to clean HTTPS. With ShowRemoteRaw, use raw URLs.
 	remoteDisplayMap := make(map[string]string)
 	if opts.ShowRemote {
+		useRaw := opts.ShowRemoteRaw
+		formatURL := func(rawURL string) string {
+			if useRaw {
+				return rawURL
+			}
+			return git.FormatRemoteURL(rawURL)
+		}
 		for _, repo := range repos {
 			remoteInfo, err := git.GetRemoteInfo(repo.Path)
 			if err != nil {
 				// Graceful fallback: use stored URL without asterisk
-				remoteDisplayMap[repo.Path] = repo.RemoteURL
+				remoteDisplayMap[repo.Path] = formatURL(repo.RemoteURL)
 				continue
 			}
 			switch {
 			case remoteInfo.OriginURL != "" && remoteInfo.HasMultiple:
-				remoteDisplayMap[repo.Path] = "* " + remoteInfo.OriginURL
+				remoteDisplayMap[repo.Path] = "* " + formatURL(remoteInfo.OriginURL)
 			case remoteInfo.OriginURL != "":
-				remoteDisplayMap[repo.Path] = remoteInfo.OriginURL
+				remoteDisplayMap[repo.Path] = formatURL(remoteInfo.OriginURL)
 			case remoteInfo.HasMultiple:
 				remoteDisplayMap[repo.Path] = "*"
 			default:
-				remoteDisplayMap[repo.Path] = repo.RemoteURL
+				remoteDisplayMap[repo.Path] = formatURL(repo.RemoteURL)
 			}
 		}
 	}
@@ -930,16 +952,22 @@ func displayJSON(repos []config.Repository, statusMap map[string]*git.Status, op
 			entry["signing_enabled"] = repo.SigningEnabled
 		}
 		if opts.ShowRemote {
+			jsonFormatURL := func(rawURL string) string {
+				if opts.ShowRemoteRaw {
+					return rawURL
+				}
+				return git.FormatRemoteURL(rawURL)
+			}
 			remoteInfo, err := git.GetRemoteInfo(repo.Path)
 			if err == nil {
 				if remoteInfo.OriginURL != "" {
-					entry["remote_url"] = remoteInfo.OriginURL
+					entry["remote_url"] = jsonFormatURL(remoteInfo.OriginURL)
 				} else {
-					entry["remote_url"] = repo.RemoteURL
+					entry["remote_url"] = jsonFormatURL(repo.RemoteURL)
 				}
 				entry["has_multiple_remotes"] = remoteInfo.HasMultiple
 			} else {
-				entry["remote_url"] = repo.RemoteURL
+				entry["remote_url"] = jsonFormatURL(repo.RemoteURL)
 				entry["has_multiple_remotes"] = false
 			}
 		}
