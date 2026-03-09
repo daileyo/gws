@@ -129,3 +129,76 @@ func TestGetRemoteInfo_InvalidPath(t *testing.T) {
 		t.Error("Expected error for invalid path, got nil")
 	}
 }
+
+func TestFormatRemoteURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "SSH GitHub",
+			input:    "git@github.com:owner/repo.git",
+			expected: "https://github.com/owner/repo.git",
+		},
+		{
+			name:     "SSH GitLab with subgroup",
+			input:    "git@gitlab.com:group/subgroup/repo.git",
+			expected: "https://gitlab.com/group/subgroup/repo.git",
+		},
+		{
+			name:     "HTTPS without user info",
+			input:    "https://github.com/owner/repo.git",
+			expected: "https://github.com/owner/repo.git",
+		},
+		{
+			name:     "HTTPS with user info",
+			input:    "https://user@github.com/owner/repo.git",
+			expected: "https://github.com/owner/repo.git",
+		},
+		{
+			name:     "HTTPS with user and password",
+			input:    "https://user:pass@github.com/owner/repo.git",
+			expected: "https://github.com/owner/repo.git",
+		},
+		{
+			name:     "Azure DevOps SSH",
+			input:    "git@ssh.dev.azure.com:v3/org/project/repo",
+			expected: "https://dev.azure.com/org/project/_git/repo",
+		},
+		{
+			name:     "Azure DevOps HTTPS with user info",
+			input:    "https://user@dev.azure.com/org/project/_git/repo",
+			expected: "https://dev.azure.com/org/project/_git/repo",
+		},
+		{
+			name:     "file protocol unchanged",
+			input:    "file:///local/path/repo",
+			expected: "file:///local/path/repo",
+		},
+		{
+			name:     "empty string unchanged",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "SSH protocol URL unchanged",
+			input:    "ssh://git@github.com/owner/repo.git",
+			expected: "ssh://git@github.com/owner/repo.git",
+		},
+		{
+			name:     "HTTP with user info",
+			input:    "http://user@example.com/repo.git",
+			expected: "http://example.com/repo.git",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatRemoteURL(tt.input)
+			if got != tt.expected {
+				t.Errorf("FormatRemoteURL(%q) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
