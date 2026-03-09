@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.16.0](https://github.com/daileyo/gws/compare/v2.15.0...v2.16.0) (2026-03-09)
+
+
+### Features
+
+* add --remote-raw/-R flag and format remote URLs by default ([ebf2186](https://github.com/daileyo/gws/commit/ebf2186101845db34681387f733851f2bb417346))
+* add FormatRemoteURL utility for clean HTTPS URL display ([e89b5d7](https://github.com/daileyo/gws/commit/e89b5d7c7f1662b4ccbfd0fa7dd4d10932a65372))
+
 ## [2.15.0](https://github.com/daileyo/gws/compare/v2.14.0...v2.15.0) (2026-03-06)
 
 
