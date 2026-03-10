@@ -286,7 +286,7 @@ var shortToShowFlag = map[byte]*string{
 // the value, following POSIX conventions.
 //
 // Returns true if the arg was successfully reassigned.
-func reassignTrailingArg(cmd *cobra.Command, value string) bool {
+func reassignTrailingArg(_ *cobra.Command, value string) bool {
 	// Scan os.Args to find the last uppercase short flag letter that
 	// was used. This correctly handles stacking order.
 	var lastFlagVar *string
