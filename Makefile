@@ -99,8 +99,13 @@ snapshot:
 
 ## docs: Serve MkDocs site locally for preview (http://127.0.0.1:8000)
 docs:
+	@if [ ! -d .venv ]; then \
+		echo "Creating Python virtual environment..."; \
+		python3 -m venv .venv; \
+		.venv/bin/pip install -r docs/requirements.txt; \
+	fi
 	@echo "Starting MkDocs dev server..."
-	python3 -m mkdocs serve
+	.venv/bin/python -m mkdocs serve
 
 ## ci: Run all CI checks (vet, lint, test with race detector)
 ci: vet lint test-race

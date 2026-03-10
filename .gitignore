@@ -28,6 +28,9 @@ dist/
 /gws
 /git-workspace
 
+# Python virtual environment
+.venv/
+
 # IDE and editor files
 .vscode/
 .idea/
