@@ -12,22 +12,35 @@ import (
 	"github.com/daileyo/gws/internal/git"
 )
 
+// --- Flag Registration Tests ---
+
 func TestFilterFlagsOnListCmd(t *testing.T) {
 	// Verify all filter/display flags are registered on listCmd with correct shorthands
 	flags := []struct {
 		name      string
 		shorthand string
 	}{
+		// Lowercase filter-only flags
 		{"type", "y"},
-		{"visibility", "V"},
+		{"visibility", "i"},
 		{"tag", "t"},
 		{"name", "n"},
 		{"path", "p"},
-		{"output", "o"},
 		{"status", "s"},
 		{"show-user", "u"},
 		{"remote", "r"},
-		{"remote-raw", "R"},
+		{"remote-raw", "b"},
+		// Uppercase show+filter flags
+		{"show-type", "Y"},
+		{"show-visibility", "I"},
+		{"show-tag", "T"},
+		{"show-path", "P"},
+		{"show-status", "S"},
+		{"show-user-col", "U"},
+		{"show-remote", "R"},
+		{"show-remote-raw", "B"},
+		// Other flags
+		{"output", "o"},
 		{"verbose", "v"},
 	}
 
@@ -63,11 +76,29 @@ func TestFilterFlagsOnRootAreHidden(t *testing.T) {
 	}
 }
 
-func TestDualPurposeFlagNoOptDefVal(t *testing.T) {
-	// Verify dual-purpose flags have NoOptDefVal set to the sentinel
-	dualPurposeFlags := []string{"type", "visibility", "tag", "path", "status", "show-user", "remote"}
+func TestLowercaseFlagsNoOptDefVal(t *testing.T) {
+	// Lowercase filter-only flags should NOT have NoOptDefVal
+	filterOnlyFlags := []string{"type", "visibility", "tag", "path", "status", "show-user", "remote", "remote-raw", "name"}
 
-	for _, name := range dualPurposeFlags {
+	for _, name := range filterOnlyFlags {
+		t.Run(name, func(t *testing.T) {
+			flag := listCmd.Flags().Lookup(name)
+			if flag == nil {
+				t.Errorf("Flag --%s not found on listCmd", name)
+				return
+			}
+			if flag.NoOptDefVal != "" {
+				t.Errorf("Lowercase flag --%s should NOT have NoOptDefVal, got %q", name, flag.NoOptDefVal)
+			}
+		})
+	}
+}
+
+func TestUppercaseFlagsHaveNoOptDefVal(t *testing.T) {
+	// Uppercase show+filter flags should have NoOptDefVal set to the sentinel
+	showFlags := []string{"show-type", "show-visibility", "show-tag", "show-path", "show-status", "show-user-col", "show-remote", "show-remote-raw"}
+
+	for _, name := range showFlags {
 		t.Run(name, func(t *testing.T) {
 			flag := listCmd.Flags().Lookup(name)
 			if flag == nil {
@@ -75,172 +106,358 @@ func TestDualPurposeFlagNoOptDefVal(t *testing.T) {
 				return
 			}
 			if flag.NoOptDefVal != showColumnSentinel {
-				t.Errorf("Flag --%s NoOptDefVal: expected sentinel, got %q", name, flag.NoOptDefVal)
+				t.Errorf("Uppercase flag --%s NoOptDefVal: expected sentinel, got %q", name, flag.NoOptDefVal)
 			}
 		})
 	}
 }
 
-func TestListCmdFlagStacking(t *testing.T) {
-	// Verify POSIX flag stacking: -su should set both status and user flags
-	origStatus := flagStatus
-	origUser := flagUser
-	defer func() {
-		flagStatus = origStatus
-		flagUser = origUser
-	}()
+// --- Lowercase Filter-Only Flag Tests ---
 
-	// Reset
-	flagStatus = ""
-	flagUser = ""
-
-	// Parse stacked flags — these are NoOptDefVal flags so stacking sets them to sentinel
-	err := listCmd.Flags().Parse([]string{"-su"})
-	if err != nil {
-		t.Fatalf("Failed to parse -su: %v", err)
-	}
-
-	if flagStatus != showColumnSentinel {
-		t.Errorf("Expected flagStatus to be sentinel after -su, got %q", flagStatus)
-	}
-	if flagUser != showColumnSentinel {
-		t.Errorf("Expected flagUser to be sentinel after -su, got %q", flagUser)
-	}
-}
-
-func TestListCmdFlagStackingWithRemote(t *testing.T) {
-	// Verify POSIX flag stacking: -rsu should set remote, status, and user
-	origStatus := flagStatus
-	origUser := flagUser
-	origRemote := flagRemote
-	defer func() {
-		flagStatus = origStatus
-		flagUser = origUser
-		flagRemote = origRemote
-	}()
-
-	// Reset
-	flagStatus = ""
-	flagUser = ""
-	flagRemote = ""
-
-	// Parse stacked flags
-	err := listCmd.Flags().Parse([]string{"-rsu"})
-	if err != nil {
-		t.Fatalf("Failed to parse -rsu: %v", err)
-	}
-
-	if flagRemote != showColumnSentinel {
-		t.Errorf("Expected flagRemote to be sentinel after -rsu, got %q", flagRemote)
-	}
-	if flagStatus != showColumnSentinel {
-		t.Errorf("Expected flagStatus to be sentinel after -rsu, got %q", flagStatus)
-	}
-	if flagUser != showColumnSentinel {
-		t.Errorf("Expected flagUser to be sentinel after -rsu, got %q", flagUser)
-	}
-}
-
-func TestListCmdFlagStackingWithRemoteRaw(t *testing.T) {
-	// Verify POSIX flag stacking: -Rsu should set remote-raw, status, and user
-	origStatus := flagStatus
-	origUser := flagUser
-	origRemoteRaw := flagRemoteRaw
-	defer func() {
-		flagStatus = origStatus
-		flagUser = origUser
-		flagRemoteRaw = origRemoteRaw
-	}()
-
-	// Reset
-	flagStatus = ""
-	flagUser = ""
-	flagRemoteRaw = ""
-
-	// Parse stacked flags
-	err := listCmd.Flags().Parse([]string{"-Rsu"})
-	if err != nil {
-		t.Fatalf("Failed to parse -Rsu: %v", err)
-	}
-
-	if flagRemoteRaw != showColumnSentinel {
-		t.Errorf("Expected flagRemoteRaw to be sentinel after -Rsu, got %q", flagRemoteRaw)
-	}
-	if flagStatus != showColumnSentinel {
-		t.Errorf("Expected flagStatus to be sentinel after -Rsu, got %q", flagStatus)
-	}
-	if flagUser != showColumnSentinel {
-		t.Errorf("Expected flagUser to be sentinel after -Rsu, got %q", flagUser)
-	}
-}
-
-func TestListCmdFlagStackingNewFlags(t *testing.T) {
-	// Verify POSIX flag stacking with new flags: -yVtp
-	origType := flagType
-	origVis := flagVisibility
-	origTag := flagTag
-	origPath := flagPath
-	defer func() {
-		flagType = origType
-		flagVisibility = origVis
-		flagTag = origTag
-		flagPath = origPath
-	}()
-
-	// Reset
-	flagType = ""
-	flagVisibility = ""
-	flagTag = ""
-	flagPath = ""
-
-	err := listCmd.Flags().Parse([]string{"-yVtp"})
-	if err != nil {
-		t.Fatalf("Failed to parse -yVtp: %v", err)
-	}
-
-	if flagType != showColumnSentinel {
-		t.Errorf("Expected flagType to be sentinel after -yVtp, got %q", flagType)
-	}
-	if flagVisibility != showColumnSentinel {
-		t.Errorf("Expected flagVisibility to be sentinel after -yVtp, got %q", flagVisibility)
-	}
-	if flagTag != showColumnSentinel {
-		t.Errorf("Expected flagTag to be sentinel after -yVtp, got %q", flagTag)
-	}
-	if flagPath != showColumnSentinel {
-		t.Errorf("Expected flagPath to be sentinel after -yVtp, got %q", flagPath)
-	}
-}
-
-func TestDualPurposeFlagWithValue(t *testing.T) {
-	// With NoOptDefVal, values require = syntax: -y=github or --type=github
+func TestLowercaseFilterSpaceSeparated(t *testing.T) {
+	// Lowercase flags accept space-separated values (no = required)
 	tests := []struct {
 		name     string
 		args     []string
+		flagVar  *string
 		expected string
 	}{
-		{"short with equals", []string{"-y=github"}, "github"},
-		{"long with equals", []string{"--type=github"}, "github"},
-		{"short without value", []string{"-y"}, showColumnSentinel},
+		{"type -y github", []string{"-y", "github"}, &flagType, "github"},
+		{"tag -t ai", []string{"-t", "ai"}, &flagTag, "ai"},
+		{"path -p /home", []string{"-p", "/home"}, &flagPath, "/home"},
+		{"status -s clean", []string{"-s", "clean"}, &flagStatus, "clean"},
+		{"user -u alice", []string{"-u", "alice"}, &flagUser, "alice"},
+		{"remote -r github", []string{"-r", "github"}, &flagRemote, "github"},
+		{"visibility -i private", []string{"-i", "private"}, &flagVisibility, "private"},
+		{"remote-raw -b git@", []string{"-b", "git@"}, &flagRemoteRaw, "git@"},
+		{"name -n api", []string{"-n", "api"}, &flagName, "api"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			origType := flagType
-			defer func() { flagType = origType }()
-			flagType = ""
+			orig := *tt.flagVar
+			defer func() { *tt.flagVar = orig }()
+			*tt.flagVar = ""
 
 			err := listCmd.Flags().Parse(tt.args)
 			if err != nil {
 				t.Fatalf("Failed to parse %v: %v", tt.args, err)
 			}
 
-			if flagType != tt.expected {
-				t.Errorf("Expected flagType to be %q, got %q", tt.expected, flagType)
+			if *tt.flagVar != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, *tt.flagVar)
 			}
 		})
 	}
 }
+
+func TestLowercaseFilterEqualsCompatibility(t *testing.T) {
+	// Lowercase flags also accept = syntax
+	tests := []struct {
+		name     string
+		args     []string
+		flagVar  *string
+		expected string
+	}{
+		{"type -y=github", []string{"-y=github"}, &flagType, "github"},
+		{"tag -t=ai", []string{"-t=ai"}, &flagTag, "ai"},
+		{"long --type=github", []string{"--type=github"}, &flagType, "github"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orig := *tt.flagVar
+			defer func() { *tt.flagVar = orig }()
+			*tt.flagVar = ""
+
+			err := listCmd.Flags().Parse(tt.args)
+			if err != nil {
+				t.Fatalf("Failed to parse %v: %v", tt.args, err)
+			}
+
+			if *tt.flagVar != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, *tt.flagVar)
+			}
+		})
+	}
+}
+
+// --- Uppercase Show+Filter Flag Tests ---
+
+func TestUppercaseBareShowColumn(t *testing.T) {
+	// Uppercase flags used bare (no value) set the sentinel to show column
+	tests := []struct {
+		name     string
+		args     []string
+		flagVar  *string
+		expected string
+	}{
+		{"show-type -Y", []string{"-Y"}, &flagShowType, showColumnSentinel},
+		{"show-tag -T", []string{"-T"}, &flagShowTag, showColumnSentinel},
+		{"show-path -P", []string{"-P"}, &flagShowPath, showColumnSentinel},
+		{"show-status -S", []string{"-S"}, &flagShowStatus, showColumnSentinel},
+		{"show-user -U", []string{"-U"}, &flagShowUser, showColumnSentinel},
+		{"show-remote -R", []string{"-R"}, &flagShowRemote, showColumnSentinel},
+		{"show-visibility -I", []string{"-I"}, &flagShowVisibility, showColumnSentinel},
+		{"show-remote-raw -B", []string{"-B"}, &flagShowRemoteRaw, showColumnSentinel},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orig := *tt.flagVar
+			defer func() { *tt.flagVar = orig }()
+			*tt.flagVar = ""
+
+			err := listCmd.Flags().Parse(tt.args)
+			if err != nil {
+				t.Fatalf("Failed to parse %v: %v", tt.args, err)
+			}
+
+			if *tt.flagVar != tt.expected {
+				t.Errorf("Expected sentinel, got %q", *tt.flagVar)
+			}
+		})
+	}
+}
+
+func TestUppercaseWithValueEqualsOnly(t *testing.T) {
+	// Uppercase flags with = syntax work directly at the parse level
+	tests := []struct {
+		name     string
+		args     []string
+		flagVar  *string
+		expected string
+	}{
+		{"show-type -Y=github", []string{"-Y=github"}, &flagShowType, "github"},
+		{"show-tag -T=ai", []string{"-T=ai"}, &flagShowTag, "ai"},
+		{"show-status -S=clean", []string{"-S=clean"}, &flagShowStatus, "clean"},
+		{"show-visibility -I=private", []string{"-I=private"}, &flagShowVisibility, "private"},
+		{"show-remote -R=github", []string{"-R=github"}, &flagShowRemote, "github"},
+		{"show-remote-raw -B=git@", []string{"-B=git@"}, &flagShowRemoteRaw, "git@"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orig := *tt.flagVar
+			defer func() { *tt.flagVar = orig }()
+			*tt.flagVar = ""
+
+			err := listCmd.Flags().Parse(tt.args)
+			if err != nil {
+				t.Fatalf("Failed to parse %v: %v", tt.args, err)
+			}
+
+			if *tt.flagVar != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, *tt.flagVar)
+			}
+		})
+	}
+}
+
+func TestUppercaseSpaceSeparatedViaReassignment(t *testing.T) {
+	// Uppercase flags with space-separated values: Cobra puts the value
+	// as a remaining arg, and reassignTrailingArg reassigns it.
+	// This simulates what RunE does.
+	tests := []struct {
+		name     string
+		args     []string
+		flagVar  *string
+		expected string
+	}{
+		{"show-tag -T ai", []string{"-T", "ai"}, &flagShowTag, "ai"},
+		{"show-type -Y github", []string{"-Y", "github"}, &flagShowType, "github"},
+		{"show-status -S clean", []string{"-S", "clean"}, &flagShowStatus, "clean"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orig := *tt.flagVar
+			defer func() { *tt.flagVar = orig }()
+			*tt.flagVar = ""
+
+			err := listCmd.Flags().Parse(tt.args[:1]) // parse flag only
+			if err != nil {
+				t.Fatalf("Failed to parse %v: %v", tt.args[:1], err)
+			}
+
+			if *tt.flagVar != showColumnSentinel {
+				t.Fatalf("Expected sentinel after bare flag, got %q", *tt.flagVar)
+			}
+
+			// Simulate reassignment (what RunE does with remaining args)
+			*tt.flagVar = tt.args[1]
+
+			if *tt.flagVar != tt.expected {
+				t.Errorf("Expected %q after reassignment, got %q", tt.expected, *tt.flagVar)
+			}
+		})
+	}
+}
+
+func TestUppercaseEqualsCompatibility(t *testing.T) {
+	// Uppercase flags also accept = syntax
+	origType := flagShowType
+	defer func() { flagShowType = origType }()
+	flagShowType = ""
+
+	err := listCmd.Flags().Parse([]string{"-Y=github"})
+	if err != nil {
+		t.Fatalf("Failed to parse -Y=github: %v", err)
+	}
+
+	if flagShowType != "github" {
+		t.Errorf("Expected %q, got %q", "github", flagShowType)
+	}
+}
+
+// --- Flag Stacking Tests ---
+
+func TestUppercaseFlagStacking(t *testing.T) {
+	// Uppercase bare flags can be stacked: -SU sets both show-status and show-user
+	origStatus := flagShowStatus
+	origUser := flagShowUser
+	defer func() {
+		flagShowStatus = origStatus
+		flagShowUser = origUser
+	}()
+
+	flagShowStatus = ""
+	flagShowUser = ""
+
+	err := listCmd.Flags().Parse([]string{"-SU"})
+	if err != nil {
+		t.Fatalf("Failed to parse -SU: %v", err)
+	}
+
+	if flagShowStatus != showColumnSentinel {
+		t.Errorf("Expected flagShowStatus to be sentinel after -SU, got %q", flagShowStatus)
+	}
+	if flagShowUser != showColumnSentinel {
+		t.Errorf("Expected flagShowUser to be sentinel after -SU, got %q", flagShowUser)
+	}
+}
+
+func TestUppercaseFlagStackingMultiple(t *testing.T) {
+	// Stack multiple uppercase flags: -YTSP
+	origType := flagShowType
+	origTag := flagShowTag
+	origStatus := flagShowStatus
+	origPath := flagShowPath
+	defer func() {
+		flagShowType = origType
+		flagShowTag = origTag
+		flagShowStatus = origStatus
+		flagShowPath = origPath
+	}()
+
+	flagShowType = ""
+	flagShowTag = ""
+	flagShowStatus = ""
+	flagShowPath = ""
+
+	err := listCmd.Flags().Parse([]string{"-YTSP"})
+	if err != nil {
+		t.Fatalf("Failed to parse -YTSP: %v", err)
+	}
+
+	if flagShowType != showColumnSentinel {
+		t.Errorf("Expected flagShowType to be sentinel after -YTSP, got %q", flagShowType)
+	}
+	if flagShowTag != showColumnSentinel {
+		t.Errorf("Expected flagShowTag to be sentinel after -YTSP, got %q", flagShowTag)
+	}
+	if flagShowStatus != showColumnSentinel {
+		t.Errorf("Expected flagShowStatus to be sentinel after -YTSP, got %q", flagShowStatus)
+	}
+	if flagShowPath != showColumnSentinel {
+		t.Errorf("Expected flagShowPath to be sentinel after -YTSP, got %q", flagShowPath)
+	}
+}
+
+func TestUppercaseFlagStackingWithTrailingValue(t *testing.T) {
+	// -YT ai: Cobra parses Y=sentinel, T=sentinel, "ai" is remaining.
+	// reassignTrailingArg assigns "ai" to T (last in stack).
+	origType := flagShowType
+	origTag := flagShowTag
+	defer func() {
+		flagShowType = origType
+		flagShowTag = origTag
+	}()
+
+	flagShowType = ""
+	flagShowTag = ""
+
+	err := listCmd.Flags().Parse([]string{"-YT"})
+	if err != nil {
+		t.Fatalf("Failed to parse -YT: %v", err)
+	}
+
+	if flagShowType != showColumnSentinel {
+		t.Errorf("Expected flagShowType to be sentinel after -YT, got %q", flagShowType)
+	}
+	if flagShowTag != showColumnSentinel {
+		t.Errorf("Expected flagShowTag to be sentinel after -YT, got %q", flagShowTag)
+	}
+
+	// Simulate reassignment (what RunE does): assign "ai" to the last flag (T)
+	flagShowTag = "ai"
+
+	if flagShowType != showColumnSentinel {
+		t.Errorf("Expected flagShowType to remain sentinel, got %q", flagShowType)
+	}
+	if flagShowTag != "ai" {
+		t.Errorf("Expected flagShowTag to be %q after reassignment, got %q", "ai", flagShowTag)
+	}
+}
+
+func TestUppercaseStackingWithRemote(t *testing.T) {
+	// -RSU: show remote, status, user columns
+	origRemote := flagShowRemote
+	origStatus := flagShowStatus
+	origUser := flagShowUser
+	defer func() {
+		flagShowRemote = origRemote
+		flagShowStatus = origStatus
+		flagShowUser = origUser
+	}()
+
+	flagShowRemote = ""
+	flagShowStatus = ""
+	flagShowUser = ""
+
+	err := listCmd.Flags().Parse([]string{"-RSU"})
+	if err != nil {
+		t.Fatalf("Failed to parse -RSU: %v", err)
+	}
+
+	if flagShowRemote != showColumnSentinel {
+		t.Errorf("Expected flagShowRemote to be sentinel, got %q", flagShowRemote)
+	}
+	if flagShowStatus != showColumnSentinel {
+		t.Errorf("Expected flagShowStatus to be sentinel, got %q", flagShowStatus)
+	}
+	if flagShowUser != showColumnSentinel {
+		t.Errorf("Expected flagShowUser to be sentinel, got %q", flagShowUser)
+	}
+}
+
+// --- Deprecated Flag Tests ---
+
+func TestDeprecatedVisibilityFlag(t *testing.T) {
+	// Old -V flag should still be registered (hidden) on listCmd
+	flag := listCmd.Flags().Lookup("dep-visibility")
+	if flag == nil {
+		t.Fatal("Deprecated -V flag not found on listCmd")
+	}
+	if !flag.Hidden {
+		t.Error("Deprecated -V flag should be hidden")
+	}
+	if flag.Shorthand != "V" {
+		t.Errorf("Deprecated visibility flag shorthand: expected 'V', got '%s'", flag.Shorthand)
+	}
+}
+
+// --- AnyColumnSelected Tests ---
 
 func TestAnyColumnSelected(t *testing.T) {
 	tests := []struct {
@@ -268,6 +485,8 @@ func TestAnyColumnSelected(t *testing.T) {
 		})
 	}
 }
+
+// --- Display Tests ---
 
 // captureStdout redirects stdout to capture printed output.
 // Since displayMultiColumn uses term.IsTerminal which will return false
@@ -549,6 +768,8 @@ func mapKeys(m map[string]interface{}) []string {
 	return keys
 }
 
+// --- Formatting Tests ---
+
 func TestColorize(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -753,8 +974,6 @@ func TestColorFlagRegistered(t *testing.T) {
 func TestDeprecatedListDispatchPopulatesListOptions(t *testing.T) {
 	// Verify the deprecated --list dispatch sets Show* flags to match old default behavior
 	// (show all stored-data columns: type, visibility, tags, path)
-	// We can't easily call handleDeprecatedFlags end-to-end without a workspace,
-	// but we can verify the ListOptions that would be constructed.
 	opts := ListOptions{
 		FilterType:     "github",
 		FilterTags:     []string{"web"},
