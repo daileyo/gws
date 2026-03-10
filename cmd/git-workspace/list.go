@@ -21,10 +21,13 @@ import (
 // without a value" (show column only) from "flag not present at all".
 const showColumnSentinel = "\x00show"
 
-// Dual-purpose flag variables scoped to the list subcommand.
-// When the value equals showColumnSentinel the column is shown but no filter
-// is applied. Any other non-empty value means filter + show.
+// Flag variables scoped to the list subcommand.
+//
+// Lowercase flags (filter only): set a filter value without displaying the column.
+// Uppercase flags (show + optional filter): display the column; with NoOptDefVal
+// so bare usage shows the column, and a value both shows and filters.
 var (
+	// Lowercase filter-only flags
 	flagType       string
 	flagVisibility string
 	flagTag        string
@@ -34,10 +37,22 @@ var (
 	flagRemote     string
 	flagRemoteRaw  string
 	flagName       string
-	outputFormat   string
-	verboseCount   int
-	flagWorkers    int
-	flagColor      string
+
+	// Uppercase show (+filter) flags
+	flagShowType       string
+	flagShowVisibility string
+	flagShowTag        string
+	flagShowPath       string
+	flagShowStatus     string
+	flagShowUser       string
+	flagShowRemote     string
+	flagShowRemoteRaw  string
+
+	// Output/display flags
+	outputFormat string
+	verboseCount int
+	flagWorkers  int
+	flagColor    string
 )
 
 // ANSI color codes
@@ -104,28 +119,37 @@ var listCmd = &cobra.Command{
 	Long: `List all repositories tracked by gws with optional filtering.
 
 By default, only repository names are shown in a compact multi-column layout.
-Use flags to add columns or filter results. A flag without a value shows the
-column; a flag with a value filters by that value AND shows the column.
+Use flags to filter results and control which columns are displayed.
+
+Flag convention:
+  LOWERCASE (-t, -y, -s, etc.) = filter only (no column displayed)
+  UPPERCASE (-T, -Y, -S, etc.) = show column (bare) or show + filter (with value)
 
 Examples:
   gws list                          # Multi-column repo names
   gws list -v                       # Table with type, visibility, tags, path
-  gws list -vv                      # Table with all columns (status, user, remote, etc.)
-  gws list -yVtp                    # Show type, visibility, tags, path columns
-  gws list -y=github                # Filter by GitHub, show type column
-  gws list -y=github -V=private     # Filter by GitHub + private
-  gws list -y=github -tp            # Filter by GitHub, show type, tags, path
+  gws list -vv                      # Table with all columns
+  gws list -YTSP                    # Show type, tags, status, path columns
+  gws list -t ai                    # Filter by tag "ai" (no tag column shown)
+  gws list -T ai                    # Filter by tag "ai" AND show tag column
+  gws list -T                       # Show tag column (no filter)
+  gws list -y github -T             # Filter by type, show tags column
   gws list -n "api-*"               # Filter by name pattern
-  gws list -su                      # Show status and user columns
-  gws list -r                       # Show formatted remote URL column
-  gws list -R                       # Show raw remote URL column
-  gws list -rR                      # Show raw remote URL (override)
-  gws list -o json                  # Output as JSON
-
-Note: dual-purpose flags use = for values (e.g., -y=github, --type=github).
-Without =, the flag shows the column without filtering.`,
-	Args: cobra.NoArgs,
+  gws list -SU                      # Show status and user columns
+  gws list -R                       # Show formatted remote URL column
+  gws list -B                       # Show raw remote URL column
+  gws list -o json                  # Output as JSON`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Handle trailing arg: when an uppercase NoOptDefVal flag gets the
+		// sentinel but a value follows as a positional arg, reassign it.
+		// e.g., "-T ai" parses as T=sentinel + args=["ai"]
+		if len(args) == 1 {
+			reassigned := reassignTrailingArg(cmd, args[0])
+			if !reassigned {
+				return fmt.Errorf("unexpected argument: %s", args[0])
+			}
+		}
 		opts := parseDualPurposeFlags(cmd)
 		opts.ColorEnabled = resolveColorEnabled(cmd)
 		return runList(opts)
@@ -135,43 +159,48 @@ Without =, the flag shows the column without filtering.`,
 func init() {
 	rootCmd.AddCommand(listCmd)
 
-	// Dual-purpose flags: NoOptDefVal makes them work as optional-value flags.
-	// -y (no value) = show TYPE column; -y github = filter by github + show TYPE
-	listCmd.Flags().StringVarP(&flagType, "type", "y", "", "Show type column, or filter by type value")
-	listCmd.Flags().Lookup("type").NoOptDefVal = showColumnSentinel
-
-	listCmd.Flags().StringVarP(&flagVisibility, "visibility", "V", "", "Show visibility column, or filter by visibility value")
-	listCmd.Flags().Lookup("visibility").NoOptDefVal = showColumnSentinel
-
-	listCmd.Flags().StringVarP(&flagTag, "tag", "t", "", "Show tags column, or filter by tag value (repeatable for AND logic)")
-	listCmd.Flags().Lookup("tag").NoOptDefVal = showColumnSentinel
-
-	listCmd.Flags().StringVarP(&flagPath, "path", "p", "", "Show path column, or filter by path pattern")
-	listCmd.Flags().Lookup("path").NoOptDefVal = showColumnSentinel
-
-	listCmd.Flags().StringVarP(&flagStatus, "status", "s", "", "Show git status column, or filter by status pattern")
-	listCmd.Flags().Lookup("status").NoOptDefVal = showColumnSentinel
-
-	listCmd.Flags().StringVarP(&flagUser, "show-user", "u", "", "Show user/email/sign columns, or filter by user name")
-	listCmd.Flags().Lookup("show-user").NoOptDefVal = showColumnSentinel
-
-	listCmd.Flags().StringVarP(&flagRemote, "remote", "r", "", "Show formatted remote URL column, or filter by remote URL pattern")
-	listCmd.Flags().Lookup("remote").NoOptDefVal = showColumnSentinel
-
-	listCmd.Flags().StringVarP(&flagRemoteRaw, "remote-raw", "R", "", "Show raw remote URL column, or filter by raw remote URL pattern")
-	listCmd.Flags().Lookup("remote-raw").NoOptDefVal = showColumnSentinel
-
-	// Filter-only flags
+	// --- Lowercase flags: filter only (no column display) ---
+	listCmd.Flags().StringVarP(&flagType, "type", "y", "", "Filter by type")
+	listCmd.Flags().StringVarP(&flagVisibility, "visibility", "i", "", "Filter by visibility")
+	listCmd.Flags().StringVarP(&flagTag, "tag", "t", "", "Filter by tag (repeatable for AND logic)")
+	listCmd.Flags().StringVarP(&flagPath, "path", "p", "", "Filter by path pattern")
+	listCmd.Flags().StringVarP(&flagStatus, "status", "s", "", "Filter by status pattern")
+	listCmd.Flags().StringVarP(&flagUser, "show-user", "u", "", "Filter by user name")
+	listCmd.Flags().StringVarP(&flagRemote, "remote", "r", "", "Filter by remote URL pattern")
+	listCmd.Flags().StringVarP(&flagRemoteRaw, "remote-raw", "b", "", "Filter by raw remote URL pattern")
 	listCmd.Flags().StringVarP(&flagName, "name", "n", "", "Filter by repository name (partial match, supports wildcards)")
+
+	// --- Uppercase flags: show column (+ optional filter) ---
+	// NoOptDefVal allows bare usage (e.g., -T) to show column without value.
+	// With a value (e.g., -T ai), shows column AND filters.
+	listCmd.Flags().StringVarP(&flagShowType, "show-type", "Y", "", "Show type column, or show and filter by type")
+	listCmd.Flags().Lookup("show-type").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagShowVisibility, "show-visibility", "I", "", "Show visibility column, or show and filter by visibility")
+	listCmd.Flags().Lookup("show-visibility").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagShowTag, "show-tag", "T", "", "Show tags column, or show and filter by tag")
+	listCmd.Flags().Lookup("show-tag").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagShowPath, "show-path", "P", "", "Show path column, or show and filter by path")
+	listCmd.Flags().Lookup("show-path").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagShowStatus, "show-status", "S", "", "Show status column, or show and filter by status")
+	listCmd.Flags().Lookup("show-status").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagShowUser, "show-user-col", "U", "", "Show user column, or show and filter by user")
+	listCmd.Flags().Lookup("show-user-col").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagShowRemote, "show-remote", "R", "", "Show remote column, or show and filter by remote")
+	listCmd.Flags().Lookup("show-remote").NoOptDefVal = showColumnSentinel
+
+	listCmd.Flags().StringVarP(&flagShowRemoteRaw, "show-remote-raw", "B", "", "Show raw remote column, or show and filter by raw remote")
+	listCmd.Flags().Lookup("show-remote-raw").NoOptDefVal = showColumnSentinel
+
+	// --- Output/display flags ---
 	listCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "Output format: table, json")
-
-	// Verbose count flag: -v = 1, -vv = 2
 	listCmd.Flags().CountVarP(&verboseCount, "verbose", "v", "Verbose output (-v stored data, -vv all columns)")
-
-	// Worker count for parallel status fetching
 	listCmd.Flags().IntVar(&flagWorkers, "workers", 0, "Number of concurrent workers for status fetching (default: 8)")
-
-	// Color output control
 	listCmd.Flags().StringVar(&flagColor, "color", "auto", "Color output: auto, always, never")
 
 	// Custom help function to clean up NoOptDefVal display artifacts.
@@ -190,8 +219,6 @@ func init() {
 			}
 			cleaned = cleaned[:start] + cleaned[start+end+2:]
 		}
-		// Also clean up any remaining " string" type hints on the cleaned flags
-		// (non-NoOptDefVal string flags like --output and --name keep their type hint)
 
 		fmt.Fprint(cmd.OutOrStdout(), cmd.Long+"\n\n")
 		fmt.Fprintf(cmd.OutOrStdout(), "Usage:\n  %s\n\nFlags:\n%s", cmd.UseLine(), cleaned)
@@ -238,47 +265,107 @@ func (o ListOptions) AnyColumnSelected() bool {
 		o.ShowStatus || o.ShowUser || o.ShowRemote || o.ShowRemoteRaw
 }
 
+// shortToShowFlag maps uppercase short flag letters to their flag variables.
+var shortToShowFlag = map[byte]*string{
+	'Y': &flagShowType,
+	'I': &flagShowVisibility,
+	'T': &flagShowTag,
+	'P': &flagShowPath,
+	'S': &flagShowStatus,
+	'U': &flagShowUser,
+	'R': &flagShowRemote,
+	'B': &flagShowRemoteRaw,
+}
+
+// reassignTrailingArg reassigns a trailing positional argument to the last
+// uppercase NoOptDefVal flag that received the sentinel value. This allows
+// "-T ai" to work as show+filter (Cobra would otherwise treat "ai" as a
+// positional arg since -T has NoOptDefVal).
+//
+// For stacked flags like "-YT ai", the LAST letter in the stack (T) gets
+// the value, following POSIX conventions.
+//
+// Returns true if the arg was successfully reassigned.
+func reassignTrailingArg(cmd *cobra.Command, value string) bool {
+	// Scan os.Args to find the last uppercase short flag letter that
+	// was used. This correctly handles stacking order.
+	var lastFlagVar *string
+	for _, arg := range os.Args {
+		if len(arg) < 2 || arg[0] != '-' || arg[1] == '-' {
+			continue // skip non-short-flag args and long flags
+		}
+		// Walk letters in this short flag group (e.g., "-YT" → 'Y', 'T')
+		for i := 1; i < len(arg); i++ {
+			if fv, ok := shortToShowFlag[arg[i]]; ok {
+				lastFlagVar = fv
+			}
+		}
+	}
+	if lastFlagVar == nil || *lastFlagVar != showColumnSentinel {
+		return false
+	}
+	*lastFlagVar = value
+	return true
+}
+
 // parseDualPurposeFlags reads cobra flag state and builds ListOptions.
+//
+// For each column, two flags are checked:
+//   - Lowercase (e.g., -t): filter only, does not show column
+//   - Uppercase (e.g., -T): shows column; bare = show only, with value = show + filter
+//
+// If both lowercase and uppercase are set for the same column, the column is
+// shown (from uppercase) and the filter is applied (preferring lowercase value).
 func parseDualPurposeFlags(cmd *cobra.Command) ListOptions {
+	// Handle deprecated list-level flags before parsing
+	handleDeprecatedListFlags(cmd)
+
 	opts := ListOptions{
 		OutputFormat: outputFormat,
 		VerboseLevel: verboseCount,
 	}
 
-	// Helper: for a dual-purpose flag, if Changed and value is sentinel → show only.
-	// If Changed and value is not sentinel → filter + show.
-	parseDual := func(flagName string, value string) (filterVal string, show bool) {
-		if !cmd.Flags().Changed(flagName) {
-			return "", false
+	// parsePair merges a lowercase filter flag and an uppercase show flag.
+	parsePair := func(filterFlag, showFlag string, filterVal, showVal string) (filter string, show bool) {
+		// Uppercase flag: controls column visibility
+		if cmd.Flags().Changed(showFlag) {
+			show = true
+			if showVal != showColumnSentinel && showVal != "" {
+				filter = showVal
+			}
 		}
-		if value == showColumnSentinel {
-			return "", true
+		// Lowercase flag: filter only (overrides uppercase filter if both set)
+		if cmd.Flags().Changed(filterFlag) {
+			if filterVal != "" {
+				filter = filterVal
+			}
 		}
-		return value, true
+		return filter, show
 	}
 
-	opts.FilterType, opts.ShowType = parseDual("type", flagType)
-	opts.FilterVisibility, opts.ShowVisibility = parseDual("visibility", flagVisibility)
-	opts.FilterPath, opts.ShowPath = parseDual("path", flagPath)
-	opts.FilterStatus, opts.ShowStatus = parseDual("status", flagStatus)
-	opts.FilterUser, opts.ShowUser = parseDual("show-user", flagUser)
-	opts.FilterRemote, opts.ShowRemote = parseDual("remote", flagRemote)
-	opts.FilterRemoteRaw, opts.ShowRemoteRaw = parseDual("remote-raw", flagRemoteRaw)
+	opts.FilterType, opts.ShowType = parsePair("type", "show-type", flagType, flagShowType)
+	opts.FilterVisibility, opts.ShowVisibility = parsePair("visibility", "show-visibility", flagVisibility, flagShowVisibility)
+	opts.FilterPath, opts.ShowPath = parsePair("path", "show-path", flagPath, flagShowPath)
+	opts.FilterStatus, opts.ShowStatus = parsePair("status", "show-status", flagStatus, flagShowStatus)
+	opts.FilterUser, opts.ShowUser = parsePair("show-user", "show-user-col", flagUser, flagShowUser)
+	opts.FilterRemote, opts.ShowRemote = parsePair("remote", "show-remote", flagRemote, flagShowRemote)
+	opts.FilterRemoteRaw, opts.ShowRemoteRaw = parsePair("remote-raw", "show-remote-raw", flagRemoteRaw, flagShowRemoteRaw)
 
-	// -R without -r implicitly enables remote display
-	if opts.ShowRemoteRaw && !opts.ShowRemote {
-		opts.ShowRemote = true
-	}
-
-	// Tag: dual-purpose. Multiple -t values collected via repeated flag.
-	if cmd.Flags().Changed("tag") {
+	// Tag: supports both lowercase (-t) and uppercase (-T).
+	// Collect filter values from both; uppercase also enables column display.
+	if cmd.Flags().Changed("show-tag") {
 		opts.ShowTags = true
-		if flagTag != showColumnSentinel && flagTag != "" {
-			opts.FilterTags = []string{flagTag}
+		if flagShowTag != showColumnSentinel && flagShowTag != "" {
+			opts.FilterTags = append(opts.FilterTags, flagShowTag)
+		}
+	}
+	if cmd.Flags().Changed("tag") {
+		if flagTag != "" {
+			opts.FilterTags = append(opts.FilterTags, flagTag)
 		}
 	}
 
-	// Name is filter-only
+	// Name is filter-only (always displayed)
 	opts.FilterName = flagName
 
 	// Apply verbose overrides

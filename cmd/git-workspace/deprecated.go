@@ -68,6 +68,9 @@ func registerDeprecatedFlags(root *cobra.Command) {
 	root.Flags().BoolVarP(&depShowStatus, "status", "s", false, "Show git status")
 	root.Flags().BoolVar(&depShowUser, "show-user", false, "Show git user info")
 
+	// Register deprecated list-level flags
+	registerDeprecatedListFlags()
+
 	// Deprecated user flags (migrated to user subcommand in spec 11)
 	root.Flags().BoolVar(&depUser, "user", false, "List profiles, or use with --update/-u or --delete/-D")
 	root.Flags().BoolVarP(&depUpdate, "update", "u", false, "Update local git user config for repositories (requires --user)")
@@ -329,4 +332,35 @@ func hasDeprecatedFilterFlags(cmd *cobra.Command) bool {
 		}
 	}
 	return cmd.Flags().Changed("output") && depOutputFormat != "table"
+}
+
+// Deprecated list-level flag variables.
+var (
+	depListVisibility string // old -V flag
+)
+
+// registerDeprecatedListFlags registers hidden flags on listCmd for backward
+// compatibility with old shorthands that have been remapped.
+func registerDeprecatedListFlags() {
+	// Old -V for visibility is now -i (filter) / -I (show+filter).
+	// Register a hidden flag so old scripts don't break.
+	listCmd.Flags().StringVarP(&depListVisibility, "dep-visibility", "V", "", "Deprecated: use -i (filter) or -I (show)")
+	listCmd.Flags().Lookup("dep-visibility").NoOptDefVal = showColumnSentinel
+	_ = listCmd.Flags().MarkHidden("dep-visibility")
+}
+
+// handleDeprecatedListFlags checks for deprecated list-level flags, emits
+// warnings, and maps them to the new equivalents. Called from parseDualPurposeFlags.
+func handleDeprecatedListFlags(cmd *cobra.Command) {
+	if cmd.Flags().Changed("dep-visibility") {
+		fmt.Fprintf(os.Stderr, "Warning: -V is deprecated, use '-i' (filter) or '-I' (show column) instead\n")
+		// Map to uppercase (show+filter) behavior to preserve old behavior
+		if depListVisibility == showColumnSentinel {
+			flagShowVisibility = showColumnSentinel
+		} else {
+			flagShowVisibility = depListVisibility
+		}
+		// Mark the new flag as changed so parsePair picks it up
+		_ = cmd.Flags().Set("show-visibility", flagShowVisibility)
+	}
 }
