@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.17.0](https://github.com/daileyo/gws/compare/v2.16.0...v2.17.0) (2026-03-10)
+
+
+### Features
+
+* implement consistent lowercase/uppercase flag convention for list command ([40e8d5f](https://github.com/daileyo/gws/commit/40e8d5fb6f0c4ca90426dd157b75770b1707d980))
+
+
+### Bug Fixes
+
+* resolve unparam lint for reassignTrailingArg ([4bfc193](https://github.com/daileyo/gws/commit/4bfc1932679a2e57b3dce89ef319b67b9da74150))
+* use exact matching for tag, type, and visibility filters ([840f432](https://github.com/daileyo/gws/commit/840f4321ba1345e0bc898ceb1a45bf0a13e651e7))
+
 ## [2.16.0](https://github.com/daileyo/gws/compare/v2.15.0...v2.16.0) (2026-03-09)
 
 
