@@ -32,6 +32,7 @@ func Apply(repos []config.Repository, criteria Criteria) []config.Repository {
 // MatchesPattern checks if a value matches a pattern. If the pattern contains
 // wildcard characters (* or ?), it uses glob-style matching. Otherwise, it
 // falls back to partial, case-insensitive substring matching.
+// Use for name and path filters where substring matching is desired.
 func MatchesPattern(value, pattern string) bool {
 	valueLower := strings.ToLower(value)
 	patternLower := strings.ToLower(pattern)
@@ -48,24 +49,42 @@ func MatchesPattern(value, pattern string) bool {
 	return strings.Contains(valueLower, patternLower)
 }
 
+// MatchesExact checks if a value matches a pattern exactly (case-insensitive).
+// If the pattern contains wildcard characters (* or ?), it uses glob-style
+// matching. Use for tags, type, and visibility where exact matching is desired.
+func MatchesExact(value, pattern string) bool {
+	valueLower := strings.ToLower(value)
+	patternLower := strings.ToLower(pattern)
+
+	if strings.ContainsAny(pattern, "*?") {
+		matched, err := filepath.Match(patternLower, valueLower)
+		if err != nil {
+			return false
+		}
+		return matched
+	}
+
+	return valueLower == patternLower
+}
+
 // matchesCriteria checks if a repository matches all filter criteria
 func matchesCriteria(repo config.Repository, criteria Criteria) bool {
-	// Apply type filter
-	if criteria.Type != "" && !MatchesPattern(string(repo.Type), criteria.Type) {
+	// Apply type filter (exact match)
+	if criteria.Type != "" && !MatchesExact(string(repo.Type), criteria.Type) {
 		return false
 	}
 
-	// Apply visibility filter
-	if criteria.Visibility != "" && !MatchesPattern(string(repo.Visibility), criteria.Visibility) {
+	// Apply visibility filter (exact match)
+	if criteria.Visibility != "" && !MatchesExact(string(repo.Visibility), criteria.Visibility) {
 		return false
 	}
 
-	// Apply tags filter (AND logic - must have all specified tags)
+	// Apply tags filter (AND logic - must have all specified tags, exact match)
 	if len(criteria.Tags) > 0 {
 		for _, filterTag := range criteria.Tags {
 			hasTag := false
 			for _, repoTag := range repo.Tags {
-				if MatchesPattern(repoTag, filterTag) {
+				if MatchesExact(repoTag, filterTag) {
 					hasTag = true
 					break
 				}

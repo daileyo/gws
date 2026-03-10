@@ -391,6 +391,45 @@ func TestMatchesPattern(t *testing.T) {
 	}
 }
 
+func TestMatchesExact(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		pattern  string
+		expected bool
+	}{
+		// Exact match (case-insensitive)
+		{"exact match", "ai", "ai", true},
+		{"exact match case insensitive", "AI", "ai", true},
+		{"no substring match", "grainger", "ai", false},
+		{"no partial match", "github", "git", false},
+		{"exact full value", "github", "github", true},
+
+		// Star wildcard
+		{"star prefix", "github", "git*", true},
+		{"star suffix", "github", "*hub", true},
+		{"star contains", "grainger", "*ai*", true},
+		{"star no match", "github", "foo*", false},
+		{"star match all", "anything", "*", true},
+
+		// Question mark wildcard
+		{"question mark", "web", "w?b", true},
+		{"question mark no match", "web", "w??b", false},
+
+		// Combined wildcards
+		{"star and question", "github", "g?t*", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := MatchesExact(tt.value, tt.pattern)
+			if result != tt.expected {
+				t.Errorf("MatchesExact(%q, %q) = %v, expected %v", tt.value, tt.pattern, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestByType_Wildcard(t *testing.T) {
 	tests := []struct {
 		name     string
