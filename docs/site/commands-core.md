@@ -55,21 +55,67 @@ gws list [flags]
 
 List all tracked repositories with optional filtering and display options.
 
-### Flags
+By default, only repository names are shown in a compact multi-column layout. Use flags to filter results and control which columns are displayed.
+
+### Flag Convention
+
+`gws list` uses a **dual-purpose flag convention**:
+
+- **Lowercase flags** (`-t`, `-y`, `-s`, etc.) = **filter only** — narrow results without adding a column
+- **Uppercase flags** (`-T`, `-Y`, `-S`, etc.) = **show column** — display the column, optionally filtering when a value is provided
+
+For example:
+
+- `gws list -t work` — filter by tag "work", no tag column shown
+- `gws list -T work` — filter by tag "work" AND show the tags column
+- `gws list -T` — show the tags column with no filter applied
+
+### Filter Flags (Lowercase)
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--type` | `-y` | Filter by type (exact match: `github`, `gitlab`, `ado`, `bitbucket`, `unknown`) |
+| `--visibility` | `-i` | Filter by visibility (exact match: `private`, `unknown`) |
+| `--tag` | `-t` | Filter by tag (exact match, single value) |
+| `--path` | `-p` | Filter by path pattern (partial match) |
+| `--status` | `-s` | Filter by status pattern (partial match) |
+| `--show-user` | `-u` | Filter by user name (partial match) |
+| `--remote` | `-r` | Filter by remote URL pattern (partial match) |
+| `--remote-raw` | `-b` | Filter by raw remote URL pattern (partial match) |
+| `--name` | `-n` | Filter by repository name (partial match, supports wildcards) |
+
+### Show Column Flags (Uppercase)
+
+These flags show a column in the output. When provided with a value, they simultaneously show the column and filter by that value.
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--show-type` | `-Y` | Show type column, or show and filter by type |
+| `--show-visibility` | `-I` | Show visibility column, or show and filter by visibility |
+| `--show-tag` | `-T` | Show tags column, or show and filter by tag |
+| `--show-path` | `-P` | Show path column, or show and filter by path |
+| `--show-status` | `-S` | Show status column, or show and filter by status |
+| `--show-user-col` | `-U` | Show user column, or show and filter by user |
+| `--show-remote` | `-R` | Show remote column, or show and filter by remote |
+| `--show-remote-raw` | `-B` | Show raw remote column, or show and filter by raw remote |
+
+### Display Flags
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--type` | `-y` | | Filter by repository type: `github`, `gitlab`, `ado`, `bitbucket` |
-| `--tag` | `-t` | | Filter by tag(s); repeat for AND logic |
-| `--name` | `-n` | | Filter by repository name (partial match, supports wildcards) |
-| `--path` | `-p` | | Filter by repository path (partial match, supports wildcards) |
 | `--output` | `-o` | `table` | Output format: `table` or `json` |
-| `--status` | `-s` | `false` | Show git status (branch, clean/dirty, ahead/behind) |
-| `--show-user` | `-u` | `false` | Show git user info (USER, EMAIL, SIGN columns) |
+| `--verbose` | `-v` | | Verbose output: `-v` shows type, visibility, tags, path; `-vv` shows all columns |
+| `--workers` | | `8` | Number of concurrent workers for status fetching |
+| `--color` | | `auto` | Color output: `auto`, `always`, `never` |
+
+!!! note "Filter behavior"
+    - `--type`, `--tag`, and `--visibility` use **exact matching**.
+    - `--tag`/`-t` accepts a **single value** (not repeatable).
+    - All other filter flags use partial/pattern matching.
 
 ### Examples
 
-**Basic listing:**
+**Default listing (compact multi-column names):**
 
 ```bash
 gws list
@@ -78,27 +124,48 @@ gws list
 ```
 Found 15 repositories:
 
-NAME           TYPE      VISIBILITY  TAGS              PATH
-----           ----      ----------  ----              ----
-my-project     github    private     personal, web     /home/user/projects/my-project
-work-api       gitlab    private     work              /home/user/projects/work-api
-client-site    bitbucket unknown     client, archived  /home/user/projects/client-site
+my-project       work-api         client-site      my-api
+frontend-app     docs-site        infra-tools      backend-svc
+mobile-app       shared-libs      auth-service     data-pipeline
+ml-models        cli-tools        test-harness
 ```
 
-**With git status:**
+**Verbose listing (stored data columns):**
 
 ```bash
-gws list --status
+gws list -v
 ```
 
 ```
 Found 15 repositories:
 
-NAME           STATUS         TYPE      VISIBILITY  TAGS              PATH
-----           ------         ----      ----------  ----              ----
-my-project     main ✓         github    private     personal, web     /home/user/projects/my-project
-work-api       develop ✗ ↑2   gitlab    private     work              /home/user/projects/work-api
-client-site    main ✓ ↓1      bitbucket unknown     client, archived  /home/user/projects/client-site
+NAME              TYPE       VISIBILITY  TAGS              PATH
+----------------  ---------  ----------  ----------------  ------------------------------------
+my-project        github     private     personal, web     /home/user/projects/my-project
+work-api          gitlab     private     work              /home/user/projects/work-api
+client-site       bitbucket  unknown     client, archived  /home/user/projects/client-site
+```
+
+**Show specific columns:**
+
+```bash
+gws list -YTSP
+```
+
+**With git status:**
+
+```bash
+gws list -S
+```
+
+```
+Found 15 repositories:
+
+NAME              STATUS
+----------------  -----------------------------------------
+my-project        main                                    ✓
+work-api          develop                            ↑2   ✗
+client-site       main                          ↓1        ✓
 ```
 
 **Status Indicators:**
@@ -108,49 +175,69 @@ client-site    main ✓ ↓1      bitbucket unknown     client, archived  /home/
 - `↑N` = N commits ahead of remote
 - `↓N` = N commits behind remote
 
-**With user info:**
+Status icons are displayed in order: behind → ahead → clean/dirty. Status icons are colorized when the terminal supports it (controlled by `--color`).
 
-```bash
-gws list --show-user
-```
+Branch names longer than 30 characters are truncated with `...`.
+
+A `⚠` indicator in the NAME column means the repository's git user configuration has drifted from the assigned profile.
 
 **Filtering:**
 
 ```bash
-# Filter by repository type
-gws list --type github
+# Filter by repository type (exact match)
+gws list -y github
 
-# Filter by single tag
-gws list --tag personal
+# Filter by visibility
+gws list -i private
 
-# Filter by multiple tags (AND logic — repo must have ALL tags)
-gws list --tag work --tag backend
+# Filter by single tag (exact match)
+gws list -t personal
 
 # Filter by repository name (partial match, case-insensitive)
-gws list --name project
+gws list -n project
 
-# Filter by repository path (partial match)
-gws list --path /home/user/projects
+# Filter by remote URL pattern
+gws list -r github.com
+
+# Filter by status pattern
+gws list -s dirty
 
 # Combine multiple filters
-gws list --type gitlab --tag work --name api
+gws list -y gitlab -t work -n api
+
+# Filter and show column simultaneously
+gws list -T work -S
 ```
 
 **JSON output:**
 
+By default, JSON output only includes the `name` field:
+
 ```bash
-gws list --output json
+gws list -o json
+```
+
+```json
+[
+  {
+    "name": "my-project"
+  }
+]
+```
+
+Add show-column flags to include additional fields:
+
+```bash
+gws list -o json -YTP
 ```
 
 ```json
 [
   {
     "name": "my-project",
-    "path": "/home/user/projects/my-project",
-    "remote_url": "https://github.com/user/my-project.git",
     "type": "github",
-    "visibility": "unknown",
-    "tags": ["personal", "web"]
+    "tags": ["personal", "web"],
+    "path": "/home/user/projects/my-project"
   }
 ]
 ```
@@ -199,7 +286,12 @@ Add a single git repository to the workspace. Defaults to the current directory 
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--recursive` | `-v` | `false` | Recursively add all git repositories found under the path |
+| `--recursive` | `-r` | `false` | Recursively add all git repositories found under the path |
+
+!!! note
+    When `--recursive` is used, the scan always operates from the **current working directory**, regardless of the path argument.
+
+When adding a repository that lives **outside the workspace root**, a symlink is automatically created inside the workspace directory pointing to the external repository.
 
 **Examples:**
 
@@ -210,8 +302,11 @@ gws add
 # Add a specific repository
 gws add ~/projects/my-repo
 
-# Recursively add all repos under a directory
-gws add ~/projects --recursive
+# Recursively add all repos in current directory
+gws add -r
+
+# Recursively add all repos under a path
+gws add ~/projects -r
 ```
 
 ---
@@ -227,6 +322,7 @@ Re-scan the workspace and update repository metadata.
 **What it does:**
 
 - Re-scans workspace for new repositories
+- Removes repositories whose paths are no longer valid
 - Updates remote URLs and classification
 - Re-detects git user configuration
 - Clears and rebuilds git status cache
@@ -243,13 +339,18 @@ Re-scan the workspace and update repository metadata.
 
 ```
 Refreshing workspace at: /home/user/projects
-Re-scanning for repositories...
+Detecting git user configuration...
 Cleared git status cache
 
 Refresh complete!
 Total repositories: 15
-New repositories found: 2
+Removed 1 repository (path no longer valid)
+Found 2 new repositories
+Updated 3 repositories
+Repositories with user configuration: 12
 ```
+
+The conditional lines (Removed, Found, Updated, Repositories with user configuration) only appear when their counts are greater than zero.
 
 ---
 
@@ -264,3 +365,31 @@ Print the workspace root path to stdout. Useful for scripting:
 ```bash
 cd "$(gws print-workspace)"
 ```
+
+---
+
+## Parent Navigation
+
+```
+gws parent <repo> [flags]
+```
+
+Print the parent directory path of a repository. Useful for navigating to the directory that contains a repository.
+
+### Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--quiet` | `-q` | `false` | Suppress verbose output, print only the path |
+
+**Examples:**
+
+```bash
+# Print parent directory path
+gws parent my-repo
+
+# Navigate to parent directory
+cd "$(gws parent my-repo)"
+```
+
+See [Shell Integration](shell-integration.md) for shorthand navigation forms (`gws -p my-repo`, `gws my-repo -p`).

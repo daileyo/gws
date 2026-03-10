@@ -58,29 +58,31 @@ This command will:
 - Detect repository type and user configuration
 - Save the configuration to `~/.gws/config.json`
 
-### 2. View Workspace Information
+### 2. List Your Repositories
 
-Once initialized, run `gws` with no arguments to see your workspace summary:
+Once initialized, run `gws` with no arguments to see your repositories:
 
 ```bash
 gws
 ```
 
-Output:
+Output (compact multi-column names):
 
 ```
-Workspace: /home/user/projects
-Repositories: 15
+Found 15 repositories:
 
-Use 'gws help' to see available commands
+my-project       work-api         client-site      my-api
+frontend-app     docs-site        infra-tools      backend-svc
+mobile-app       shared-libs      auth-service     data-pipeline
+ml-models        cli-tools        test-harness
 ```
 
-### 3. List Repositories
+### 3. View Repository Details
 
-View all tracked repositories with their metadata:
+Use verbose mode to see more information:
 
 ```bash
-gws list
+gws list -v
 ```
 
 Output:
@@ -88,11 +90,11 @@ Output:
 ```
 Found 15 repositories:
 
-NAME           TYPE      VISIBILITY  TAGS              PATH
-----           ----      ----------  ----              ----
-my-project     github    private     personal, web     /home/user/projects/my-project
-work-api       gitlab    private     work              /home/user/projects/work-api
-client-site    bitbucket unknown     client, archived  /home/user/projects/client-site
+NAME              TYPE       VISIBILITY  TAGS              PATH
+----------------  ---------  ----------  ----------------  ------------------------------------
+my-project        github     private     personal, web     /home/user/projects/my-project
+work-api          gitlab     private     work              /home/user/projects/work-api
+client-site       bitbucket  unknown     client, archived  /home/user/projects/client-site
 ```
 
 ### 4. Check Version
