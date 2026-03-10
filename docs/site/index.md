@@ -12,15 +12,20 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 
 ## Features
 
+- **Subcommand-Based CLI**: Clean command structure with `list`, `init`, `add`, `refresh`, `tag`, `user`, and `parent` subcommands
+- **Compact Default View**: Multi-column repository names at a glance, with verbose modes for detailed tables
 - **Repository Discovery**: Automatically find all git repositories in a directory tree
 - **Automatic Classification**: Detect repository type (GitHub, GitLab, Azure DevOps, Bitbucket) from remote URLs
-- **Subcommand-Based CLI**: Clean command structure with `list`, `init`, `add`, `refresh`, `tag`, and `user` subcommands
-- **Git Status Integration**: View branch, clean/dirty state, and ahead/behind indicators at a glance
-- **Smart Caching**: Fast status display with configurable cache (5-minute TTL)
+- **Dual-Purpose Filtering**: Lowercase flags filter results; uppercase flags show columns with optional filtering
+- **Git Status Integration**: View branch, clean/dirty state, and ahead/behind indicators with color output
+- **Smart Caching**: Fast status display with configurable cache and concurrent workers (`--workers`)
 - **Custom Tagging**: Organize repositories with `gws tag add` / `gws tag remove`
-- **Advanced Filtering**: Search and filter repositories by type, tags, name, or path
+- **Advanced Filtering**: Search and filter repositories by type, tags, name, path, status, user, or remote URL
 - **User Profile Management**: Manage git user profiles across repositories with `gws user`
 - **Repository Navigation**: Jump to any repository instantly with `gws <repo-name>`
+- **Parent Navigation**: Navigate to a repository's parent directory with `gws parent` or `gws -p`
+- **Remote URL Display**: View formatted or raw remote URLs with `--show-remote` / `--show-remote-raw`
+- **External Repo Symlinks**: Automatically creates workspace symlinks for repositories outside the workspace root
 - **Workspace Management**: Track and organize repositories in a centralized configuration
 - **Cross-Platform**: Works on Linux, macOS, and Windows
 - **Lightweight**: Single binary with no external dependencies

@@ -6,6 +6,25 @@ Profiles can be created manually or auto-detected from `~/.gitconfig` `includeIf
 
 ---
 
+## Short-Flag Aliases
+
+The `user` parent command supports short-flag aliases for common operations:
+
+| Short Flag | Equivalent |
+|------------|------------|
+| `-l` | `gws user list` |
+| `-a` | `gws user add` |
+| `-s` | `gws user show` |
+| `-d` | `gws user remove` |
+
+When using `-a`, you can also pass `--email`, `--name`, `--signing-key`, and `--sign-commits` inline:
+
+```bash
+gws user -a work --email work@company.com --name "Jane Doe"
+```
+
+---
+
 ## List Profiles
 
 ```
@@ -17,12 +36,20 @@ List all stored and auto-detected user profiles.
 **Example output:**
 
 ```
-User Profiles:
+Stored Profiles:
 
-  NAME        GIT NAME     EMAIL                    SIGNING
-  ----        --------     -----                    -------
+  NAME        GIT NAME     EMAIL                    SIGN
+  ----        --------     -----                    ----
   personal    Jane Doe     jane@personal.dev        ABC123 (signing on)
   work        Jane Doe     jane.doe@company.com     —
+
+Auto-Detected Profiles:
+
+  NAME        GIT NAME     EMAIL                    SIGN
+  ----        --------     -----                    ----
+  oss         Jane Doe     jane@opensource.org       —
+
+(Auto-detected from ~/.gitconfig includeIf directives)
 ```
 
 ---

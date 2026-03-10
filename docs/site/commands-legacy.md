@@ -4,6 +4,8 @@ Prior to v2.6.0, `gws` used root-level flags for all operations (e.g., `gws --li
 
 ## Migration Reference
 
+### Command Flags
+
 | Deprecated Flag | Short | Replacement |
 |----------------|-------|-------------|
 | `--list` | `-l` | `gws list` |
@@ -15,6 +17,11 @@ Prior to v2.6.0, `gws` used root-level flags for all operations (e.g., `gws --li
 | `--go` | `-g` | `gws <repo-name>` |
 | `--add-tag` | `-d` | `gws tag add <repo> <tag>` |
 | `--remove-tag` | `-x` | `gws tag remove <repo> <tag>` |
+
+### List Filter Flags
+
+| Deprecated Flag | Short | Replacement |
+|----------------|-------|-------------|
 | `--type` | `-y` | `gws list --type` |
 | `--tag` | | `gws list --tag` |
 | `--name` | `-n` | `gws list --name` |
@@ -22,6 +29,20 @@ Prior to v2.6.0, `gws` used root-level flags for all operations (e.g., `gws --li
 | `--output` | `-o` | `gws list --output` |
 | `--status` | `-s` | `gws list --status` |
 | `--show-user` | | `gws list --show-user` |
+| `-V` | | `gws list -i` (filter) or `gws list -I` (show visibility column) |
+
+### User Management Flags
+
+| Deprecated Flag | Short | Replacement |
+|----------------|-------|-------------|
+| `--user` | | `gws user list` |
+| `--list-users` | | `gws user list` |
+| `--update` | `-u` | `gws user assign <repo> <profile>` |
+| `--delete` | `-D` | `gws user assign` (remove local config) |
+| `--all` | | `gws user assign` (with `--all`) |
+| `--verbose` | | `gws user --verbose` |
+| `--git-name` | | `gws user add --name` |
+| `--git-email` | | `gws user add --email` |
 
 ## Example
 
@@ -31,14 +52,16 @@ Prior to v2.6.0, `gws` used root-level flags for all operations (e.g., `gws --li
 gws --list --type github --status
 gws --add-tag my-repo personal
 gws --init ~/projects
+gws --user --update my-repo work
 ```
 
 **After (current):**
 
 ```bash
-gws list --type github --status
+gws list --type github -S
 gws tag add my-repo personal
 gws init ~/projects
+gws user assign my-repo work
 ```
 
 When you use a deprecated flag, you will see a warning like:

@@ -6,12 +6,13 @@ git-workspace stores its configuration in `~/.gws/config.json`. The configuratio
 - **workspace**: Root directory of the workspace
 - **profiles**: Array of git user profiles for managing identity across repositories
 - **repositories**: Array of discovered repositories
+- **preferences**: Optional preferences for controlling CLI behavior
 
 ## Configuration Example
 
 ```json
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "workspace": "/home/user/projects",
   "profiles": [
     {
@@ -51,7 +52,10 @@ git-workspace stores its configuration in `~/.gws/config.json`. The configuratio
       "email": "jane.doe@company.com",
       "user_source": "includeif"
     }
-  ]
+  ],
+  "preferences": {
+    "status_workers": 8
+  }
 }
 ```
 
@@ -61,10 +65,11 @@ git-workspace stores its configuration in `~/.gws/config.json`. The configuratio
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `version` | string | Config file format version (e.g., `"1.0.0"`) |
+| `version` | string | Config file format version (currently `"1.1.0"`) |
 | `workspace` | string | Absolute path to the root directory of the workspace |
 | `profiles` | array | List of git user profile objects (see below) |
 | `repositories` | array | List of all discovered repository objects |
+| `preferences` | object | Optional preferences for controlling CLI behavior (see below) |
 
 ### Profile Fields
 
@@ -92,6 +97,12 @@ Profiles are managed via `gws user add`, `gws user remove`, and related commands
 | `email` | string | Git `user.email` configured for this repository |
 | `signing_enabled` | boolean | Whether commit signing is configured for this repository |
 | `user_source` | string | Where the user config comes from: `global`, `local`, `includeif`, or `unknown` |
+
+### Preferences Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `status_workers` | integer | `8` | Number of concurrent workers for fetching git status. Also configurable per-invocation with `gws list --workers`. |
 
 ## Config File Location
 
