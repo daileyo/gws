@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.17.1](https://github.com/daileyo/gws/compare/v2.17.0...v2.17.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* --go deprecation warning ([84bc1f5](https://github.com/daileyo/gws/commit/84bc1f59a7f58fd87e84b80ad34e0d040a78b2b0))
+
 ## [2.17.0](https://github.com/daileyo/gws/compare/v2.16.0...v2.17.0) (2026-03-10)
 
 
