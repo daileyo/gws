@@ -127,6 +127,8 @@ Flag convention:
 
 Examples:
   gws list                          # Multi-column repo names
+  gws list -s                       # Compact status icons in name column
+  gws list -s dirty                 # Filter dirty repos with compact status
   gws list -v                       # Table with type, visibility, tags, path
   gws list -vv                      # Table with all columns
   gws list -YTSP                    # Show type, tags, status, path columns
@@ -135,6 +137,7 @@ Examples:
   gws list -T                       # Show tag column (no filter)
   gws list -y github -T             # Filter by type, show tags column
   gws list -n "api-*"               # Filter by name pattern
+  gws list -S                       # Full status column (branch + icons)
   gws list -SU                      # Show status and user columns
   gws list -R                       # Show formatted remote URL column
   gws list -B                       # Show raw remote URL column
@@ -164,7 +167,8 @@ func init() {
 	listCmd.Flags().StringVarP(&flagVisibility, "visibility", "i", "", "Filter by visibility")
 	listCmd.Flags().StringVarP(&flagTag, "tag", "t", "", "Filter by tag (repeatable for AND logic)")
 	listCmd.Flags().StringVarP(&flagPath, "path", "p", "", "Filter by path pattern")
-	listCmd.Flags().StringVarP(&flagStatus, "status", "s", "", "Filter by status pattern")
+	listCmd.Flags().StringVarP(&flagStatus, "status", "s", "", "Show compact status in name column, or show and filter by status pattern")
+	listCmd.Flags().Lookup("status").NoOptDefVal = showColumnSentinel
 	listCmd.Flags().StringVarP(&flagUser, "show-user", "u", "", "Filter by user name")
 	listCmd.Flags().StringVarP(&flagRemote, "remote", "r", "", "Filter by remote URL pattern")
 	listCmd.Flags().StringVarP(&flagRemoteRaw, "remote-raw", "b", "", "Filter by raw remote URL pattern")
@@ -255,6 +259,9 @@ type ListOptions struct {
 	// Concurrency
 	Workers int
 
+	// Compact status display (icons in NAME column)
+	CompactStatus bool
+
 	// Color output
 	ColorEnabled bool
 }
@@ -275,6 +282,7 @@ var shortToShowFlag = map[byte]*string{
 	'U': &flagShowUser,
 	'R': &flagShowRemote,
 	'B': &flagShowRemoteRaw,
+	's': &flagStatus,
 }
 
 // reassignTrailingArg reassigns a trailing positional argument to the last
@@ -347,6 +355,16 @@ func parseDualPurposeFlags(cmd *cobra.Command) ListOptions {
 	opts.FilterVisibility, opts.ShowVisibility = parsePair("visibility", "show-visibility", flagVisibility, flagShowVisibility)
 	opts.FilterPath, opts.ShowPath = parsePair("path", "show-path", flagPath, flagShowPath)
 	opts.FilterStatus, opts.ShowStatus = parsePair("status", "show-status", flagStatus, flagShowStatus)
+
+	// Compact status: -s triggers compact display (icons in NAME column) unless -S overrides
+	if cmd.Flags().Changed("status") && !opts.ShowStatus {
+		opts.CompactStatus = true
+	}
+	// Clean sentinel from filter value (bare -s sets sentinel, not a filter)
+	if opts.FilterStatus == showColumnSentinel {
+		opts.FilterStatus = ""
+	}
+
 	opts.FilterUser, opts.ShowUser = parsePair("show-user", "show-user-col", flagUser, flagShowUser)
 	opts.FilterRemote, opts.ShowRemote = parsePair("remote", "show-remote", flagRemote, flagShowRemote)
 	opts.FilterRemoteRaw, opts.ShowRemoteRaw = parsePair("remote-raw", "show-remote-raw", flagRemoteRaw, flagShowRemoteRaw)
@@ -442,7 +460,8 @@ func runList(opts ListOptions) error {
 	var repoPaths []string
 	var workers int
 	var cachePath string
-	if opts.ShowStatus {
+	needsStatus := opts.ShowStatus || opts.CompactStatus
+	if needsStatus {
 		statusCache = git.NewCache(git.DefaultTTL)
 		if cp, err := git.GetCachePath(); err == nil {
 			cachePath = cp
@@ -502,6 +521,27 @@ func runList(opts ListOptions) error {
 		}
 	}
 
+	// Apply status filter (post-fetch since status data isn't available during initial filtering)
+	if opts.FilterStatus != "" && statusMap != nil {
+		var statusFiltered []config.Repository
+		for _, repo := range filtered {
+			text := statusFilterText(statusMap[repo.Path])
+			if filter.MatchesPattern(text, opts.FilterStatus) {
+				statusFiltered = append(statusFiltered, repo)
+			}
+		}
+		filtered = statusFiltered
+
+		if len(filtered) == 0 {
+			if opts.OutputFormat == "json" {
+				fmt.Println("[]")
+			} else {
+				fmt.Println("No repositories match the specified filters.")
+			}
+			return nil
+		}
+	}
+
 	// Display results based on format
 	switch opts.OutputFormat {
 	case "json":
@@ -519,11 +559,16 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 
 	// If no columns selected and no verbose, show compact multi-column names
 	if !opts.AnyColumnSelected() && opts.VerboseLevel == 0 {
-		names := make([]string, len(repos))
-		for i, repo := range repos {
-			names[i] = repo.Name
+		if opts.CompactStatus && statusMap != nil {
+			// Build "name + right-justified icons" entries for multi-column display
+			displayMultiColumnWithStatus(repos, statusMap, opts.ColorEnabled)
+		} else {
+			names := make([]string, len(repos))
+			for i, repo := range repos {
+				names[i] = repo.Name
+			}
+			displayMultiColumn(names)
 		}
-		displayMultiColumn(names)
 		return
 	}
 
@@ -618,8 +663,8 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 			}
 		}
 
-		// Calculate status sub-column widths
-		if statusMap != nil {
+		// Calculate status sub-column widths (full STATUS column only)
+		if opts.ShowStatus && statusMap != nil {
 			if status := statusMap[repo.Path]; status != nil {
 				branchStr := formatStatusBranch(status)
 				iconsStr := formatStatusIcons(status, false)
@@ -690,6 +735,22 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 		}
 	}
 
+	// Expand NAME column for compact status icons (right-justified in NAME field)
+	maxCompactIconsLen := 0
+	if opts.CompactStatus && statusMap != nil {
+		for _, repo := range repos {
+			if status := statusMap[repo.Path]; status != nil {
+				icons := formatStatusIcons(status, false)
+				if iw := displayWidth(icons); iw > maxCompactIconsLen {
+					maxCompactIconsLen = iw
+				}
+			}
+		}
+		if maxCompactIconsLen > 0 {
+			maxNameLen += 2 + maxCompactIconsLen // 2 = minimum padding
+		}
+	}
+
 	// Build and print header
 	var headerParts []string
 	var separatorParts []string
@@ -697,7 +758,7 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 	headerParts = append(headerParts, fmt.Sprintf("%-*s", maxNameLen, "NAME"))
 	separatorParts = append(separatorParts, strings.Repeat("-", maxNameLen))
 
-	if statusMap != nil {
+	if opts.ShowStatus && statusMap != nil {
 		// STATUS column width = branch sub-column + space + icons sub-column
 		// Ensure minimum width fits the "STATUS" header (6 chars)
 		statusColWidth := maxBranchLen
@@ -762,10 +823,27 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 				nameDisplay += " ⚠"
 			}
 		}
-		rowParts = append(rowParts, fmt.Sprintf("%-*s", maxNameLen, nameDisplay))
+
+		// Compact status: right-justify icons within the NAME field
+		if opts.CompactStatus && statusMap != nil {
+			status := statusMap[repo.Path]
+			if status != nil && status.Branch != "" {
+				icons := formatStatusIcons(status, opts.ColorEnabled)
+				iconsVisWidth := displayWidth(icons)
+				padding := maxNameLen - len(nameDisplay) - iconsVisWidth
+				if padding < 2 {
+					padding = 2
+				}
+				rowParts = append(rowParts, nameDisplay+strings.Repeat(" ", padding)+icons)
+			} else {
+				rowParts = append(rowParts, fmt.Sprintf("%-*s", maxNameLen, nameDisplay))
+			}
+		} else {
+			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxNameLen, nameDisplay))
+		}
 
 		// Status column (optional) - branch left-justified, icons right-justified
-		if statusMap != nil {
+		if opts.ShowStatus && statusMap != nil {
 			statusColWidth := maxBranchLen
 			if maxIconsLen > 0 {
 				statusColWidth += 1 + maxIconsLen
@@ -925,6 +1003,116 @@ func displayMultiColumn(names []string) {
 	}
 }
 
+// displayMultiColumnWithStatus prints repos in a multi-column layout with
+// compact status icons right-justified within each entry. Each entry is
+// formatted as "name <padding> icons" with a fixed entry width.
+func displayMultiColumnWithStatus(repos []config.Repository, statusMap map[string]*git.Status, colorEnabled bool) {
+	if len(repos) == 0 {
+		return
+	}
+
+	// Compute the max name length and max icons visual width
+	maxNameLen := 0
+	maxIconsVisLen := 0
+	for _, repo := range repos {
+		if len(repo.Name) > maxNameLen {
+			maxNameLen = len(repo.Name)
+		}
+		if status := statusMap[repo.Path]; status != nil {
+			icons := formatStatusIcons(status, false)
+			if iw := displayWidth(icons); iw > maxIconsVisLen {
+				maxIconsVisLen = iw
+			}
+		}
+	}
+
+	// Entry width = name + gap + icons
+	entryVisWidth := maxNameLen + 2 + maxIconsVisLen
+
+	// Build display entries: each has a visual representation and fixed visible width
+	type entry struct {
+		display  string // the formatted string (may contain ANSI codes)
+		visWidth int    // visible width (excluding ANSI)
+	}
+	entries := make([]entry, len(repos))
+	for i, repo := range repos {
+		status := statusMap[repo.Path]
+		if status != nil && status.Branch != "" {
+			icons := formatStatusIcons(status, colorEnabled)
+			iconsVisWidth := displayWidth(icons)
+			padding := entryVisWidth - len(repo.Name) - iconsVisWidth
+			if padding < 2 {
+				padding = 2
+			}
+			entries[i] = entry{
+				display:  repo.Name + strings.Repeat(" ", padding) + icons,
+				visWidth: entryVisWidth,
+			}
+		} else {
+			entries[i] = entry{
+				display:  repo.Name,
+				visWidth: len(repo.Name),
+			}
+		}
+	}
+
+	// Sort entries alphabetically by repo name
+	sort.Slice(entries, func(i, j int) bool {
+		return repos[i].Name < repos[j].Name
+	})
+
+	// Non-TTY: one entry per line
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
+		for _, e := range entries {
+			fmt.Println(e.display)
+		}
+		return
+	}
+
+	termWidth := getTerminalWidth()
+	colGap := 2
+
+	// Column width based on the widest entry
+	colWidth := entryVisWidth + colGap
+	numCols := termWidth / colWidth
+	if numCols < 1 {
+		numCols = 1
+	}
+	// Cap columns for readability (at least 3 rows)
+	if len(entries) > 3 {
+		maxCols := len(entries) / 3
+		if maxCols < 1 {
+			maxCols = 1
+		}
+		if numCols > maxCols {
+			numCols = maxCols
+		}
+	}
+
+	numRows := (len(entries) + numCols - 1) / numCols
+
+	for r := 0; r < numRows; r++ {
+		for c := 0; c < numCols; c++ {
+			idx := c*numRows + r
+			if idx >= len(entries) {
+				break
+			}
+			isLastCol := c == numCols-1 || (c+1)*numRows+r >= len(entries)
+			if isLastCol {
+				fmt.Print(entries[idx].display)
+			} else {
+				// Pad based on visible width to handle ANSI codes
+				pad := colWidth - entries[idx].visWidth
+				if pad < 0 {
+					pad = 0
+				}
+				fmt.Print(entries[idx].display + strings.Repeat(" ", pad))
+			}
+		}
+		fmt.Println()
+	}
+}
+
 // formatStatusBranch returns the branch name portion of the status,
 // truncated if it exceeds maxBranchDisplayLen.
 func formatStatusBranch(status *git.Status) string {
@@ -990,6 +1178,27 @@ func formatStatusShort(status *git.Status) string {
 		return branch
 	}
 	return branch + " " + icons
+}
+
+// statusFilterText returns searchable text for status filtering.
+// Produces terms like "clean", "dirty", "ahead", "behind" for pattern matching.
+func statusFilterText(status *git.Status) string {
+	if status == nil || status.Branch == "" {
+		return ""
+	}
+	var parts []string
+	if status.HasChanges {
+		parts = append(parts, "dirty")
+	} else {
+		parts = append(parts, "clean")
+	}
+	if status.Ahead > 0 {
+		parts = append(parts, "ahead")
+	}
+	if status.Behind > 0 {
+		parts = append(parts, "behind")
+	}
+	return strings.Join(parts, " ")
 }
 
 // displayJSON outputs repositories in JSON format respecting column selection.

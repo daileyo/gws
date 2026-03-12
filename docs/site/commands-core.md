@@ -78,7 +78,7 @@ For example:
 | `--visibility` | `-i` | Filter by visibility (exact match: `private`, `unknown`) |
 | `--tag` | `-t` | Filter by tag (exact match, single value) |
 | `--path` | `-p` | Filter by path pattern (partial match) |
-| `--status` | `-s` | Filter by status pattern (partial match) |
+| `--status` | `-s` | Show compact status in name column, or filter by status pattern (partial match) |
 | `--show-user` | `-u` | Filter by user name (partial match) |
 | `--remote` | `-r` | Filter by remote URL pattern (partial match) |
 | `--remote-raw` | `-b` | Filter by raw remote URL pattern (partial match) |
@@ -152,7 +152,33 @@ client-site       bitbucket  unknown     client, archived  /home/user/projects/c
 gws list -YTSP
 ```
 
-**With git status:**
+**Compact status (icons in name column):**
+
+```bash
+gws list -s
+```
+
+```
+Found 15 repositories:
+
+NAME
+------------------------------
+my-project                   ✓
+work-api                ↑2   ✗
+client-site          ↓1      ✓
+```
+
+Use `-s` with a value to filter by status:
+
+```bash
+gws list -s dirty         # Show only dirty repos
+gws list -s clean         # Show only clean repos
+gws list -s ahead         # Show only repos ahead of remote
+```
+
+When both `-s` and `-S` are specified, `-S` wins and the full STATUS column is shown.
+
+**Full git status column:**
 
 ```bash
 gws list -S

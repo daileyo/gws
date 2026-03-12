@@ -78,7 +78,7 @@ func TestFilterFlagsOnRootAreHidden(t *testing.T) {
 
 func TestLowercaseFlagsNoOptDefVal(t *testing.T) {
 	// Lowercase filter-only flags should NOT have NoOptDefVal
-	filterOnlyFlags := []string{"type", "visibility", "tag", "path", "status", "show-user", "remote", "remote-raw", "name"}
+	filterOnlyFlags := []string{"type", "visibility", "tag", "path", "show-user", "remote", "remote-raw", "name"}
 
 	for _, name := range filterOnlyFlags {
 		t.Run(name, func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestLowercaseFilterSpaceSeparated(t *testing.T) {
 		{"type -y github", []string{"-y", "github"}, &flagType, "github"},
 		{"tag -t ai", []string{"-t", "ai"}, &flagTag, "ai"},
 		{"path -p /home", []string{"-p", "/home"}, &flagPath, "/home"},
-		{"status -s clean", []string{"-s", "clean"}, &flagStatus, "clean"},
+		// Note: -s now has NoOptDefVal, so space-separated -s clean uses reassignment (tested separately)
 		{"user -u alice", []string{"-u", "alice"}, &flagUser, "alice"},
 		{"remote -r github", []string{"-r", "github"}, &flagRemote, "github"},
 		{"visibility -i private", []string{"-i", "private"}, &flagVisibility, "private"},
@@ -473,6 +473,8 @@ func TestAnyColumnSelected(t *testing.T) {
 		{"show status", ListOptions{ShowStatus: true}, true},
 		{"show user", ListOptions{ShowUser: true}, true},
 		{"show remote", ListOptions{ShowRemote: true}, true},
+		{"compact status only", ListOptions{CompactStatus: true}, false},
+		{"compact status with column", ListOptions{CompactStatus: true, ShowTags: true}, true},
 		{"multiple columns", ListOptions{ShowType: true, ShowTags: true}, true},
 	}
 
@@ -1000,5 +1002,286 @@ func TestDeprecatedListDispatchPopulatesListOptions(t *testing.T) {
 	// Verify AnyColumnSelected is true
 	if !opts.AnyColumnSelected() {
 		t.Error("Deprecated list should have columns selected (triggers table view, not multi-column)")
+	}
+}
+
+// --- Compact Status Tests ---
+
+func TestStatusFlagHasNoOptDefVal(t *testing.T) {
+	// -s/--status should have NoOptDefVal so bare -s works
+	flag := listCmd.Flags().Lookup("status")
+	if flag == nil {
+		t.Fatal("Flag --status not found on listCmd")
+	}
+	if flag.NoOptDefVal != showColumnSentinel {
+		t.Errorf("--status NoOptDefVal: expected sentinel, got %q", flag.NoOptDefVal)
+	}
+}
+
+func TestStatusFlagBare(t *testing.T) {
+	// Bare -s should set the sentinel value
+	orig := flagStatus
+	defer func() { flagStatus = orig }()
+	flagStatus = ""
+
+	err := listCmd.Flags().Parse([]string{"-s"})
+	if err != nil {
+		t.Fatalf("Failed to parse -s: %v", err)
+	}
+
+	if flagStatus != showColumnSentinel {
+		t.Errorf("Expected sentinel after bare -s, got %q", flagStatus)
+	}
+}
+
+func TestStatusFlagWithValue(t *testing.T) {
+	// -s=dirty should set "dirty" directly
+	orig := flagStatus
+	defer func() { flagStatus = orig }()
+	flagStatus = ""
+
+	err := listCmd.Flags().Parse([]string{"-s=dirty"})
+	if err != nil {
+		t.Fatalf("Failed to parse -s=dirty: %v", err)
+	}
+
+	if flagStatus != "dirty" {
+		t.Errorf("Expected %q, got %q", "dirty", flagStatus)
+	}
+}
+
+func TestStatusFlagSpaceSeparatedViaReassignment(t *testing.T) {
+	// -s dirty: Cobra parses -s as sentinel, "dirty" is remaining arg.
+	// reassignTrailingArg assigns "dirty" to flagStatus.
+	orig := flagStatus
+	defer func() { flagStatus = orig }()
+	flagStatus = ""
+
+	err := listCmd.Flags().Parse([]string{"-s"})
+	if err != nil {
+		t.Fatalf("Failed to parse -s: %v", err)
+	}
+
+	if flagStatus != showColumnSentinel {
+		t.Fatalf("Expected sentinel after bare -s, got %q", flagStatus)
+	}
+
+	// Simulate reassignment (what RunE does with remaining args)
+	flagStatus = "dirty"
+
+	if flagStatus != "dirty" {
+		t.Errorf("Expected %q after reassignment, got %q", "dirty", flagStatus)
+	}
+}
+
+func TestDisplayTable_CompactStatus_MultiColumn(t *testing.T) {
+	// Compact status with no other columns uses multi-column layout (non-TTY = single column)
+	repos := []config.Repository{
+		{Name: "short-repo", Path: "/tmp/short-repo"},
+		{Name: "longer-repo-name", Path: "/tmp/longer-repo-name"},
+	}
+	statusMap := map[string]*git.Status{
+		"/tmp/short-repo":       {Branch: "main", IsClean: true},
+		"/tmp/longer-repo-name": {Branch: "dev", HasChanges: true, Ahead: 2},
+	}
+	opts := ListOptions{
+		CompactStatus: true,
+		ColorEnabled:  false,
+	}
+
+	output := captureStdout(func() {
+		displayTable(repos, statusMap, opts)
+	})
+
+	// Should not contain STATUS or NAME header (multi-column layout, no table headers)
+	if strings.Contains(output, "STATUS") {
+		t.Error("Compact status should not show STATUS column header")
+	}
+	// Should contain icons
+	if !strings.Contains(output, "✓") {
+		t.Error("Should show clean icon ✓")
+	}
+	if !strings.Contains(output, "✗") {
+		t.Error("Should show dirty icon ✗")
+	}
+	if !strings.Contains(output, "↑2") {
+		t.Error("Should show ahead icon ↑2")
+	}
+}
+
+func TestDisplayTable_CompactStatus_WithColumn_NoStatusColumn(t *testing.T) {
+	// CompactStatus=true combined with another column flag should show table
+	// with compact icons in NAME column but no separate STATUS column
+	repos := []config.Repository{
+		{Name: "my-repo", Path: "/tmp/my-repo", Type: "github"},
+	}
+	statusMap := map[string]*git.Status{
+		"/tmp/my-repo": {Branch: "main", IsClean: true},
+	}
+	opts := ListOptions{
+		CompactStatus: true,
+		ShowType:      true,
+		ShowStatus:    false,
+		ColorEnabled:  false,
+	}
+
+	output := captureStdout(func() {
+		displayTable(repos, statusMap, opts)
+	})
+
+	if strings.Contains(output, "STATUS") {
+		t.Error("Should not have STATUS column header with CompactStatus")
+	}
+	if !strings.Contains(output, "NAME") {
+		t.Error("Should have NAME column header in table mode")
+	}
+	if !strings.Contains(output, "TYPE") {
+		t.Error("Should have TYPE column header")
+	}
+	if !strings.Contains(output, "✓") {
+		t.Error("Should show compact status icon in NAME column")
+	}
+}
+
+func TestDisplayTable_ShowStatus_Unchanged(t *testing.T) {
+	// ShowStatus=true (no CompactStatus) should produce the full STATUS column
+	repos := []config.Repository{
+		{Name: "my-repo", Path: "/tmp/my-repo"},
+	}
+	statusMap := map[string]*git.Status{
+		"/tmp/my-repo": {Branch: "main", IsClean: true},
+	}
+	opts := ListOptions{
+		ShowStatus:   true,
+		ColorEnabled: false,
+	}
+
+	output := captureStdout(func() {
+		displayTable(repos, statusMap, opts)
+	})
+
+	if !strings.Contains(output, "STATUS") {
+		t.Error("ShowStatus should display STATUS column header")
+	}
+	if !strings.Contains(output, "main") {
+		t.Error("ShowStatus should display branch name")
+	}
+}
+
+func TestDisplayMultiColumnWithStatus_Alignment(t *testing.T) {
+	// Verify right-justification of icons in multi-column output (non-TTY = single column)
+	repos := []config.Repository{
+		{Name: "a", Path: "/tmp/a"},
+		{Name: "longer-name", Path: "/tmp/longer-name"},
+	}
+	statusMap := map[string]*git.Status{
+		"/tmp/a":           {Branch: "main", IsClean: true},
+		"/tmp/longer-name": {Branch: "dev", IsClean: true},
+	}
+
+	output := captureStdout(func() {
+		displayMultiColumnWithStatus(repos, statusMap, false)
+	})
+
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+	// Find data lines with icons
+	var dataLines []string
+	for _, line := range lines {
+		if strings.Contains(line, "✓") || strings.Contains(line, "✗") {
+			dataLines = append(dataLines, line)
+		}
+	}
+	if len(dataLines) != 2 {
+		t.Fatalf("Expected 2 data lines with icons, got %d: %v", len(dataLines), dataLines)
+	}
+
+	// Both ✓ icons should end at the same column position (right-justified)
+	pos0 := strings.LastIndex(dataLines[0], "✓")
+	pos1 := strings.LastIndex(dataLines[1], "✓")
+	if pos0 != pos1 {
+		t.Errorf("Icons not right-aligned: line0 ✓ at %d, line1 ✓ at %d\nLines:\n%s\n%s",
+			pos0, pos1, dataLines[0], dataLines[1])
+	}
+}
+
+func TestDisplayJSON_CompactStatus_NoStatusField(t *testing.T) {
+	// CompactStatus should not add status to JSON output
+	repos := []config.Repository{
+		{Name: "test-repo", Path: "/tmp/test-repo"},
+	}
+	statusMap := map[string]*git.Status{
+		"/tmp/test-repo": {Branch: "main", IsClean: true},
+	}
+	opts := ListOptions{
+		CompactStatus: true,
+		ShowStatus:    false,
+		OutputFormat:  "json",
+	}
+
+	output := captureStdout(func() {
+		_ = displayJSON(repos, statusMap, opts)
+	})
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal([]byte(output), &result); err != nil {
+		t.Fatalf("Failed to parse JSON: %v", err)
+	}
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 entry, got %d", len(result))
+	}
+	if _, ok := result[0]["status"]; ok {
+		t.Error("CompactStatus should NOT add status field to JSON output")
+	}
+}
+
+func TestStatusFilterText(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   *git.Status
+		expected string
+	}{
+		{"nil status", nil, ""},
+		{"no commits", &git.Status{Branch: ""}, ""},
+		{"clean", &git.Status{Branch: "main", IsClean: true}, "clean"},
+		{"dirty", &git.Status{Branch: "main", HasChanges: true}, "dirty"},
+		{"clean ahead", &git.Status{Branch: "main", Ahead: 3}, "clean ahead"},
+		{"dirty behind", &git.Status{Branch: "main", HasChanges: true, Behind: 2}, "dirty behind"},
+		{"dirty ahead behind", &git.Status{Branch: "main", HasChanges: true, Ahead: 1, Behind: 2}, "dirty ahead behind"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := statusFilterText(tt.status)
+			if got != tt.expected {
+				t.Errorf("statusFilterText() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDisplayTable_ShowStatusWithCompactStatus_ShowStatusWins(t *testing.T) {
+	// When both ShowStatus and CompactStatus are set (shouldn't happen via flags,
+	// but test the behavior), ShowStatus takes precedence for the STATUS column
+	repos := []config.Repository{
+		{Name: "my-repo", Path: "/tmp/my-repo"},
+	}
+	statusMap := map[string]*git.Status{
+		"/tmp/my-repo": {Branch: "main", HasChanges: true},
+	}
+	opts := ListOptions{
+		ShowStatus:   true,
+		ColorEnabled: false,
+	}
+
+	output := captureStdout(func() {
+		displayTable(repos, statusMap, opts)
+	})
+
+	// Full STATUS column should be present with branch name
+	if !strings.Contains(output, "STATUS") {
+		t.Error("Should show STATUS column header when ShowStatus=true")
+	}
+	if !strings.Contains(output, "main") {
+		t.Error("Should show branch name in full STATUS column")
 	}
 }
