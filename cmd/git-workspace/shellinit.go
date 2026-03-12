@@ -52,7 +52,7 @@ function gws() {
       if [[ "$2" == "-p" || "$2" == "--parent" ]]; then
         _dest="$({BIN} parent "$1" -q 2>/dev/tty </dev/tty)"
       else
-        _dest="$({BIN} -g "$1" -q 2>/dev/tty </dev/tty)"
+        _dest="$({BIN} "$1" -q 2>/dev/tty </dev/tty)"
       fi
       [[ -n "$_dest" ]] && cd "$_dest"
       ;;
@@ -82,7 +82,7 @@ function gws() {
       if [[ "$2" == "-p" || "$2" == "--parent" ]]; then
         dest="$({BIN} parent "$1" -q 2>/dev/tty </dev/tty)"
       else
-        dest="$({BIN} -g "$1" -q 2>/dev/tty </dev/tty)"
+        dest="$({BIN} "$1" -q 2>/dev/tty </dev/tty)"
       fi
       [[ -n "$dest" ]] && cd "$dest"
       ;;
