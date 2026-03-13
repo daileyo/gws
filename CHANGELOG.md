@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.0](https://github.com/daileyo/gws/compare/v2.17.1...v2.18.0) (2026-03-13)
+
+
+### Features
+
+* add compact status display with -s flag ([e87c9f1](https://github.com/daileyo/gws/commit/e87c9f119524a9b599854ebe54c6a4e21cb84670))
+
 ## [2.17.1](https://github.com/daileyo/gws/compare/v2.17.0...v2.17.1) (2026-03-12)
 
 
