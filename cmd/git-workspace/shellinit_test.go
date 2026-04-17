@@ -7,7 +7,7 @@ import (
 
 func TestShellTemplatesRouteSubcommands(t *testing.T) {
 	// Verify shell templates include all subcommand names in the routing pattern
-	subcommands := []string{"list", "init", "add", "refresh", "print-workspace", "tag", "user"}
+	subcommands := []string{"list", "init", "add", "refresh", "print-workspace", "tag", "user", "worktree"}
 
 	templates := []struct {
 		name     string
@@ -45,6 +45,36 @@ func TestShellTemplatesContainNavigationFallthrough(t *testing.T) {
 	}
 	if !strings.Contains(bashInitTemplate, `dest="$({BIN}`) {
 		t.Error("bash template missing navigation fallthrough")
+	}
+}
+
+func TestShellTemplatesContainWorktreeNavigation(t *testing.T) {
+	templates := []struct {
+		name     string
+		template string
+	}{
+		{"zsh", zshInitTemplate},
+		{"bash", bashInitTemplate},
+	}
+	for _, tmpl := range templates {
+		t.Run(tmpl.name, func(t *testing.T) {
+			// -wt flag detection
+			if !strings.Contains(tmpl.template, `"-wt"`) {
+				t.Errorf("%s template missing -wt flag check", tmpl.name)
+			}
+			// --worktree flag in navigation command
+			if !strings.Contains(tmpl.template, `--worktree "$3"`) {
+				t.Errorf("%s template missing --worktree with branch argument", tmpl.name)
+			}
+			// Bare --worktree (no value) for selection mode
+			if !strings.Contains(tmpl.template, `--worktree -q`) {
+				t.Errorf("%s template missing bare --worktree invocation", tmpl.name)
+			}
+			// worktree in passthrough list
+			if !strings.Contains(tmpl.template, "worktree|") && !strings.Contains(tmpl.template, "|worktree") {
+				t.Errorf("%s template missing worktree in passthrough list", tmpl.name)
+			}
+		})
 	}
 }
 
