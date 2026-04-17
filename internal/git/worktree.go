@@ -1,6 +1,8 @@
 package git
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -112,8 +114,42 @@ func AddWorktree(repoPath, branch, destPath string) error {
 }
 
 // MoveWorktree moves a worktree from currentPath to newPath using git worktree move.
+// If the move fails, it attempts to detect and recover from partial moves.
 func MoveWorktree(repoPath, currentPath, newPath string) error {
 	_, err := gitCommand(repoPath, "worktree", "move", currentPath, newPath)
+	if err == nil {
+		return nil
+	}
+
+	// Check for partial move: destination exists but source is gone
+	_, srcErr := os.Stat(currentPath)
+	_, dstErr := os.Stat(newPath)
+	srcGone := os.IsNotExist(srcErr)
+	dstExists := dstErr == nil
+
+	if srcGone && dstExists {
+		// Directory was moved but git internals weren't updated.
+		// Move the directory back so the worktree isn't left in a broken state.
+		if mvErr := os.Rename(newPath, currentPath); mvErr != nil {
+			return fmt.Errorf("%w (rollback also failed: %v)", err, mvErr)
+		}
+		return fmt.Errorf("%w (rolled back to original location)", err)
+	}
+
+	if !srcGone && dstExists {
+		// Destination already exists (likely from a prior failed attempt).
+		// Clean up the stale destination so a retry can succeed.
+		if rmErr := os.RemoveAll(newPath); rmErr != nil {
+			return fmt.Errorf("%w (destination %s already exists and cleanup failed: %v)", err, newPath, rmErr)
+		}
+		// Retry the move after cleanup
+		_, retryErr := gitCommand(repoPath, "worktree", "move", currentPath, newPath)
+		if retryErr != nil {
+			return fmt.Errorf("%w (retry after cleanup also failed: %v)", err, retryErr)
+		}
+		return nil
+	}
+
 	return err
 }
 
