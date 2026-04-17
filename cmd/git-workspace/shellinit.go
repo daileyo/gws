@@ -53,9 +53,9 @@ function gws() {
         _dest="$({BIN} parent "$1" -q 2>/dev/tty </dev/tty)"
       elif [[ "$2" == "-wt" ]]; then
         if [[ -n "$3" ]]; then
-          _dest="$({BIN} -g "$1" --worktree "$3" -q 2>/dev/tty </dev/tty)"
+          _dest="$({BIN} "$1" --worktree "$3" -q 2>/dev/tty </dev/tty)"
         else
-          _dest="$({BIN} -g "$1" --worktree -q 2>/dev/tty </dev/tty)"
+          _dest="$({BIN} "$1" --worktree -q 2>/dev/tty </dev/tty)"
         fi
         [[ -n "$_dest" ]] && cd "$_dest"
         return
@@ -91,9 +91,9 @@ function gws() {
         dest="$({BIN} parent "$1" -q 2>/dev/tty </dev/tty)"
       elif [[ "$2" == "-wt" ]]; then
         if [[ -n "$3" ]]; then
-          dest="$({BIN} -g "$1" --worktree "$3" -q 2>/dev/tty </dev/tty)"
+          dest="$({BIN} "$1" --worktree "$3" -q 2>/dev/tty </dev/tty)"
         else
-          dest="$({BIN} -g "$1" --worktree -q 2>/dev/tty </dev/tty)"
+          dest="$({BIN} "$1" --worktree -q 2>/dev/tty </dev/tty)"
         fi
         [[ -n "$dest" ]] && cd "$dest"
         return
