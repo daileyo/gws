@@ -96,6 +96,27 @@ func splitWorktreeBlocks(output string) []string {
 	return blocks
 }
 
+// AddWorktree creates a new git worktree at destPath for the given branch.
+// If the branch already exists, it is checked out. If not, a new branch is created.
+func AddWorktree(repoPath, branch, destPath string) error {
+	// Try checking out existing branch first
+	_, err := gitCommand(repoPath, "rev-parse", "--verify", branch)
+	if err == nil {
+		// Branch exists — check it out into the worktree
+		_, err = gitCommand(repoPath, "worktree", "add", destPath, branch)
+		return err
+	}
+	// Branch doesn't exist — create it
+	_, err = gitCommand(repoPath, "worktree", "add", "-b", branch, destPath)
+	return err
+}
+
+// MoveWorktree moves a worktree from currentPath to newPath using git worktree move.
+func MoveWorktree(repoPath, currentPath, newPath string) error {
+	_, err := gitCommand(repoPath, "worktree", "move", currentPath, newPath)
+	return err
+}
+
 // IsAligned checks whether a worktree path is inside the <repoPath>.wt/ directory.
 func IsAligned(worktreePath, repoPath string) bool {
 	wtDir := filepath.Clean(repoPath) + ".wt"

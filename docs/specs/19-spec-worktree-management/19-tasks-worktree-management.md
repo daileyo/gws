@@ -94,7 +94,7 @@ Add a `--worktree` / `-wt` flag to the root command for navigating to worktrees,
 - [x] 3.4 Implement the match cases in `runWorktreeNavigate`: (a) single match → print worktree path to stdout, (b) multiple matches → display numbered list with branch name and path, prompt for selection (reuse `handleMultipleMatches` pattern), (c) no match → display error with branch name suggestions, (d) bare flag (sentinel value) → list all worktrees for the repo as a numbered selection.
 - [x] 3.5 Write tests in `navigate_test.go` for `runWorktreeNavigate`: single match, multiple matches with TTY selection, no match with suggestions, bare flag listing all worktrees, and non-TTY behavior.
 
-### [ ] 4.0 Worktree Subcommands (`list`, `add`, `align`)
+### [x] 4.0 Worktree Subcommands (`list`, `add`, `align`)
 
 Implement the `gws worktree` parent command with `list`, `add`, and `align` subcommands.
 
@@ -107,16 +107,16 @@ Implement the `gws worktree` parent command with `list`, `add`, and `align` subc
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Create `cmd/git-workspace/worktree.go` with a `worktreeCmd` parent command (`Use: "worktree"`, `Short: "Manage git worktrees"`). Register it in `init()` with `rootCmd.AddCommand(worktreeCmd)`.
-- [ ] 4.2 Create `cmd/git-workspace/worktree_list.go` with `worktreeListCmd` (`Use: "list [repo]"`, `Args: cobra.MaximumNArgs(1)`). In `runWorktreeList(repoFilter string)`: load config, iterate repos, collect worktrees, filter by repo name if provided. Display as a table with columns: REPO, BRANCH, PATH, and `(unaligned)` indicator. Register with `worktreeCmd.AddCommand`.
-- [ ] 4.3 Write tests in `worktree_list_test.go`: all worktrees listed when no filter, filtered to one repo with argument, `(unaligned)` shown for worktrees outside `.wt/`, empty output when no worktrees exist.
-- [ ] 4.4 Add `AddWorktree(repoPath, branch, destPath string) error` function to `internal/git/worktree.go` that runs `git -C <repoPath> worktree add <destPath> <branch>`.
-- [ ] 4.5 Create `cmd/git-workspace/worktree_add.go` with `worktreeAddCmd` (`Use: "add <repo> <branch>"`, `Args: cobra.ExactArgs(2)`). In `runWorktreeAdd(repoName, branch string)`: find repo by name, compute dest as `<repoPath>.wt/<branch>`, create `.wt/` dir if needed via `os.MkdirAll`, call `AddWorktree`, re-discover worktrees for that repo, save config. Register with `worktreeCmd.AddCommand`.
-- [ ] 4.6 Write tests in `worktree_add_test.go`: worktree created at correct path, `.wt/` directory created, config updated with new worktree entry, error on unknown repo, error on duplicate branch.
-- [ ] 4.7 Add `MoveWorktree(repoPath, currentPath, newPath string) error` function to `internal/git/worktree.go` that runs `git -C <repoPath> worktree move <currentPath> <newPath>`.
-- [ ] 4.8 Create `cmd/git-workspace/worktree_align.go` with `worktreeAlignCmd` (`Use: "align [repo]"`, `Args: cobra.MaximumNArgs(1)`). Add `--dry-run` bool flag. In `runWorktreeAlign(repoFilter string, dryRun bool)`: load config, iterate repos (filtered if argument provided), for each unaligned worktree compute target path as `<repoPath>.wt/<branch>`. Handle naming conflicts by appending `-dup-NN` (00-99). If `dryRun`, print planned moves without executing. Otherwise, create `.wt/` dir, call `MoveWorktree`, re-discover worktrees, save config.
-- [ ] 4.9 Write tests in `worktree_align_test.go`: unaligned worktree gets moved to `.wt/`, aligned worktree is skipped, `--dry-run` prints plan without moving, duplicate names get `-dup-NN` suffix, filtered by repo name when argument provided.
-- [ ] 4.10 Write tests in `internal/git/worktree_test.go` for `AddWorktree` and `MoveWorktree` using real temp git repos.
+- [x] 4.1 Create `cmd/git-workspace/worktree.go` with a `worktreeCmd` parent command (`Use: "worktree"`, `Short: "Manage git worktrees"`). Register it in `init()` with `rootCmd.AddCommand(worktreeCmd)`.
+- [x] 4.2 Create `cmd/git-workspace/worktree_list.go` with `worktreeListCmd` (`Use: "list [repo]"`, `Args: cobra.MaximumNArgs(1)`). In `runWorktreeList(repoFilter string)`: load config, iterate repos, collect worktrees, filter by repo name if provided. Display as a table with columns: REPO, BRANCH, PATH, and `(unaligned)` indicator. Register with `worktreeCmd.AddCommand`.
+- [x] 4.3 Write tests in `worktree_list_test.go`: all worktrees listed when no filter, filtered to one repo with argument, `(unaligned)` shown for worktrees outside `.wt/`, empty output when no worktrees exist.
+- [x] 4.4 Add `AddWorktree(repoPath, branch, destPath string) error` function to `internal/git/worktree.go` that runs `git -C <repoPath> worktree add <destPath> <branch>`.
+- [x] 4.5 Create `cmd/git-workspace/worktree_add.go` with `worktreeAddCmd` (`Use: "add <repo> <branch>"`, `Args: cobra.ExactArgs(2)`). In `runWorktreeAdd(repoName, branch string)`: find repo by name, compute dest as `<repoPath>.wt/<branch>`, create `.wt/` dir if needed via `os.MkdirAll`, call `AddWorktree`, re-discover worktrees for that repo, save config. Register with `worktreeCmd.AddCommand`.
+- [x] 4.6 Write tests in `worktree_add_test.go`: worktree created at correct path, `.wt/` directory created, config updated with new worktree entry, error on unknown repo, error on duplicate branch.
+- [x] 4.7 Add `MoveWorktree(repoPath, currentPath, newPath string) error` function to `internal/git/worktree.go` that runs `git -C <repoPath> worktree move <currentPath> <newPath>`.
+- [x] 4.8 Create `cmd/git-workspace/worktree_align.go` with `worktreeAlignCmd` (`Use: "align [repo]"`, `Args: cobra.MaximumNArgs(1)`). Add `--dry-run` bool flag. In `runWorktreeAlign(repoFilter string, dryRun bool)`: load config, iterate repos (filtered if argument provided), for each unaligned worktree compute target path as `<repoPath>.wt/<branch>`. Handle naming conflicts by appending `-dup-NN` (00-99). If `dryRun`, print planned moves without executing. Otherwise, create `.wt/` dir, call `MoveWorktree`, re-discover worktrees, save config.
+- [x] 4.9 Write tests in `worktree_align_test.go`: unaligned worktree gets moved to `.wt/`, aligned worktree is skipped, `--dry-run` prints plan without moving, duplicate names get `-dup-NN` suffix, filtered by repo name when argument provided.
+- [x] 4.10 Write tests in `internal/git/worktree_test.go` for `AddWorktree` and `MoveWorktree` using real temp git repos.
 
 ### [ ] 5.0 Shell Integration Update
 
