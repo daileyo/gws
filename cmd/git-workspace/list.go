@@ -60,6 +60,7 @@ const (
 	ansiReset   = "\033[0m"
 	ansiRed     = "\033[31m"
 	ansiGreen   = "\033[32m"
+	ansiOrange  = "\033[38;5;208m"
 	ansiMagenta = "\033[35m"
 	ansiCyan    = "\033[36m"
 )
@@ -553,9 +554,12 @@ func runList(opts ListOptions) error {
 	return nil
 }
 
-// repoDisplayName returns the repo name with a (wt) suffix if it has worktrees.
-func repoDisplayName(repo config.Repository) string {
+// repoDisplayName returns the repo name with a colored (wt) suffix if it has worktrees.
+func repoDisplayName(repo config.Repository, colorEnabled ...bool) string {
 	if len(repo.Worktrees) > 0 {
+		if len(colorEnabled) > 0 && colorEnabled[0] {
+			return repo.Name + " " + ansiOrange + "(wt)" + ansiReset
+		}
 		return repo.Name + " (wt)"
 	}
 	return repo.Name
@@ -573,7 +577,7 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 		} else {
 			names := make([]string, len(repos))
 			for i, repo := range repos {
-				names[i] = repoDisplayName(repo)
+				names[i] = repoDisplayName(repo, opts.ColorEnabled)
 			}
 			displayMultiColumn(names)
 		}
@@ -825,7 +829,7 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 		var rowParts []string
 
 		// Name column - add worktree and drift indicators
-		nameDisplay := repoDisplayName(repo)
+		nameDisplay := repoDisplayName(repo, opts.ColorEnabled)
 		if opts.ShowUser {
 			if info, ok := userInfoMap[repo.Path]; ok && info.hasDrift {
 				nameDisplay += " ⚠"
@@ -833,21 +837,30 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 		}
 
 		// Compact status: right-justify icons within the NAME field
+		nameVisWidth := displayWidth(nameDisplay)
 		if opts.CompactStatus && statusMap != nil {
 			status := statusMap[repo.Path]
 			if status != nil && status.Branch != "" {
 				icons := formatStatusIcons(status, opts.ColorEnabled)
 				iconsVisWidth := displayWidth(icons)
-				padding := maxNameLen - len(nameDisplay) - iconsVisWidth
+				padding := maxNameLen - nameVisWidth - iconsVisWidth
 				if padding < 2 {
 					padding = 2
 				}
 				rowParts = append(rowParts, nameDisplay+strings.Repeat(" ", padding)+icons)
 			} else {
-				rowParts = append(rowParts, fmt.Sprintf("%-*s", maxNameLen, nameDisplay))
+				namePad := maxNameLen - nameVisWidth
+				if namePad < 0 {
+					namePad = 0
+				}
+				rowParts = append(rowParts, nameDisplay+strings.Repeat(" ", namePad))
 			}
 		} else {
-			rowParts = append(rowParts, fmt.Sprintf("%-*s", maxNameLen, nameDisplay))
+			namePad := maxNameLen - nameVisWidth
+			if namePad < 0 {
+				namePad = 0
+			}
+			rowParts = append(rowParts, nameDisplay+strings.Repeat(" ", namePad))
 		}
 
 		// Status column (optional) - branch left-justified, icons right-justified
@@ -1044,12 +1057,13 @@ func displayMultiColumnWithStatus(repos []config.Repository, statusMap map[strin
 	}
 	entries := make([]entry, len(repos))
 	for i, repo := range repos {
-		name := repoDisplayName(repo)
+		name := repoDisplayName(repo, colorEnabled)
 		status := statusMap[repo.Path]
 		if status != nil && status.Branch != "" {
 			icons := formatStatusIcons(status, colorEnabled)
 			iconsVisWidth := displayWidth(icons)
-			padding := entryVisWidth - len(name) - iconsVisWidth
+			nameVisWidth := displayWidth(name)
+			padding := entryVisWidth - nameVisWidth - iconsVisWidth
 			if padding < 2 {
 				padding = 2
 			}
@@ -1060,7 +1074,7 @@ func displayMultiColumnWithStatus(repos []config.Repository, statusMap map[strin
 		} else {
 			entries[i] = entry{
 				display:  name,
-				visWidth: len(name),
+				visWidth: displayWidth(name),
 			}
 		}
 	}
