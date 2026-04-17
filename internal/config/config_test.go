@@ -485,6 +485,80 @@ func TestBackwardCompatibility(t *testing.T) {
 	}
 }
 
+func TestRepositoryWithWorktreesMarshaling(t *testing.T) {
+	t.Run("worktrees round-trip through JSON", func(t *testing.T) {
+		repo := Repository{
+			Name: "my-repo",
+			Path: "/workspace/my-repo",
+			Worktrees: []Worktree{
+				{Path: "/workspace/my-repo.wt/feature-x", Branch: "feature-x", Aligned: true},
+				{Path: "/tmp/other-worktree", Branch: "hotfix", Aligned: false},
+			},
+		}
+
+		data, err := json.Marshal(repo)
+		if err != nil {
+			t.Fatalf("Failed to marshal repository: %v", err)
+		}
+
+		var loaded Repository
+		if err := json.Unmarshal(data, &loaded); err != nil {
+			t.Fatalf("Failed to unmarshal repository: %v", err)
+		}
+
+		if len(loaded.Worktrees) != 2 {
+			t.Fatalf("Expected 2 worktrees, got %d", len(loaded.Worktrees))
+		}
+		if loaded.Worktrees[0].Path != "/workspace/my-repo.wt/feature-x" {
+			t.Errorf("Expected worktree path '/workspace/my-repo.wt/feature-x', got '%s'", loaded.Worktrees[0].Path)
+		}
+		if loaded.Worktrees[0].Branch != "feature-x" {
+			t.Errorf("Expected worktree branch 'feature-x', got '%s'", loaded.Worktrees[0].Branch)
+		}
+		if !loaded.Worktrees[0].Aligned {
+			t.Error("Expected first worktree to be aligned")
+		}
+		if loaded.Worktrees[1].Aligned {
+			t.Error("Expected second worktree to not be aligned")
+		}
+	})
+
+	t.Run("worktrees omitted from JSON when empty", func(t *testing.T) {
+		repo := Repository{
+			Name: "no-wt-repo",
+			Path: "/workspace/no-wt-repo",
+		}
+
+		data, err := json.Marshal(repo)
+		if err != nil {
+			t.Fatalf("Failed to marshal repository: %v", err)
+		}
+
+		jsonStr := string(data)
+		if contains := "worktrees"; len(jsonStr) > 0 {
+			for i := 0; i <= len(jsonStr)-len(contains); i++ {
+				if jsonStr[i:i+len(contains)] == contains {
+					t.Error("Expected 'worktrees' key to be omitted from JSON when empty")
+					break
+				}
+			}
+		}
+	})
+
+	t.Run("backward compat - old config without worktrees loads cleanly", func(t *testing.T) {
+		oldJSON := `{"name":"old-repo","path":"/workspace/old-repo"}`
+
+		var loaded Repository
+		if err := json.Unmarshal([]byte(oldJSON), &loaded); err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		if loaded.Worktrees != nil {
+			t.Errorf("Expected nil worktrees for old config, got %v", loaded.Worktrees)
+		}
+	})
+}
+
 func TestUserSourceConstants(t *testing.T) {
 	tests := []struct {
 		source   UserSource

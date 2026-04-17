@@ -63,6 +63,9 @@ func runRefresh() error {
 	fmt.Println("Detecting git user configuration...")
 	userDetectedCount := detectUserForRepos(allRepos, cfg.Profiles)
 
+	// Phase 3: Discover worktrees for all repos.
+	worktreeRepoCount := discoverWorktrees(allRepos)
+
 	cfg.Repositories = allRepos
 	syncProfilesFromRepos(cfg)
 
@@ -92,8 +95,38 @@ func runRefresh() error {
 	if userDetectedCount > 0 {
 		fmt.Printf("Repositories with user configuration: %d\n", userDetectedCount)
 	}
+	if worktreeRepoCount > 0 {
+		fmt.Printf("Repositories with worktrees: %d\n", worktreeRepoCount)
+	}
 
 	return nil
+}
+
+// discoverWorktrees populates the Worktrees field on each repo by running
+// git worktree list. Returns the number of repos that have worktrees.
+func discoverWorktrees(repos []config.Repository) int {
+	count := 0
+	for i := range repos {
+		entries, err := git.ListWorktrees(repos[i].Path)
+		if err != nil {
+			continue
+		}
+		if len(entries) == 0 {
+			repos[i].Worktrees = nil
+			continue
+		}
+		wts := make([]config.Worktree, len(entries))
+		for j, e := range entries {
+			wts[j] = config.Worktree{
+				Path:    e.Path,
+				Branch:  e.Branch,
+				Aligned: git.IsAligned(e.Path, repos[i].Path),
+			}
+		}
+		repos[i].Worktrees = wts
+		count++
+	}
+	return count
 }
 
 // validateExistingRepos iterates cfg.Repositories and validates each repo by
