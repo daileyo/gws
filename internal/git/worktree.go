@@ -159,6 +159,12 @@ func MoveWorktree(repoPath, currentPath, newPath string) error {
 	return err
 }
 
+// PruneWorktrees removes stale worktree entries whose paths no longer exist on disk.
+func PruneWorktrees(repoPath string) error {
+	_, err := gitCommand(repoPath, "worktree", "prune")
+	return err
+}
+
 // IsAligned checks whether a worktree path is inside the <repoPath>.wt/ directory.
 func IsAligned(worktreePath, repoPath string) bool {
 	wtDir := filepath.Clean(repoPath) + ".wt"
