@@ -58,7 +58,7 @@ Add the `Worktree` struct to the config package, implement `git worktree list --
 - [x] 1.8 Add a worktree count to the refresh summary output (e.g., `"Repositories with worktrees: %d"`), printed only when count > 0.
 - [x] 1.9 Write tests in `cmd/git-workspace/refresh_test.go` verifying that after refresh, repos with worktrees have populated `Worktrees` fields and repos without remain empty.
 
-### [ ] 2.0 Worktree Indicator in List Output
+### [x] 2.0 Worktree Indicator in List Output
 
 Display a `(wt)` indicator inline next to repo names in `gws list` for repos that have worktrees.
 
@@ -70,10 +70,10 @@ Display a `(wt)` indicator inline next to repo names in `gws list` for repos tha
 
 #### 2.0 Tasks
 
-- [ ] 2.1 In the compact multi-column path of `displayTable` (`list.go`), when building the `names` slice, append ` (wt)` to `repo.Name` if `len(repo.Worktrees) > 0`.
-- [ ] 2.2 In the table display path of `displayTable`, when rendering the NAME column for each row, append ` (wt)` to the name if the repo has worktrees. Account for the extra width in `maxNameLen` calculation.
-- [ ] 2.3 In `displayJSON`, include the `(wt)` indicator in the name field if the repo has worktrees (or add a separate `"has_worktrees": true` field — match whichever is more consistent with existing JSON patterns).
-- [ ] 2.4 Write tests in `cmd/git-workspace/list_test.go`: create test repos where some have `Worktrees` populated and verify the output contains `repo-name (wt)` for those and plain `repo-name` for others, in both compact and table modes.
+- [x] 2.1 In the compact multi-column path of `displayTable` (`list.go`), when building the `names` slice, append ` (wt)` to `repo.Name` if `len(repo.Worktrees) > 0`.
+- [x] 2.2 In the table display path of `displayTable`, when rendering the NAME column for each row, append ` (wt)` to the name if the repo has worktrees. Account for the extra width in `maxNameLen` calculation.
+- [x] 2.3 In `displayJSON`, include the `(wt)` indicator in the name field if the repo has worktrees (or add a separate `"has_worktrees": true` field — match whichever is more consistent with existing JSON patterns).
+- [x] 2.4 Write tests in `cmd/git-workspace/list_test.go`: create test repos where some have `Worktrees` populated and verify the output contains `repo-name (wt)` for those and plain `repo-name` for others, in both compact and table modes.
 
 ### [ ] 3.0 Worktree Navigation (`-wt` flag)
 
