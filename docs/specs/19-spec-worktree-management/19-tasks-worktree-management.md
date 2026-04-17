@@ -118,7 +118,7 @@ Implement the `gws worktree` parent command with `list`, `add`, and `align` subc
 - [x] 4.9 Write tests in `worktree_align_test.go`: unaligned worktree gets moved to `.wt/`, aligned worktree is skipped, `--dry-run` prints plan without moving, duplicate names get `-dup-NN` suffix, filtered by repo name when argument provided.
 - [x] 4.10 Write tests in `internal/git/worktree_test.go` for `AddWorktree` and `MoveWorktree` using real temp git repos.
 
-### [ ] 5.0 Shell Integration Update
+### [x] 5.0 Shell Integration Update
 
 Update the shell function templates to support `-wt` navigation and pass through the `worktree` subcommand.
 
@@ -130,8 +130,8 @@ Update the shell function templates to support `-wt` navigation and pass through
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Add `worktree` to the passthrough command list in both `zshInitTemplate` and `bashInitTemplate` in `shellinit.go` (the `case "$1"` line alongside `list|init|add|refresh|...`).
-- [ ] 5.2 Update the `*` (navigation) case in the zsh template to detect `-wt` as `$2`: if `$2` is `-wt`, route through `{BIN} -g "$1" --worktree "$3" -q 2>/dev/tty </dev/tty` with `cd` on the result. If `$2` is `-wt` and `$3` is empty, route through `{BIN} -g "$1" --worktree -q 2>/dev/tty </dev/tty` (bare flag triggers selection).
-- [ ] 5.3 Apply the same `-wt` handling to the bash template.
-- [ ] 5.4 Write tests in `shellinit_test.go` verifying: (a) `worktree` is in the passthrough list for both zsh and bash, (b) the `-wt` handling block exists in both templates, (c) the generated output includes `--worktree` flag in the navigation case.
-- [ ] 5.5 Update the `rootCmd` usage template in `main.go` to include worktree navigation example (e.g., `gws my-repo -wt feature-branch    # Navigate to worktree`).
+- [x] 5.1 Add `worktree` to the passthrough command list in both `zshInitTemplate` and `bashInitTemplate` in `shellinit.go` (the `case "$1"` line alongside `list|init|add|refresh|...`).
+- [x] 5.2 Update the `*` (navigation) case in the zsh template to detect `-wt` as `$2`: if `$2` is `-wt`, route through `{BIN} -g "$1" --worktree "$3" -q 2>/dev/tty </dev/tty` with `cd` on the result. If `$2` is `-wt` and `$3` is empty, route through `{BIN} -g "$1" --worktree -q 2>/dev/tty </dev/tty` (bare flag triggers selection).
+- [x] 5.3 Apply the same `-wt` handling to the bash template.
+- [x] 5.4 Write tests in `shellinit_test.go` verifying: (a) `worktree` is in the passthrough list for both zsh and bash, (b) the `-wt` handling block exists in both templates, (c) the generated output includes `--worktree` flag in the navigation case.
+- [x] 5.5 Update the `rootCmd` usage template in `main.go` to include worktree navigation example (e.g., `gws my-repo -wt feature-branch    # Navigate to worktree`).
