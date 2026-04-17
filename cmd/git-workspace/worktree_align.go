@@ -70,6 +70,9 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 			continue
 		}
 
+		// Prune stale worktree entries before planning moves
+		_ = git.PruneWorktrees(repo.Path)
+
 		wtDir := repo.Path + ".wt"
 		// Track names used in this repo's .wt dir to detect conflicts
 		usedNames := make(map[string]bool)
@@ -179,6 +182,8 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 		if !affectedRepos[repo.Path] {
 			continue
 		}
+		// Prune any stale entries left by failed moves
+		_ = git.PruneWorktrees(repo.Path)
 		entries, err := git.ListWorktrees(repo.Path)
 		if err != nil {
 			continue

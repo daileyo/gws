@@ -107,7 +107,11 @@ func runWorktreeList(repoFilter string, stdout io.Writer) error {
 		if !e.Aligned {
 			status = "(unaligned)"
 		}
-		fmt.Fprintf(stdout, "%-*s  %-*s  %-*s  %s\n", maxRepo, e.Repo, maxBranch, e.Branch, maxPath, e.Path, status)
+		branch := e.Branch
+		if branch == "" {
+			branch = "(detached)"
+		}
+		fmt.Fprintf(stdout, "%-*s  %-*s  %-*s  %s\n", maxRepo, e.Repo, maxBranch, branch, maxPath, e.Path, status)
 	}
 
 	return nil
