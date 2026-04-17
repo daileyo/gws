@@ -107,7 +107,8 @@ func runRefresh() error {
 func discoverWorktrees(repos []config.Repository) int {
 	count := 0
 	for i := range repos {
-		// Prune stale worktree entries before discovery
+		// Repair broken links first, then prune truly dead entries
+		_ = git.RepairWorktrees(repos[i].Path)
 		_ = git.PruneWorktrees(repos[i].Path)
 		entries, err := git.ListWorktrees(repos[i].Path)
 		if err != nil {

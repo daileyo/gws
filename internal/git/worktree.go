@@ -159,10 +159,56 @@ func MoveWorktree(repoPath, currentPath, newPath string) error {
 	return err
 }
 
-// PruneWorktrees removes stale worktree entries whose paths no longer exist on disk.
+// RepairWorktrees runs "git worktree repair" to fix broken internal links
+// without removing entries. This is safer than prune — it preserves worktrees
+// whose directories still exist but have broken git pointers.
+func RepairWorktrees(repoPath string) error {
+	_, err := gitCommand(repoPath, "worktree", "repair")
+	return err
+}
+
+// PruneWorktrees removes worktree entries whose directories no longer exist on disk.
+// Call RepairWorktrees first to salvage fixable entries before pruning truly dead ones.
 func PruneWorktrees(repoPath string) error {
 	_, err := gitCommand(repoPath, "worktree", "prune")
 	return err
+}
+
+// IsWorktreeLocked checks whether a worktree is locked by looking for a "locked"
+// file in git's internal worktree directory.
+func IsWorktreeLocked(repoPath, worktreePath string) (bool, string) {
+	// Git stores worktree state in .git/worktrees/<name>/
+	// A "locked" file in that directory means the worktree is locked.
+	// The file contents (if any) are the lock reason.
+	gitDir := filepath.Join(repoPath, ".git", "worktrees")
+	entries, err := os.ReadDir(gitDir)
+	if err != nil {
+		return false, ""
+	}
+
+	// Find the worktree entry matching this path
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		gitdirFile := filepath.Join(gitDir, entry.Name(), "gitdir")
+		content, err := os.ReadFile(gitdirFile)
+		if err != nil {
+			continue
+		}
+		// gitdir file contains the path to the worktree's .git file
+		linkedPath := strings.TrimSpace(string(content))
+		// The gitdir points to <worktreePath>/.git
+		wtPath := filepath.Dir(linkedPath)
+		if filepath.Clean(wtPath) == filepath.Clean(worktreePath) {
+			lockFile := filepath.Join(gitDir, entry.Name(), "locked")
+			if reason, err := os.ReadFile(lockFile); err == nil {
+				return true, strings.TrimSpace(string(reason))
+			}
+			return false, ""
+		}
+	}
+	return false, ""
 }
 
 // IsAligned checks whether a worktree path is inside the <repoPath>.wt/ directory.
