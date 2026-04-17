@@ -1285,3 +1285,144 @@ func TestDisplayTable_ShowStatusWithCompactStatus_ShowStatusWins(t *testing.T) {
 		t.Error("Should show branch name in full STATUS column")
 	}
 }
+
+// --- Worktree Indicator Tests ---
+
+func TestRepoDisplayName(t *testing.T) {
+	t.Run("repo with worktrees shows (wt)", func(t *testing.T) {
+		repo := config.Repository{
+			Name: "my-repo",
+			Worktrees: []config.Worktree{
+				{Path: "/workspace/my-repo.wt/feature", Branch: "feature", Aligned: true},
+			},
+		}
+		got := repoDisplayName(repo)
+		if got != "my-repo (wt)" {
+			t.Errorf("Expected 'my-repo (wt)', got '%s'", got)
+		}
+	})
+
+	t.Run("repo without worktrees has plain name", func(t *testing.T) {
+		repo := config.Repository{Name: "plain-repo"}
+		got := repoDisplayName(repo)
+		if got != "plain-repo" {
+			t.Errorf("Expected 'plain-repo', got '%s'", got)
+		}
+	})
+}
+
+func TestDisplayMultiColumn_WorktreeIndicator(t *testing.T) {
+	repos := []config.Repository{
+		{Name: "alpha"},
+		{
+			Name: "bravo",
+			Worktrees: []config.Worktree{
+				{Path: "/ws/bravo.wt/feat", Branch: "feat"},
+			},
+		},
+		{Name: "charlie"},
+	}
+
+	// Compact mode (non-TTY) — one name per line, sorted
+	output := captureStdout(func() {
+		names := make([]string, len(repos))
+		for i, repo := range repos {
+			names[i] = repoDisplayName(repo)
+		}
+		displayMultiColumn(names)
+	})
+
+	if !strings.Contains(output, "bravo (wt)") {
+		t.Errorf("Expected 'bravo (wt)' in compact output, got:\n%s", output)
+	}
+	if strings.Contains(output, "alpha (wt)") {
+		t.Error("'alpha' should NOT have (wt) indicator")
+	}
+	if strings.Contains(output, "charlie (wt)") {
+		t.Error("'charlie' should NOT have (wt) indicator")
+	}
+}
+
+func TestDisplayTable_WorktreeIndicator(t *testing.T) {
+	repos := []config.Repository{
+		{
+			Name: "with-wt",
+			Path: "/workspace/with-wt",
+			Type: "github",
+			Worktrees: []config.Worktree{
+				{Path: "/workspace/with-wt.wt/feat", Branch: "feat"},
+			},
+		},
+		{
+			Name: "no-wt",
+			Path: "/workspace/no-wt",
+			Type: "github",
+		},
+	}
+
+	// Table mode with type column (triggers table path, not compact)
+	output := captureStdout(func() {
+		displayTable(repos, nil, ListOptions{ShowType: true})
+	})
+
+	if !strings.Contains(output, "with-wt (wt)") {
+		t.Errorf("Expected 'with-wt (wt)' in table output, got:\n%s", output)
+	}
+	if strings.Contains(output, "no-wt (wt)") {
+		t.Error("'no-wt' should NOT have (wt) indicator in table output")
+	}
+}
+
+func TestDisplayJSON_WorktreeIndicator(t *testing.T) {
+	reposWithWT := []config.Repository{
+		{
+			Name: "wt-repo",
+			Path: "/workspace/wt-repo",
+			Worktrees: []config.Worktree{
+				{Path: "/workspace/wt-repo.wt/feat", Branch: "feat"},
+			},
+		},
+	}
+	reposWithoutWT := []config.Repository{
+		{
+			Name: "plain-repo",
+			Path: "/workspace/plain-repo",
+		},
+	}
+
+	t.Run("repo with worktrees has has_worktrees field", func(t *testing.T) {
+		output := captureStdout(func() {
+			_ = displayJSON(reposWithWT, nil, ListOptions{OutputFormat: "json"})
+		})
+
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			t.Fatalf("Failed to parse JSON: %v", err)
+		}
+
+		if len(result) != 1 {
+			t.Fatalf("Expected 1 entry, got %d", len(result))
+		}
+		hasWT, ok := result[0]["has_worktrees"]
+		if !ok {
+			t.Error("Expected 'has_worktrees' key in JSON output")
+		} else if hasWT != true {
+			t.Errorf("Expected has_worktrees=true, got %v", hasWT)
+		}
+	})
+
+	t.Run("repo without worktrees omits has_worktrees field", func(t *testing.T) {
+		output := captureStdout(func() {
+			_ = displayJSON(reposWithoutWT, nil, ListOptions{OutputFormat: "json"})
+		})
+
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			t.Fatalf("Failed to parse JSON: %v", err)
+		}
+
+		if _, ok := result[0]["has_worktrees"]; ok {
+			t.Error("'has_worktrees' should NOT be present for repos without worktrees")
+		}
+	})
+}

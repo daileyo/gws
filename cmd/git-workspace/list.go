@@ -553,6 +553,14 @@ func runList(opts ListOptions) error {
 	return nil
 }
 
+// repoDisplayName returns the repo name with a (wt) suffix if it has worktrees.
+func repoDisplayName(repo config.Repository) string {
+	if len(repo.Worktrees) > 0 {
+		return repo.Name + " (wt)"
+	}
+	return repo.Name
+}
+
 // displayTable shows repositories in a formatted table with selective columns.
 func displayTable(repos []config.Repository, statusMap map[string]*git.Status, opts ListOptions) {
 	fmt.Printf("Found %d %s:\n\n", len(repos), pluralize(len(repos), "repository", "repositories"))
@@ -565,7 +573,7 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 		} else {
 			names := make([]string, len(repos))
 			for i, repo := range repos {
-				names[i] = repo.Name
+				names[i] = repoDisplayName(repo)
 			}
 			displayMultiColumn(names)
 		}
@@ -631,8 +639,8 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 	}
 
 	for _, repo := range repos {
-		if len(repo.Name) > maxNameLen {
-			maxNameLen = len(repo.Name)
+		if n := len(repoDisplayName(repo)); n > maxNameLen {
+			maxNameLen = n
 		}
 		if opts.ShowType {
 			if len(repo.Type) > maxTypeLen {
@@ -816,8 +824,8 @@ func displayTable(repos []config.Repository, statusMap map[string]*git.Status, o
 	for _, repo := range repos {
 		var rowParts []string
 
-		// Name column - add drift indicator if applicable
-		nameDisplay := repo.Name
+		// Name column - add worktree and drift indicators
+		nameDisplay := repoDisplayName(repo)
 		if opts.ShowUser {
 			if info, ok := userInfoMap[repo.Path]; ok && info.hasDrift {
 				nameDisplay += " ⚠"
@@ -1015,8 +1023,8 @@ func displayMultiColumnWithStatus(repos []config.Repository, statusMap map[strin
 	maxNameLen := 0
 	maxIconsVisLen := 0
 	for _, repo := range repos {
-		if len(repo.Name) > maxNameLen {
-			maxNameLen = len(repo.Name)
+		if n := len(repoDisplayName(repo)); n > maxNameLen {
+			maxNameLen = n
 		}
 		if status := statusMap[repo.Path]; status != nil {
 			icons := formatStatusIcons(status, false)
@@ -1036,22 +1044,23 @@ func displayMultiColumnWithStatus(repos []config.Repository, statusMap map[strin
 	}
 	entries := make([]entry, len(repos))
 	for i, repo := range repos {
+		name := repoDisplayName(repo)
 		status := statusMap[repo.Path]
 		if status != nil && status.Branch != "" {
 			icons := formatStatusIcons(status, colorEnabled)
 			iconsVisWidth := displayWidth(icons)
-			padding := entryVisWidth - len(repo.Name) - iconsVisWidth
+			padding := entryVisWidth - len(name) - iconsVisWidth
 			if padding < 2 {
 				padding = 2
 			}
 			entries[i] = entry{
-				display:  repo.Name + strings.Repeat(" ", padding) + icons,
+				display:  name + strings.Repeat(" ", padding) + icons,
 				visWidth: entryVisWidth,
 			}
 		} else {
 			entries[i] = entry{
-				display:  repo.Name,
-				visWidth: len(repo.Name),
+				display:  name,
+				visWidth: len(name),
 			}
 		}
 	}
@@ -1209,6 +1218,9 @@ func displayJSON(repos []config.Repository, statusMap map[string]*git.Status, op
 	for i, repo := range repos {
 		entry := map[string]interface{}{
 			"name": repo.Name,
+		}
+		if len(repo.Worktrees) > 0 {
+			entry["has_worktrees"] = true
 		}
 
 		if opts.ShowType {
