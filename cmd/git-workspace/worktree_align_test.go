@@ -276,7 +276,7 @@ func TestRunWorktreeAlign_FilterByRepo(t *testing.T) {
 	}
 
 	// Now align the actual repo
-	output = captureStdoutStr(func() {
+	_ = captureStdoutStr(func() {
 		if err := runWorktreeAlign("my-repo", false); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
