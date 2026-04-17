@@ -97,6 +97,10 @@ func gitCommand(repoPath string, args ...string) (string, error) {
 	cmd.Dir = repoPath
 	out, err := cmd.Output()
 	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
+			stderr := strings.TrimSpace(string(exitErr.Stderr))
+			return "", fmt.Errorf("git %s failed: %s", strings.Join(args, " "), stderr)
+		}
 		return "", fmt.Errorf("git %s failed: %w", strings.Join(args, " "), err)
 	}
 	return strings.TrimSpace(string(out)), nil
