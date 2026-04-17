@@ -133,6 +133,8 @@ func MoveWorktree(repoPath, currentPath, newPath string) error {
 		if mvErr := os.Rename(newPath, currentPath); mvErr != nil {
 			return fmt.Errorf("%w (rollback also failed: %v)", err, mvErr)
 		}
+		// Repair git's worktree tracking to match the restored filesystem state
+		_, _ = gitCommand(repoPath, "worktree", "repair")
 		return fmt.Errorf("%w (rolled back to original location)", err)
 	}
 
@@ -142,6 +144,8 @@ func MoveWorktree(repoPath, currentPath, newPath string) error {
 		if rmErr := os.RemoveAll(newPath); rmErr != nil {
 			return fmt.Errorf("%w (destination %s already exists and cleanup failed: %v)", err, newPath, rmErr)
 		}
+		// Prune stale worktree entries left by prior failed attempts
+		_, _ = gitCommand(repoPath, "worktree", "prune")
 		// Retry the move after cleanup
 		_, retryErr := gitCommand(repoPath, "worktree", "move", currentPath, newPath)
 		if retryErr != nil {
@@ -150,6 +154,8 @@ func MoveWorktree(repoPath, currentPath, newPath string) error {
 		return nil
 	}
 
+	// For any other failure, attempt repair to keep git state consistent
+	_, _ = gitCommand(repoPath, "worktree", "repair")
 	return err
 }
 
