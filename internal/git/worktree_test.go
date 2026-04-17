@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -305,6 +306,159 @@ func TestAddWorktree_ExistingBranch(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected to find 'existing-branch' worktree")
+	}
+}
+
+func TestMoveWorktree_StaleDestinationRetry(t *testing.T) {
+	repoDir := t.TempDir()
+	initBareGitRepo(t, repoDir)
+
+	// Create a worktree
+	origPath := filepath.Join(t.TempDir(), "retry-wt")
+	resolvedOrig, _ := filepath.EvalSymlinks(filepath.Dir(origPath))
+	origPath = filepath.Join(resolvedOrig, "retry-wt")
+
+	cmd := exec.Command("git", "worktree", "add", "-b", "retry-branch", origPath)
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add failed: %s\n%s", err, out)
+	}
+
+	newDir := t.TempDir()
+	resolvedNew, _ := filepath.EvalSymlinks(newDir)
+	newPath := filepath.Join(resolvedNew, "retry-wt")
+
+	// Simulate a stale destination from a prior failed attempt: create a file
+	// at the exact destination path so git worktree move fails with "exists".
+	if err := os.WriteFile(newPath, []byte("stale"), 0644); err != nil {
+		t.Fatalf("failed to create stale destination: %v", err)
+	}
+
+	// MoveWorktree should clean up the stale destination and retry successfully
+	err := MoveWorktree(repoDir, origPath, newPath)
+	if err != nil {
+		t.Fatalf("MoveWorktree should recover from stale destination, got: %v", err)
+	}
+
+	// Source should be gone
+	if _, err := os.Stat(origPath); err == nil {
+		t.Error("original path should not exist after successful retry")
+	}
+
+	// Destination should exist with worktree contents
+	if _, err := os.Stat(newPath); err != nil {
+		t.Errorf("destination should exist after successful retry: %v", err)
+	}
+
+	// Git should know the worktree at the new location
+	entries, err := ListWorktrees(repoDir)
+	if err != nil {
+		t.Fatalf("ListWorktrees failed: %v", err)
+	}
+	found := false
+	for _, e := range entries {
+		if e.Branch == "retry-branch" {
+			found = true
+			if filepath.Clean(e.Path) != filepath.Clean(newPath) {
+				t.Errorf("expected worktree at %s, got %s", newPath, e.Path)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected to find 'retry-branch' worktree after retry")
+	}
+}
+
+func TestMoveWorktree_PartialMoveRollback(t *testing.T) {
+	repoDir := t.TempDir()
+	initBareGitRepo(t, repoDir)
+
+	// Create a worktree
+	origPath := filepath.Join(t.TempDir(), "partial-wt")
+	resolvedOrig, _ := filepath.EvalSymlinks(filepath.Dir(origPath))
+	origPath = filepath.Join(resolvedOrig, "partial-wt")
+
+	cmd := exec.Command("git", "worktree", "add", "-b", "partial-branch", origPath)
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add failed: %s\n%s", err, out)
+	}
+
+	// Simulate a partial move: physically move the directory to the destination
+	// but DON'T update git internals. This means git worktree move will fail
+	// because the source is gone, and MoveWorktree should roll back.
+	newDir := t.TempDir()
+	resolvedNew, _ := filepath.EvalSymlinks(newDir)
+	newPath := filepath.Join(resolvedNew, "partial-dest")
+
+	// Physically move the directory (simulating a partial git worktree move)
+	if err := os.Rename(origPath, newPath); err != nil {
+		t.Fatalf("failed to simulate partial move: %v", err)
+	}
+
+	// Now call MoveWorktree — git worktree move will fail because source is gone.
+	// The recovery code should detect source gone + dest exists and roll back.
+	err := MoveWorktree(repoDir, origPath, newPath)
+	if err == nil {
+		t.Fatal("MoveWorktree should return an error for partial move scenario")
+	}
+
+	// The error message should mention rollback
+	if !strings.Contains(err.Error(), "rolled back") {
+		t.Errorf("error should mention rollback, got: %v", err)
+	}
+
+	// The worktree should be back at the original location
+	if _, err := os.Stat(origPath); err != nil {
+		t.Errorf("worktree should be rolled back to original path: %v", err)
+	}
+
+	// Destination should be gone after rollback
+	if _, err := os.Stat(newPath); err == nil {
+		t.Error("destination should not exist after rollback")
+	}
+}
+
+func TestMoveWorktree_LockedWorktreeReturnsError(t *testing.T) {
+	repoDir := t.TempDir()
+	initBareGitRepo(t, repoDir)
+
+	// Create a worktree
+	origPath := filepath.Join(t.TempDir(), "locked-wt")
+	resolvedOrig, _ := filepath.EvalSymlinks(filepath.Dir(origPath))
+	origPath = filepath.Join(resolvedOrig, "locked-wt")
+
+	cmd := exec.Command("git", "worktree", "add", "-b", "locked-branch", origPath)
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add failed: %s\n%s", err, out)
+	}
+
+	// Lock the worktree
+	cmd = exec.Command("git", "worktree", "lock", origPath, "--reason", "test lock")
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree lock failed: %s\n%s", err, out)
+	}
+
+	newDir := t.TempDir()
+	resolvedNew, _ := filepath.EvalSymlinks(newDir)
+	newPath := filepath.Join(resolvedNew, "locked-dest")
+
+	// MoveWorktree should fail with a descriptive error
+	err := MoveWorktree(repoDir, origPath, newPath)
+	if err == nil {
+		t.Fatal("MoveWorktree should fail for locked worktree")
+	}
+
+	// Error should contain git's reason
+	if !strings.Contains(err.Error(), "lock") {
+		t.Errorf("error should mention lock, got: %v", err)
+	}
+
+	// Original should still be intact
+	if _, err := os.Stat(origPath); err != nil {
+		t.Errorf("locked worktree should remain at original path: %v", err)
 	}
 }
 
