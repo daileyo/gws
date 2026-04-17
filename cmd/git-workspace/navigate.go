@@ -104,6 +104,126 @@ func isSimilar(a, b string) bool {
 	return false
 }
 
+// runWorktreeNavigate handles navigation to a specific worktree within a repo.
+// It first resolves the repo, then matches the worktreeQuery against worktree
+// branch names using partial/substring matching.
+func runWorktreeNavigate(repoQuery, worktreeQuery string, quiet bool, repos []config.Repository, stderr io.Writer, stdout io.Writer, stdin io.Reader) error {
+	// Find the matching repo first
+	var repoMatches []config.Repository
+	for _, repo := range repos {
+		if filter.MatchesPattern(repo.Name, repoQuery) {
+			repoMatches = append(repoMatches, repo)
+		}
+	}
+
+	switch len(repoMatches) {
+	case 0:
+		return handleNoMatch(repoQuery, repos, stderr)
+	case 1:
+		// Single repo match — proceed to worktree matching
+	default:
+		// Multiple repo matches — can't determine which repo's worktrees to navigate
+		fmt.Fprintf(stderr, "Multiple repositories match '%s'. Narrow your query to a single repo for worktree navigation:\n\n", repoQuery)
+		for i, repo := range repoMatches {
+			fmt.Fprintf(stderr, "  %d) %s\n", i+1, repo.Name)
+		}
+		return fmt.Errorf("multiple repositories match '%s'", repoQuery)
+	}
+
+	repo := repoMatches[0]
+
+	if len(repo.Worktrees) == 0 {
+		fmt.Fprintf(stderr, "Repository '%s' has no worktrees\n", repo.Name)
+		return fmt.Errorf("repository '%s' has no worktrees", repo.Name)
+	}
+
+	// Bare --worktree flag (sentinel value) — list all worktrees for selection
+	if worktreeQuery == worktreeSentinel {
+		return handleWorktreeSelection(repo, repo.Worktrees, quiet, stderr, stdout, stdin)
+	}
+
+	// Match worktreeQuery against worktree branch names
+	var wtMatches []config.Worktree
+	for _, wt := range repo.Worktrees {
+		if filter.MatchesPattern(wt.Branch, worktreeQuery) {
+			wtMatches = append(wtMatches, wt)
+		}
+	}
+
+	switch len(wtMatches) {
+	case 0:
+		return handleNoWorktreeMatch(worktreeQuery, repo, stderr)
+	case 1:
+		return printWorktreeMatch(wtMatches[0], quiet, stderr, stdout)
+	default:
+		return handleWorktreeSelection(repo, wtMatches, quiet, stderr, stdout, stdin)
+	}
+}
+
+// printWorktreeMatch outputs a single matched worktree path
+func printWorktreeMatch(wt config.Worktree, quiet bool, stderr io.Writer, stdout io.Writer) error {
+	if !quiet {
+		fmt.Fprintf(stderr, "%s → %s\n", wt.Branch, wt.Path)
+	}
+	fmt.Fprintln(stdout, wt.Path)
+	return nil
+}
+
+// handleNoWorktreeMatch displays an error when no worktrees match the query
+func handleNoWorktreeMatch(query string, repo config.Repository, stderr io.Writer) error {
+	fmt.Fprintf(stderr, "No worktrees found matching '%s' in repository '%s'\n", query, repo.Name)
+
+	if len(repo.Worktrees) > 0 {
+		fmt.Fprintln(stderr, "\nAvailable worktrees:")
+		for _, wt := range repo.Worktrees {
+			fmt.Fprintf(stderr, "  %s\n", wt.Branch)
+		}
+	}
+
+	return fmt.Errorf("no worktrees found matching '%s'", query)
+}
+
+// handleWorktreeSelection displays a numbered list of worktrees and prompts
+// for selection (same pattern as handleMultipleMatches for repos).
+func handleWorktreeSelection(repo config.Repository, worktrees []config.Worktree, quiet bool, stderr io.Writer, stdout io.Writer, stdin io.Reader) error {
+	if !isTerminalFunc(stdin) {
+		for _, wt := range worktrees {
+			fmt.Fprintln(stdout, wt.Path)
+		}
+		return fmt.Errorf("multiple worktrees available for '%s' (%d worktrees)", repo.Name, len(worktrees))
+	}
+
+	fmt.Fprintf(stderr, "Worktrees for '%s':\n\n", repo.Name)
+	for i, wt := range worktrees {
+		indicator := ""
+		if !wt.Aligned {
+			indicator = " (unaligned)"
+		}
+		fmt.Fprintf(stderr, "  %d) %s%s  %s\n", i+1, wt.Branch, indicator, wt.Path)
+	}
+	fmt.Fprintln(stderr)
+
+	scanner := bufio.NewScanner(stdin)
+	for attempt := 0; attempt < maxSelectionAttempts; attempt++ {
+		fmt.Fprintf(stderr, "Select worktree [1-%d]: ", len(worktrees))
+
+		if !scanner.Scan() {
+			return fmt.Errorf("failed to read selection")
+		}
+
+		input := strings.TrimSpace(scanner.Text())
+		num, err := strconv.Atoi(input)
+		if err != nil || num < 1 || num > len(worktrees) {
+			fmt.Fprintf(stderr, "Invalid selection '%s'. Please enter a number between 1 and %d.\n", input, len(worktrees))
+			continue
+		}
+
+		return printWorktreeMatch(worktrees[num-1], quiet, stderr, stdout)
+	}
+
+	return fmt.Errorf("too many invalid selection attempts")
+}
+
 // isTerminal checks if the given reader is connected to a terminal (TTY)
 func isTerminal(r io.Reader) bool {
 	f, ok := r.(*os.File)

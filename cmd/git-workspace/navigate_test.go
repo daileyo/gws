@@ -491,3 +491,242 @@ func TestFindSuggestions_ShortQuery(t *testing.T) {
 		t.Errorf("expected no suggestions for single-char query, got %v", suggestions)
 	}
 }
+
+// --- Worktree Navigation Tests ---
+
+var testReposWithWorktrees = []config.Repository{
+	{
+		Name: "my-app",
+		Path: "/home/user/projects/my-app",
+		Type: config.TypeGitHub,
+		Worktrees: []config.Worktree{
+			{Path: "/home/user/projects/my-app.wt/feature-auth", Branch: "feature-auth", Aligned: true},
+			{Path: "/home/user/projects/my-app.wt/feature-api", Branch: "feature-api", Aligned: true},
+			{Path: "/tmp/hotfix", Branch: "hotfix/urgent", Aligned: false},
+		},
+	},
+	{
+		Name: "frontend",
+		Path: "/home/user/projects/frontend",
+		Type: config.TypeGitHub,
+	},
+}
+
+func TestRunWorktreeNavigate_SingleMatch(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	err := runWorktreeNavigate("my-app", "feature-auth", false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotStdout := strings.TrimSpace(stdout.String())
+	if gotStdout != "/home/user/projects/my-app.wt/feature-auth" {
+		t.Errorf("stdout: expected worktree path, got '%s'", gotStdout)
+	}
+
+	gotStderr := stderr.String()
+	if !strings.Contains(gotStderr, "feature-auth") {
+		t.Errorf("stderr should contain branch name, got '%s'", gotStderr)
+	}
+}
+
+func TestRunWorktreeNavigate_SingleMatch_Quiet(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	err := runWorktreeNavigate("my-app", "feature-auth", true, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotStdout := strings.TrimSpace(stdout.String())
+	if gotStdout != "/home/user/projects/my-app.wt/feature-auth" {
+		t.Errorf("stdout: expected worktree path, got '%s'", gotStdout)
+	}
+
+	if stderr.Len() != 0 {
+		t.Errorf("stderr should be empty in quiet mode, got '%s'", stderr.String())
+	}
+}
+
+func TestRunWorktreeNavigate_PartialMatch(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	// "auth" partially matches "feature-auth"
+	err := runWorktreeNavigate("my-app", "auth", false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotStdout := strings.TrimSpace(stdout.String())
+	if gotStdout != "/home/user/projects/my-app.wt/feature-auth" {
+		t.Errorf("stdout: expected worktree path, got '%s'", gotStdout)
+	}
+}
+
+func TestRunWorktreeNavigate_MultipleMatches_Selection(t *testing.T) {
+	withTTY(t)
+	var stdout, stderr bytes.Buffer
+	// "feature" matches "feature-auth" and "feature-api"; select second
+	stdin := strings.NewReader("2\n")
+
+	err := runWorktreeNavigate("my-app", "feature", false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotStdout := strings.TrimSpace(stdout.String())
+	if gotStdout != "/home/user/projects/my-app.wt/feature-api" {
+		t.Errorf("stdout: expected second worktree path, got '%s'", gotStdout)
+	}
+
+	gotStderr := stderr.String()
+	if !strings.Contains(gotStderr, "Worktrees for 'my-app'") {
+		t.Errorf("stderr should contain worktree list header, got '%s'", gotStderr)
+	}
+	if !strings.Contains(gotStderr, "1) feature-auth") {
+		t.Errorf("stderr should list first worktree, got '%s'", gotStderr)
+	}
+	if !strings.Contains(gotStderr, "2) feature-api") {
+		t.Errorf("stderr should list second worktree, got '%s'", gotStderr)
+	}
+}
+
+func TestRunWorktreeNavigate_MultipleMatches_NonTTY(t *testing.T) {
+	withNonTTY(t)
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	err := runWorktreeNavigate("my-app", "feature", false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err == nil {
+		t.Fatal("expected error for non-TTY multiple matches")
+	}
+
+	lines := strings.Split(strings.TrimSpace(stdout.String()), "\n")
+	if len(lines) != 2 {
+		t.Errorf("expected 2 paths in stdout, got %d: %v", len(lines), lines)
+	}
+}
+
+func TestRunWorktreeNavigate_NoMatch(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	err := runWorktreeNavigate("my-app", "nonexistent", false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err == nil {
+		t.Fatal("expected error for no worktree match")
+	}
+
+	gotStderr := stderr.String()
+	if !strings.Contains(gotStderr, "No worktrees found matching 'nonexistent'") {
+		t.Errorf("stderr should contain no-match message, got '%s'", gotStderr)
+	}
+	if !strings.Contains(gotStderr, "Available worktrees:") {
+		t.Errorf("stderr should list available worktrees, got '%s'", gotStderr)
+	}
+}
+
+func TestRunWorktreeNavigate_BareFlag_ListAll(t *testing.T) {
+	withTTY(t)
+	var stdout, stderr bytes.Buffer
+	// Bare --worktree flag uses sentinel; select first
+	stdin := strings.NewReader("1\n")
+
+	err := runWorktreeNavigate("my-app", worktreeSentinel, false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotStdout := strings.TrimSpace(stdout.String())
+	if gotStdout != "/home/user/projects/my-app.wt/feature-auth" {
+		t.Errorf("stdout: expected first worktree path, got '%s'", gotStdout)
+	}
+
+	gotStderr := stderr.String()
+	if !strings.Contains(gotStderr, "Worktrees for 'my-app'") {
+		t.Errorf("stderr should list all worktrees, got '%s'", gotStderr)
+	}
+	// Should show all 3 worktrees
+	if !strings.Contains(gotStderr, "3) hotfix/urgent") {
+		t.Errorf("stderr should include third worktree, got '%s'", gotStderr)
+	}
+}
+
+func TestRunWorktreeNavigate_UnalignedIndicator(t *testing.T) {
+	withTTY(t)
+	var stdout, stderr bytes.Buffer
+	// Select the unaligned worktree (3rd)
+	stdin := strings.NewReader("3\n")
+
+	err := runWorktreeNavigate("my-app", worktreeSentinel, false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotStderr := stderr.String()
+	if !strings.Contains(gotStderr, "(unaligned)") {
+		t.Errorf("stderr should show (unaligned) indicator, got '%s'", gotStderr)
+	}
+
+	gotStdout := strings.TrimSpace(stdout.String())
+	if gotStdout != "/tmp/hotfix" {
+		t.Errorf("stdout: expected unaligned worktree path, got '%s'", gotStdout)
+	}
+}
+
+func TestRunWorktreeNavigate_RepoNoWorktrees(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	err := runWorktreeNavigate("frontend", "anything", false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err == nil {
+		t.Fatal("expected error for repo without worktrees")
+	}
+
+	if !strings.Contains(err.Error(), "has no worktrees") {
+		t.Errorf("error should mention no worktrees, got: %v", err)
+	}
+}
+
+func TestRunWorktreeNavigate_RepoNotFound(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	err := runWorktreeNavigate("nonexistent", "feat", false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err == nil {
+		t.Fatal("expected error for unknown repo")
+	}
+
+	if !strings.Contains(err.Error(), "no repositories found matching") {
+		t.Errorf("error should mention no repo match, got: %v", err)
+	}
+}
+
+func TestRunWorktreeNavigate_BranchWithSlashes(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader("")
+
+	// "urgent" partially matches "hotfix/urgent"
+	err := runWorktreeNavigate("my-app", "urgent", false, testReposWithWorktrees, &stderr, &stdout, stdin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotStdout := strings.TrimSpace(stdout.String())
+	if gotStdout != "/tmp/hotfix" {
+		t.Errorf("stdout: expected '/tmp/hotfix', got '%s'", gotStdout)
+	}
+}
+
+func TestWorktreeFlagRegistered(t *testing.T) {
+	flag := rootCmd.Flags().Lookup("worktree")
+	if flag == nil {
+		t.Fatal("--worktree flag not found on root command")
+	}
+	if flag.NoOptDefVal != worktreeSentinel {
+		t.Errorf("Expected NoOptDefVal to be sentinel, got '%s'", flag.NoOptDefVal)
+	}
+}

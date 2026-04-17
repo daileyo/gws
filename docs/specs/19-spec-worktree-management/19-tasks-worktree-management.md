@@ -75,7 +75,7 @@ Display a `(wt)` indicator inline next to repo names in `gws list` for repos tha
 - [x] 2.3 In `displayJSON`, include the `(wt)` indicator in the name field if the repo has worktrees (or add a separate `"has_worktrees": true` field — match whichever is more consistent with existing JSON patterns).
 - [x] 2.4 Write tests in `cmd/git-workspace/list_test.go`: create test repos where some have `Worktrees` populated and verify the output contains `repo-name (wt)` for those and plain `repo-name` for others, in both compact and table modes.
 
-### [ ] 3.0 Worktree Navigation (`-wt` flag)
+### [x] 3.0 Worktree Navigation (`-wt` flag)
 
 Add a `--worktree` / `-wt` flag to the root command for navigating to worktrees, with partial matching and interactive selection.
 
@@ -88,11 +88,11 @@ Add a `--worktree` / `-wt` flag to the root command for navigating to worktrees,
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Add a `--worktree` string flag (shorthand `-w`) to the root command in `main.go` `init()`. Use `NoOptDefVal` set to a sentinel (e.g., `"\x00wt"`) so bare `--worktree` (no value) is distinguishable from not provided.
-- [ ] 3.2 Update the navigation block in `rootCmd.RunE` (`main.go`): when `--worktree` is set and `len(args) > 0`, call a new `runWorktreeNavigate` function instead of `runNavigate`.
-- [ ] 3.3 Create `runWorktreeNavigate(repoQuery, worktreeQuery string, quiet bool, repos []config.Repository, stderr, stdout io.Writer, stdin io.Reader) error` in `navigate.go`. This function should: find the matching repo (reuse existing `filter.MatchesPattern` logic, error if no match or multiple repo matches), then match `worktreeQuery` against the repo's `Worktrees` branch names using `filter.MatchesPattern`.
-- [ ] 3.4 Implement the match cases in `runWorktreeNavigate`: (a) single match → print worktree path to stdout, (b) multiple matches → display numbered list with branch name and path, prompt for selection (reuse `handleMultipleMatches` pattern), (c) no match → display error with branch name suggestions, (d) bare flag (sentinel value) → list all worktrees for the repo as a numbered selection.
-- [ ] 3.5 Write tests in `navigate_test.go` for `runWorktreeNavigate`: single match, multiple matches with TTY selection, no match with suggestions, bare flag listing all worktrees, and non-TTY behavior.
+- [x] 3.1 Add a `--worktree` string flag (no shorthand — `-w` taken by deprecated flag) to the root command in `main.go` `init()`. Use `NoOptDefVal` set to a sentinel (e.g., `"\x00wt"`) so bare `--worktree` (no value) is distinguishable from not provided.
+- [x] 3.2 Update the navigation block in `rootCmd.RunE` (`main.go`): when `--worktree` is set and `len(args) > 0`, call a new `runWorktreeNavigate` function instead of `runNavigate`.
+- [x] 3.3 Create `runWorktreeNavigate(repoQuery, worktreeQuery string, quiet bool, repos []config.Repository, stderr, stdout io.Writer, stdin io.Reader) error` in `navigate.go`. This function should: find the matching repo (reuse existing `filter.MatchesPattern` logic, error if no match or multiple repo matches), then match `worktreeQuery` against the repo's `Worktrees` branch names using `filter.MatchesPattern`.
+- [x] 3.4 Implement the match cases in `runWorktreeNavigate`: (a) single match → print worktree path to stdout, (b) multiple matches → display numbered list with branch name and path, prompt for selection (reuse `handleMultipleMatches` pattern), (c) no match → display error with branch name suggestions, (d) bare flag (sentinel value) → list all worktrees for the repo as a numbered selection.
+- [x] 3.5 Write tests in `navigate_test.go` for `runWorktreeNavigate`: single match, multiple matches with TTY selection, no match with suggestions, bare flag listing all worktrees, and non-TTY behavior.
 
 ### [ ] 4.0 Worktree Subcommands (`list`, `add`, `align`)
 

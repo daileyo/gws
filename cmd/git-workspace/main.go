@@ -17,10 +17,15 @@ var (
 	date    = "unknown"
 )
 
+// worktreeSentinel is the NoOptDefVal used to distinguish bare --worktree
+// (list all worktrees) from --worktree not provided at all.
+const worktreeSentinel = "\x00wt"
+
 // Root-level flags that are not deprecated.
 var (
 	flagTagAlias bool
 	flagQuiet    bool
+	flagWorktree string
 )
 
 // filterTags is used by the deprecated root --tag flag (deprecated.go)
@@ -68,9 +73,12 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			return err
 		}
 
-		// Validate --quiet applies to navigation only
+		// Validate --quiet and --worktree apply to navigation only
 		if flagQuiet && len(args) == 0 {
 			return fmt.Errorf("--quiet/-q can only be used with navigation")
+		}
+		if flagWorktree != "" && len(args) == 0 {
+			return fmt.Errorf("--worktree/-w requires a repository name argument")
 		}
 
 		// All remaining commands require workspace to be initialized
@@ -99,6 +107,9 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 			if err != nil {
 				return fmt.Errorf("failed to load workspace configuration: %w", err)
 			}
+			if flagWorktree != "" {
+				return runWorktreeNavigate(args[0], flagWorktree, flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
+			}
 			return runNavigate(args[0], flagQuiet, cfg.Repositories, os.Stderr, os.Stdout, os.Stdin)
 		}
 
@@ -120,6 +131,8 @@ func init() {
 
 	// Navigation flags
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "Suppress verbose output, print only the path (navigation only)")
+	rootCmd.Flags().StringVar(&flagWorktree, "worktree", "", "Navigate to a worktree by branch name (navigation only)")
+	rootCmd.Flags().Lookup("worktree").NoOptDefVal = worktreeSentinel
 
 	// Register Cobra's built-in completion subcommand (bash, zsh, fish, powershell)
 	rootCmd.InitDefaultCompletionCmd()
