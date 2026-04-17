@@ -22,7 +22,7 @@ DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Linker flags to embed version information
 LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)"
 
-.PHONY: all build test clean install uninstall help lint coverage snapshot ci vet fmt setup-hooks docs
+.PHONY: all build test clean install uninstall help lint coverage snapshot ci vet fmt setup-hooks docs use-dev use-release
 
 all: build
 
@@ -151,6 +151,23 @@ install: build
 	@echo "  bash (~/.bashrc):"
 	@echo "    export PATH=\"$(INSTALL_BIN):\$$PATH\""
 	@echo "    eval \"\$$(git-workspace shell-init bash)\""
+
+## use-dev: Switch to dev build (build and install to ~/.local/bin)
+use-dev: install
+	@echo ""
+	@echo "Switched to dev build:"
+	@$(INSTALL_BIN)/$(BINARY_NAME) --version
+
+## use-release: Switch to released (Homebrew) build (remove dev binary)
+use-release:
+	@if [ ! -f $(INSTALL_BIN)/$(BINARY_NAME) ]; then \
+		echo "Already using released build:"; \
+	else \
+		rm -f $(INSTALL_BIN)/$(BINARY_NAME); \
+		echo "Removed dev binary from $(INSTALL_BIN)"; \
+		echo "Switched to released build:"; \
+	fi
+	@$(BINARY_NAME) --version
 
 ## help: Show this help message
 help:
