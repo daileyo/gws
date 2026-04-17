@@ -234,4 +234,3 @@ func TestListWorktrees_BranchWithSlashes(t *testing.T) {
 		t.Errorf("Expected branch 'feature/auth-flow', got '%s'", entries[0].Branch)
 	}
 }
-
