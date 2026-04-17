@@ -1,6 +1,7 @@
 package git
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -232,5 +233,129 @@ func TestListWorktrees_BranchWithSlashes(t *testing.T) {
 	}
 	if entries[0].Branch != "feature/auth-flow" {
 		t.Errorf("Expected branch 'feature/auth-flow', got '%s'", entries[0].Branch)
+	}
+}
+
+func TestAddWorktree(t *testing.T) {
+	repoDir := t.TempDir()
+	initBareGitRepo(t, repoDir)
+
+	destPath := filepath.Join(t.TempDir(), "new-wt")
+	resolved, _ := filepath.EvalSymlinks(destPath)
+	if resolved != "" {
+		destPath = resolved
+	}
+
+	err := AddWorktree(repoDir, "new-feature", destPath)
+	if err != nil {
+		t.Fatalf("AddWorktree failed: %v", err)
+	}
+
+	// Verify the worktree directory exists
+	if _, err := os.Stat(destPath); err != nil {
+		t.Errorf("worktree directory should exist at %s: %v", destPath, err)
+	}
+
+	// Verify it appears in ListWorktrees
+	entries, err := ListWorktrees(repoDir)
+	if err != nil {
+		t.Fatalf("ListWorktrees failed: %v", err)
+	}
+
+	found := false
+	for _, e := range entries {
+		if e.Branch == "new-feature" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected to find 'new-feature' worktree after AddWorktree")
+	}
+}
+
+func TestAddWorktree_ExistingBranch(t *testing.T) {
+	repoDir := t.TempDir()
+	initBareGitRepo(t, repoDir)
+
+	// Create a branch first
+	cmd := exec.Command("git", "branch", "existing-branch")
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git branch failed: %s\n%s", err, out)
+	}
+
+	destPath := filepath.Join(t.TempDir(), "existing-wt")
+
+	err := AddWorktree(repoDir, "existing-branch", destPath)
+	if err != nil {
+		t.Fatalf("AddWorktree for existing branch failed: %v", err)
+	}
+
+	entries, err := ListWorktrees(repoDir)
+	if err != nil {
+		t.Fatalf("ListWorktrees failed: %v", err)
+	}
+
+	found := false
+	for _, e := range entries {
+		if e.Branch == "existing-branch" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected to find 'existing-branch' worktree")
+	}
+}
+
+func TestMoveWorktree(t *testing.T) {
+	repoDir := t.TempDir()
+	initBareGitRepo(t, repoDir)
+
+	// Create a worktree
+	origPath := filepath.Join(t.TempDir(), "orig-wt")
+	cmd := exec.Command("git", "worktree", "add", "-b", "move-me", origPath)
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add failed: %s\n%s", err, out)
+	}
+
+	// Move it
+	newDir := t.TempDir()
+	resolvedNew, _ := filepath.EvalSymlinks(newDir)
+	newPath := filepath.Join(resolvedNew, "moved-wt")
+
+	err := MoveWorktree(repoDir, origPath, newPath)
+	if err != nil {
+		t.Fatalf("MoveWorktree failed: %v", err)
+	}
+
+	// Old path should not exist
+	if _, err := os.Stat(origPath); err == nil {
+		t.Error("old worktree path should not exist after move")
+	}
+
+	// New path should exist
+	if _, err := os.Stat(newPath); err != nil {
+		t.Errorf("new worktree path should exist after move: %v", err)
+	}
+
+	// Verify git still knows about it
+	entries, err := ListWorktrees(repoDir)
+	if err != nil {
+		t.Fatalf("ListWorktrees failed: %v", err)
+	}
+
+	found := false
+	for _, e := range entries {
+		if e.Branch == "move-me" {
+			found = true
+			if filepath.Clean(e.Path) != filepath.Clean(newPath) {
+				t.Errorf("expected worktree at %s, got %s", newPath, e.Path)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected to find 'move-me' worktree after move")
 	}
 }
