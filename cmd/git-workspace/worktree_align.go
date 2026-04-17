@@ -70,7 +70,8 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 			continue
 		}
 
-		// Prune stale worktree entries before planning moves
+		// Repair broken links first, then prune truly dead entries
+		_ = git.RepairWorktrees(repo.Path)
 		_ = git.PruneWorktrees(repo.Path)
 
 		wtDir := repo.Path + ".wt"
@@ -89,6 +90,16 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 
 		for _, wt := range repo.Worktrees {
 			if wt.Aligned {
+				continue
+			}
+
+			// Skip locked worktrees — they can't be moved
+			if locked, reason := git.IsWorktreeLocked(repo.Path, wt.Path); locked {
+				msg := "locked"
+				if reason != "" {
+					msg = fmt.Sprintf("locked: %s", reason)
+				}
+				fmt.Printf("Skipping [%s] %s — %s\n", repo.Name, wt.Branch, msg)
 				continue
 			}
 
@@ -182,7 +193,8 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 		if !affectedRepos[repo.Path] {
 			continue
 		}
-		// Prune any stale entries left by failed moves
+		// Repair broken links, then prune truly dead entries
+		_ = git.RepairWorktrees(repo.Path)
 		_ = git.PruneWorktrees(repo.Path)
 		entries, err := git.ListWorktrees(repo.Path)
 		if err != nil {
