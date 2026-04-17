@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -175,6 +176,78 @@ func TestRunRefresh_BrokenSymlinkSkipped(t *testing.T) {
 	}
 	if len(cfg.Repositories) != 0 {
 		t.Errorf("expected 0 repositories (broken symlink should be skipped), got %d", len(cfg.Repositories))
+	}
+}
+
+// TestRunRefresh_DiscoverWorktrees verifies that refresh populates the Worktrees
+// field for repos that have worktrees, and leaves it empty for those that don't.
+func TestRunRefresh_DiscoverWorktrees(t *testing.T) {
+	workspaceDir := setupWorkspace(t)
+
+	// Create two repos — one with worktrees, one without.
+	repoWithWT := filepath.Join(workspaceDir, "repo-with-wt")
+	createInitTestRepo(t, repoWithWT)
+
+	repoWithoutWT := filepath.Join(workspaceDir, "repo-without-wt")
+	createInitTestRepo(t, repoWithoutWT)
+
+	// Add a worktree to the first repo.
+	wtDir := repoWithWT + ".wt"
+	if err := os.MkdirAll(wtDir, 0755); err != nil {
+		t.Fatalf("failed to create .wt dir: %v", err)
+	}
+	wtPath := filepath.Join(wtDir, "feature-x")
+	cmd := exec.Command("git", "worktree", "add", "-b", "feature-x", wtPath)
+	cmd.Dir = repoWithWT
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add failed: %s\n%s", err, out)
+	}
+
+	// Resolve paths for comparison (macOS symlink resolution).
+	resolvedWithWT, _ := filepath.EvalSymlinks(repoWithWT)
+
+	saveConfigWithRepos(t, workspaceDir, []config.Repository{
+		{Name: "repo-with-wt", Path: resolvedWithWT},
+		{Name: "repo-without-wt", Path: repoWithoutWT},
+	})
+
+	if err := runRefresh(); err != nil {
+		t.Fatalf("runRefresh returned error: %v", err)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	var withWT, withoutWT *config.Repository
+	for i := range cfg.Repositories {
+		switch cfg.Repositories[i].Name {
+		case "repo-with-wt":
+			withWT = &cfg.Repositories[i]
+		case "repo-without-wt":
+			withoutWT = &cfg.Repositories[i]
+		}
+	}
+
+	if withWT == nil {
+		t.Fatal("repo-with-wt not found in config")
+	}
+	if len(withWT.Worktrees) != 1 {
+		t.Fatalf("expected 1 worktree for repo-with-wt, got %d", len(withWT.Worktrees))
+	}
+	if withWT.Worktrees[0].Branch != "feature-x" {
+		t.Errorf("expected worktree branch 'feature-x', got '%s'", withWT.Worktrees[0].Branch)
+	}
+	if !withWT.Worktrees[0].Aligned {
+		t.Error("expected worktree to be aligned (inside .wt/ dir)")
+	}
+
+	if withoutWT == nil {
+		t.Fatal("repo-without-wt not found in config")
+	}
+	if len(withoutWT.Worktrees) != 0 {
+		t.Errorf("expected 0 worktrees for repo-without-wt, got %d", len(withoutWT.Worktrees))
 	}
 }
 

@@ -63,6 +63,13 @@ type Profile struct {
 	SignCommits bool   `json:"sign_commits,omitempty"` // commit.gpgsign setting
 }
 
+// Worktree represents a git worktree associated with a repository
+type Worktree struct {
+	Path    string `json:"path"`              // Absolute filesystem path to the worktree
+	Branch  string `json:"branch"`            // Branch checked out in the worktree
+	Aligned bool   `json:"aligned,omitempty"` // Whether the worktree is inside <repo>.wt/
+}
+
 // Repository represents a discovered git repository
 type Repository struct {
 	Name           string               `json:"name"`
@@ -75,6 +82,7 @@ type Repository struct {
 	Email          string               `json:"email,omitempty"`           // Git user.email for this repo
 	SigningEnabled bool                 `json:"signing_enabled,omitempty"` // Whether commit signing is configured
 	UserSource     UserSource           `json:"user_source,omitempty"`     // Where the user config comes from
+	Worktrees      []Worktree           `json:"worktrees,omitempty"`       // Git worktrees for this repo
 }
 
 // GetConfigPath returns the path to the gws config file

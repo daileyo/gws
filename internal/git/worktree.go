@@ -1,0 +1,104 @@
+package git
+
+import (
+	"path/filepath"
+	"strings"
+)
+
+// WorktreeEntry represents a single git worktree discovered via git worktree list.
+type WorktreeEntry struct {
+	Path   string // Absolute filesystem path to the worktree
+	Branch string // Branch checked out (without refs/heads/ prefix)
+}
+
+// ListWorktrees runs "git worktree list --porcelain" for the given repo and
+// returns all worktrees except the main one (whose path matches repoPath).
+func ListWorktrees(repoPath string) ([]WorktreeEntry, error) {
+	output, err := gitCommand(repoPath, "worktree", "list", "--porcelain")
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve symlinks so we correctly match the main worktree path
+	// (e.g., macOS /var → /private/var)
+	resolved, err := filepath.EvalSymlinks(repoPath)
+	if err != nil {
+		resolved = repoPath
+	}
+
+	return parseWorktreeListPorcelain(output, resolved), nil
+}
+
+// parseWorktreeListPorcelain parses the porcelain output of git worktree list.
+// Each entry is separated by a blank line. Lines of interest:
+//
+//	worktree <path>
+//	branch refs/heads/<name>
+func parseWorktreeListPorcelain(output, repoPath string) []WorktreeEntry {
+	if output == "" {
+		return nil
+	}
+
+	repoClean := filepath.Clean(repoPath)
+	var entries []WorktreeEntry
+
+	// Split into blocks separated by blank lines
+	blocks := splitWorktreeBlocks(output)
+	for _, block := range blocks {
+		var path, branch string
+		for _, line := range strings.Split(block, "\n") {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "worktree ") {
+				path = strings.TrimPrefix(line, "worktree ")
+			} else if strings.HasPrefix(line, "branch ") {
+				ref := strings.TrimPrefix(line, "branch ")
+				branch = strings.TrimPrefix(ref, "refs/heads/")
+			}
+		}
+
+		// Skip the main worktree (same path as the repo itself)
+		if path == "" || filepath.Clean(path) == repoClean {
+			continue
+		}
+
+		entries = append(entries, WorktreeEntry{
+			Path:   path,
+			Branch: branch,
+		})
+	}
+
+	return entries
+}
+
+// splitWorktreeBlocks splits porcelain output into blocks separated by blank lines.
+func splitWorktreeBlocks(output string) []string {
+	var blocks []string
+	var current strings.Builder
+
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			if current.Len() > 0 {
+				blocks = append(blocks, current.String())
+				current.Reset()
+			}
+			continue
+		}
+		if current.Len() > 0 {
+			current.WriteString("\n")
+		}
+		current.WriteString(line)
+	}
+	if current.Len() > 0 {
+		blocks = append(blocks, current.String())
+	}
+
+	return blocks
+}
+
+// IsAligned checks whether a worktree path is inside the <repoPath>.wt/ directory.
+func IsAligned(worktreePath, repoPath string) bool {
+	wtDir := filepath.Clean(repoPath) + ".wt"
+	cleanWt := filepath.Clean(worktreePath)
+	return cleanWt == wtDir || strings.HasPrefix(cleanWt, wtDir+string(filepath.Separator))
+}
