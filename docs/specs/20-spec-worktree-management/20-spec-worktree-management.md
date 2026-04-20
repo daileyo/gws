@@ -1,4 +1,4 @@
-# 19-spec-worktree-management
+# 20-spec-worktree-management
 
 ## Introduction/Overview
 

@@ -1,4 +1,4 @@
-# 19-validation-worktree-management
+# 20-validation-worktree-management
 
 ## 1) Executive Summary
 
@@ -66,11 +66,11 @@
 
 | Task | Proof Artifact | Status | Verification Result |
 | --- | --- | --- | --- |
-| T1.0 | `19-task-01-proofs.md` — worktree discovery tests | Verified | 7 test cases documented; all passing in `go test ./...` |
-| T2.0 | `19-task-02-proofs.md` — (wt) indicator tests | Verified | 6 test cases; compact + table + JSON modes covered |
-| T3.0 | `19-task-03-proofs.md` — navigation tests | Verified | 12 test cases; single/multi/no match/bare flag covered |
-| T4.0 | `19-task-04-proofs.md` — subcommand tests | Verified | 13 test cases; list/add/align + internal git ops covered |
-| T5.0 | `19-task-05-proofs.md` — shell integration tests | Verified | 6 test cases; zsh + bash templates verified |
+| T1.0 | `20-task-01-proofs.md` — worktree discovery tests | Verified | 7 test cases documented; all passing in `go test ./...` |
+| T2.0 | `20-task-02-proofs.md` — (wt) indicator tests | Verified | 6 test cases; compact + table + JSON modes covered |
+| T3.0 | `20-task-03-proofs.md` — navigation tests | Verified | 12 test cases; single/multi/no match/bare flag covered |
+| T4.0 | `20-task-04-proofs.md` — subcommand tests | Verified | 13 test cases; list/add/align + internal git ops covered |
+| T5.0 | `20-task-05-proofs.md` — shell integration tests | Verified | 6 test cases; zsh + bash templates verified |
 
 ## 3) Validation Issues
 
