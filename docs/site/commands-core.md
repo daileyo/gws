@@ -125,10 +125,12 @@ gws list
 Found 15 repositories:
 
 my-project       work-api         client-site      my-api
-frontend-app     docs-site        infra-tools      backend-svc
+frontend-app     docs-site        infra-tools      backend-svc (wt)
 mobile-app       shared-libs      auth-service     data-pipeline
 ml-models        cli-tools        test-harness
 ```
+
+Repositories with git worktrees show an orange `(wt)` indicator next to their name. This indicator appears in all display modes (compact, table, and JSON).
 
 **Verbose listing (stored data columns):**
 
@@ -351,6 +353,7 @@ Re-scan the workspace and update repository metadata.
 - Removes repositories whose paths are no longer valid
 - Updates remote URLs and classification
 - Re-detects git user configuration
+- Discovers git worktrees for all tracked repositories
 - Clears and rebuilds git status cache
 - Preserves all custom tags
 
@@ -374,9 +377,10 @@ Removed 1 repository (path no longer valid)
 Found 2 new repositories
 Updated 3 repositories
 Repositories with user configuration: 12
+Repositories with worktrees: 3
 ```
 
-The conditional lines (Removed, Found, Updated, Repositories with user configuration) only appear when their counts are greater than zero.
+The conditional lines (Removed, Found, Updated, Repositories with user configuration, Repositories with worktrees) only appear when their counts are greater than zero.
 
 ---
 
@@ -391,6 +395,145 @@ Print the workspace root path to stdout. Useful for scripting:
 ```bash
 cd "$(gws print-workspace)"
 ```
+
+---
+
+## Worktree Management
+
+git-workspace provides first-class support for [git worktrees](https://git-scm.com/docs/git-worktree). Worktrees follow a standard directory convention: the main repo lives at `<repo>/` and all its worktrees live under a sibling directory `<repo>.wt/`.
+
+```
+~/projects/
+  my-repo/              # Main repository
+  my-repo.wt/           # Worktree directory
+    feat-auth/           # Worktree for feat-auth branch
+    fix-login/           # Worktree for fix-login branch
+```
+
+### List Worktrees
+
+```
+gws worktree list [repo]
+```
+
+List all git worktrees across tracked repositories. Optionally filter to a single repo.
+
+```bash
+# List all worktrees across all repos
+gws worktree list
+
+# List worktrees for a specific repo
+gws worktree list my-repo
+```
+
+**Example output:**
+
+```
+REPO          BRANCH        PATH                                        STATUS
+------------  ------------  ------------------------------------------  ----------
+my-repo       feat-auth     /home/user/projects/my-repo.wt/feat-auth    aligned
+my-repo       fix-login     /home/user/projects/my-repo.wt/fix-login    aligned
+other-repo    experiment    /tmp/other-experiment                        (unaligned)
+```
+
+Worktrees inside the `<repo>.wt/` directory are marked `aligned`. Worktrees elsewhere are marked `(unaligned)`.
+
+### Add Worktree
+
+```
+gws worktree add <repo> <branch>
+```
+
+Create a new worktree following the `.wt/` convention. The worktree is created at `<repo-path>.wt/<branch>`.
+
+```bash
+# Create a worktree for a new branch
+gws worktree add my-repo feat-new-feature
+
+# Branch names with slashes are preserved
+gws worktree add my-repo hotfix/urgent-fix
+```
+
+The `.wt/` directory is created automatically if it doesn't exist. If the branch already exists in the repo, it is checked out into the worktree. If the branch doesn't exist, a new branch is created.
+
+### Align Worktrees
+
+```
+gws worktree align [repo] [--dry-run]
+```
+
+Move all unaligned worktrees into the standard `<repo>.wt/` directory structure using `git worktree move` (requires Git 2.17+).
+
+```bash
+# Preview what would be moved
+gws worktree align --dry-run
+
+# Align all repos
+gws worktree align
+
+# Align only a specific repo
+gws worktree align my-repo
+```
+
+**Example dry-run output:**
+
+```
+Dry run — no changes will be made:
+
+Would move [my-repo] experiment
+  from: /tmp/my-experiment
+  to:   /home/user/projects/my-repo.wt/experiment
+
+Total: 1 worktree to align
+```
+
+**Behavior details:**
+
+- Locked worktrees are skipped (with a message explaining why)
+- If two worktrees would produce the same directory name, a `-dup-NN` suffix is appended
+- If a move fails partway, the worktree is rolled back to its original location
+- After alignment, worktree data is re-discovered and saved to config
+
+### Navigate to Worktrees
+
+Navigate directly to a worktree by branch name across all repos:
+
+```bash
+# Navigate to a worktree by branch name (searches all repos)
+gws worktree feat-auth
+
+# Canonical form (same behavior)
+gws worktree navigate feat-auth
+
+# Wildcard matching
+gws worktree "feat-*"
+```
+
+When multiple worktrees match, an interactive selection list is displayed:
+
+```
+Multiple worktrees match 'feat-*':
+
+  1) my-repo / feat-auth  /home/user/projects/my-repo.wt/feat-auth
+  2) my-repo / feat-new   /home/user/projects/my-repo.wt/feat-new
+  3) other-repo / feat-x  /home/user/projects/other-repo.wt/feat-x
+
+Select worktree [1-3]:
+```
+
+Tab completion is available for worktree branch names.
+
+You can also navigate to a specific repo's worktree using the `-wt` shorthand:
+
+```bash
+# Navigate to a specific worktree within a repo
+gws my-repo -wt feat-auth
+
+# List all worktrees for a repo with interactive selection
+gws my-repo -wt
+```
+
+See [Shell Integration](shell-integration.md) for details on how `-wt` navigation works.
 
 ---
 

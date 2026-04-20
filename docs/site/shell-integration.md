@@ -96,6 +96,46 @@ git-workspace parent my-repo -q
 
 ---
 
+## Worktree Navigation
+
+Navigate to git worktrees directly from the shell:
+
+```bash
+# Navigate to a worktree by branch name (searches all repos)
+gws worktree feat-auth
+
+# Wildcard matching with interactive selection
+gws worktree "feat-*"
+
+# Navigate to a worktree within a specific repo
+gws my-repo -wt feat-auth
+
+# List all worktrees for a repo and choose interactively
+gws my-repo -wt
+```
+
+The shell function handles the `cd` automatically — `gws worktree <branch>` and `gws <repo> -wt <branch>` both change your working directory to the matched worktree path.
+
+The `worktree` subcommands that don't navigate (`list`, `align`, `add`) are passed through to the binary without `cd`:
+
+```bash
+gws worktree list              # Lists worktrees (no cd)
+gws worktree align --dry-run   # Previews alignment (no cd)
+gws worktree add my-repo feat  # Creates worktree (no cd)
+```
+
+**Using the binary directly:**
+
+```bash
+# Print worktree path without changing directory
+git-workspace worktree feat-auth -q
+# Output: /home/user/projects/my-repo.wt/feat-auth
+```
+
+See [Core Commands](commands-core.md#worktree-management) for full worktree command reference.
+
+---
+
 ## Tab Completion
 
 Tab completion is set up automatically by `shell-init` — no separate step needed if you followed the setup above.
@@ -123,6 +163,15 @@ function gws() {
   fi
   case "$1" in
     list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) git-workspace "$@" ;;
+    worktree)
+      case "$2" in
+        list|align|add|"") git-workspace "$@" ;;
+        *)
+          _dest="$(git-workspace "$@" -q 2>/dev/tty </dev/tty)"
+          [[ -n "$_dest" ]] && cd "$_dest"
+          ;;
+      esac
+      ;;
     -p|--parent|parent)
       _dest="$(git-workspace parent "$2" -q 2>/dev/tty </dev/tty)"
       [[ -n "$_dest" ]] && cd "$_dest"
@@ -133,8 +182,16 @@ function gws() {
     *)
       if [[ "$2" == "-p" || "$2" == "--parent" ]]; then
         _dest="$(git-workspace parent "$1" -q 2>/dev/tty </dev/tty)"
+      elif [[ "$2" == "-wt" ]]; then
+        if [[ -n "$3" ]]; then
+          _dest="$(git-workspace "$1" --worktree "$3" -q 2>/dev/tty </dev/tty)"
+        else
+          _dest="$(git-workspace "$1" --worktree -q 2>/dev/tty </dev/tty)"
+        fi
+        [[ -n "$_dest" ]] && cd "$_dest"
+        return
       else
-        _dest="$(git-workspace -g "$1" -q 2>/dev/tty </dev/tty)"
+        _dest="$(git-workspace "$1" -q 2>/dev/tty </dev/tty)"
       fi
       [[ -n "$_dest" ]] && cd "$_dest"
       ;;
