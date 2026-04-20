@@ -40,7 +40,16 @@ function gws() {
     return
   fi
   case "$1" in
-    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|worktree|help|__*) {BIN} "$@" ;;
+    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@" ;;
+    worktree)
+      case "$2" in
+        list|align|add|"") {BIN} "$@" ;;
+        *)
+          _dest="$({BIN} "$@" -q 2>/dev/tty </dev/tty)"
+          [[ -n "$_dest" ]] && cd "$_dest"
+          ;;
+      esac
+      ;;
     -p|--parent|parent)
       _dest="$({BIN} parent "$2" -q 2>/dev/tty </dev/tty)"
       [[ -n "$_dest" ]] && cd "$_dest"
@@ -78,7 +87,16 @@ function gws() {
     return
   fi
   case "$1" in
-    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|worktree|help|__*) {BIN} "$@"; return ;;
+    list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@"; return ;;
+    worktree)
+      case "$2" in
+        list|align|add|"") {BIN} "$@" ;;
+        *)
+          dest="$({BIN} "$@" -q 2>/dev/tty </dev/tty)"
+          [[ -n "$dest" ]] && cd "$dest"
+          ;;
+      esac
+      ;;
     -p|--parent|parent)
       dest="$({BIN} parent "$2" -q 2>/dev/tty </dev/tty)"
       [[ -n "$dest" ]] && cd "$dest"
