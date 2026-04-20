@@ -80,6 +80,22 @@ compdef _git-workspace gws
 `
 
 const bashInitTemplate = `# git-workspace shell integration — do not edit, managed via shell-init
+
+# Ensure bash-completion helpers are available for tab completion.
+# Cobra's generated completion script requires _get_comp_words_by_ref
+# which comes from the bash-completion package.
+if ! type _get_comp_words_by_ref &>/dev/null; then
+  if [[ -r /usr/local/etc/profile.d/bash_completion.sh ]]; then
+    source /usr/local/etc/profile.d/bash_completion.sh
+  elif [[ -r /opt/homebrew/etc/profile.d/bash_completion.sh ]]; then
+    source /opt/homebrew/etc/profile.d/bash_completion.sh
+  elif [[ -r /usr/share/bash-completion/bash_completion ]]; then
+    source /usr/share/bash-completion/bash_completion
+  elif [[ -r /etc/bash_completion ]]; then
+    source /etc/bash_completion
+  fi
+fi
+
 function gws() {
   local dest
   if [[ $# -eq 0 ]]; then
