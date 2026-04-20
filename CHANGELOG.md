@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.19.0](https://github.com/daileyo/gws/compare/v2.18.0...v2.19.0) (2026-04-20)
+
+
+### Features
+
+* add --worktree flag for navigating to repo worktrees ([a3d1552](https://github.com/daileyo/gws/commit/a3d1552c3ad97f2e3c76c1af5e9a85c64aa7f1f9))
+* add (wt) indicator to list output for repos with worktrees ([3b3c419](https://github.com/daileyo/gws/commit/3b3c41996b8b72d4a2bded444219999541f257a5))
+* add global worktree navigation via gws worktree &lt;branch&gt; ([d5b7f9c](https://github.com/daileyo/gws/commit/d5b7f9c096a9c99a0bed9a9c6bd26f53ab47b372))
+* add make use-dev and use-release targets for switching builds ([998b79a](https://github.com/daileyo/gws/commit/998b79af9c3fea663e0dd52d1ec9e4424ce41d19))
+* add shell integration for worktree navigation (-wt flag) ([a4af20c](https://github.com/daileyo/gws/commit/a4af20ccbff935978a80d7d0bac32a94e322e8ee))
+* add worktree data model, discovery, and refresh integration ([219a078](https://github.com/daileyo/gws/commit/219a0782995b3f3261d63f9554d0cf54db040d6f))
+* add worktree subcommands (list, add, align) ([e81ddaa](https://github.com/daileyo/gws/commit/e81ddaa51366682520bf8bd8ef28b327a9520ff6))
+* color (wt) indicator orange across all gws output ([10e8504](https://github.com/daileyo/gws/commit/10e8504fc97850e4476bd65bcc88ece28b67789d))
+
+
+### Bug Fixes
+
+* add rollback and retry logic to MoveWorktree for partial failures ([ca048d9](https://github.com/daileyo/gws/commit/ca048d9a6140b3bb0122280afe97c2e1c4d9f928))
+* format worktree_test.go with gofmt ([04af01f](https://github.com/daileyo/gws/commit/04af01fda8fe5a8e31321ffbedf0b40c40290971))
+* include git stderr in error messages for better diagnostics ([d8a3041](https://github.com/daileyo/gws/commit/d8a30416c441ec8956faa8512adfe259191a5738))
+* proactively prune stale worktrees and handle detached HEAD display ([0a1452e](https://github.com/daileyo/gws/commit/0a1452e27ded5acdae98db4f812d5f56772accd1))
+* remove deprecated -g flag from shell templates, add worktree shortcut ([9d20423](https://github.com/daileyo/gws/commit/9d20423a6e441144ece314d5d44b1ee192008d69))
+* resolve ineffassign lint error in worktree align test ([79c84a1](https://github.com/daileyo/gws/commit/79c84a1d6c3ca836d3d9462c3c41854aba579a1a))
+* restore missing 'n' in release-please.yml name field ([5b744eb](https://github.com/daileyo/gws/commit/5b744ebf9d4c106a0b99f99aa3222a025ddfd073))
+* run git worktree repair/prune during move recovery ([ddfda92](https://github.com/daileyo/gws/commit/ddfda921b2f240b2156a556a0b4a40f81884758e))
+* use repair-before-prune strategy and skip locked worktrees ([848e7b2](https://github.com/daileyo/gws/commit/848e7b22c25dee12fed322c21673af5074f7a52c))
+
 ## [2.18.0](https://github.com/daileyo/gws/compare/v2.17.1...v2.18.0) (2026-03-13)
 
 
