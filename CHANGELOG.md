@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.19.1](https://github.com/daileyo/gws/compare/v2.19.0...v2.19.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* ensure bash-completion is sourced before cobra completions ([c300596](https://github.com/daileyo/gws/commit/c3005961cb53577fdbbc5009a3cfbf2b85a073d4))
+* use correct cobra function name for bash completion ([a4a0ed2](https://github.com/daileyo/gws/commit/a4a0ed2016534490c86f2f4c0c159685011c427a))
+
 ## [2.19.0](https://github.com/daileyo/gws/compare/v2.18.0...v2.19.0) (2026-04-20)
 
 
