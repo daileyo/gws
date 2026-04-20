@@ -7,7 +7,7 @@ import (
 
 func TestShellTemplatesRouteSubcommands(t *testing.T) {
 	// Verify shell templates include all subcommand names in the routing pattern
-	subcommands := []string{"list", "init", "add", "refresh", "print-workspace", "tag", "user", "worktree"}
+	subcommands := []string{"list", "init", "add", "refresh", "print-workspace", "tag", "user"}
 
 	templates := []struct {
 		name     string
@@ -58,11 +58,11 @@ func TestShellTemplatesContainWorktreeNavigation(t *testing.T) {
 	}
 	for _, tmpl := range templates {
 		t.Run(tmpl.name, func(t *testing.T) {
-			// -wt flag detection
+			// -wt flag detection for repo-scoped worktree navigation
 			if !strings.Contains(tmpl.template, `"-wt"`) {
 				t.Errorf("%s template missing -wt flag check", tmpl.name)
 			}
-			// --worktree flag in navigation command
+			// --worktree flag in repo-scoped navigation command
 			if !strings.Contains(tmpl.template, `--worktree "$3"`) {
 				t.Errorf("%s template missing --worktree with branch argument", tmpl.name)
 			}
@@ -70,9 +70,13 @@ func TestShellTemplatesContainWorktreeNavigation(t *testing.T) {
 			if !strings.Contains(tmpl.template, `--worktree -q`) {
 				t.Errorf("%s template missing bare --worktree invocation", tmpl.name)
 			}
-			// worktree in passthrough list
-			if !strings.Contains(tmpl.template, "worktree|") && !strings.Contains(tmpl.template, "|worktree") {
-				t.Errorf("%s template missing worktree in passthrough list", tmpl.name)
+			// worktree has its own case block (not in passthrough list)
+			if !strings.Contains(tmpl.template, "worktree)") {
+				t.Errorf("%s template missing worktree case block", tmpl.name)
+			}
+			// worktree subcommands (list, align, add) are passed through
+			if !strings.Contains(tmpl.template, "list|align|add") {
+				t.Errorf("%s template missing worktree subcommand passthrough", tmpl.name)
 			}
 		})
 	}

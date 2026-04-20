@@ -171,8 +171,10 @@ Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "he
 Navigation:
   gws <repo-name>                                   # Navigate to repository by name
   gws "api-*"                                       # Wildcard match with interactive selection
-  gws <repo> -wt <branch>                           # Navigate to worktree
-  gws <repo> -wt                                    # List worktrees for selection
+  gws <repo> -wt <branch>                           # Navigate to repo's worktree
+  gws <repo> -wt                                    # List repo's worktrees for selection
+  gws worktree <branch>                             # Navigate to worktree (any repo)
+  gws worktree navigate <branch>                    # Same (canonical form)
 
 Flags:
   -q, --quiet     Suppress verbose output, print only the path (navigation only)
