@@ -11,7 +11,7 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 
 ## Features
 
-- **Subcommand-Based CLI**: Clean command structure with `list`, `init`, `add`, `refresh`, `tag`, `user`, and `parent` subcommands
+- **Subcommand-Based CLI**: Clean command structure with `list`, `init`, `add`, `refresh`, `tag`, `user`, `parent`, and `worktree` subcommands
 - **Compact Default View**: Multi-column repository names at a glance, with verbose modes for detailed tables
 - **Repository Discovery**: Automatically find all git repositories in a directory tree
 - **Automatic Classification**: Detect repository type (GitHub, GitLab, Azure DevOps, Bitbucket) from remote URLs
@@ -23,6 +23,7 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 - **User Profile Management**: Manage git user profiles across repositories with `gws user`
 - **Repository Navigation**: Jump to any repository instantly with `gws <repo-name>`
 - **Parent Navigation**: Navigate to a repository's parent directory with `gws parent` or `gws -p`
+- **Worktree Management**: Discover, navigate, create, and organize git worktrees with `gws worktree`
 - **Remote URL Display**: View formatted or raw remote URLs with `--show-remote` / `--show-remote-raw`
 - **External Repo Symlinks**: Automatically creates workspace symlinks for repositories outside the workspace root
 - **Workspace Management**: Track and organize repositories in a centralized configuration

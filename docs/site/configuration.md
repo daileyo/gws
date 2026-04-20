@@ -50,7 +50,14 @@ git-workspace stores its configuration in `~/.gws/config.json`. The configuratio
       "tags": ["work", "backend"],
       "user": "Jane Doe",
       "email": "jane.doe@company.com",
-      "user_source": "includeif"
+      "user_source": "includeif",
+      "worktrees": [
+        {
+          "path": "/home/user/projects/my-api.wt/feat-auth",
+          "branch": "feat-auth",
+          "aligned": true
+        }
+      ]
     }
   ],
   "preferences": {
@@ -97,6 +104,17 @@ Profiles are managed via `gws user add`, `gws user remove`, and related commands
 | `email` | string | Git `user.email` configured for this repository |
 | `signing_enabled` | boolean | Whether commit signing is configured for this repository |
 | `user_source` | string | Where the user config comes from: `global`, `local`, `includeif`, or `unknown` |
+| `worktrees` | array | List of git worktrees for this repository (omitted when empty). See Worktree Fields below. |
+
+### Worktree Fields
+
+Each entry in the `worktrees` array represents a git worktree associated with a repository. Worktree data is populated during `gws refresh` and updated by `gws worktree add` and `gws worktree align`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `path` | string | Absolute path to the worktree directory on disk |
+| `branch` | string | Branch checked out in this worktree |
+| `aligned` | boolean | Whether the worktree is inside the `<repo>.wt/` directory convention |
 
 ### Preferences Fields
 
