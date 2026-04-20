@@ -123,7 +123,7 @@ function gws() {
   esac
 }
 source <({BIN} completion bash)
-complete -F _git-workspace gws
+complete -o default -F __start_git-workspace gws
 `
 
 func runShellInit(_ *cobra.Command, args []string) error {
