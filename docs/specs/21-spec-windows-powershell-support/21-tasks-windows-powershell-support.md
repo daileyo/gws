@@ -72,7 +72,7 @@ Update the `shellInitCmd` cobra command definition to accept `powershell` as a v
 - [x] 3.5 Update the error message in the `default` case from `"supported: zsh, bash"` to `"supported: zsh, bash, powershell"`
 - [x] 3.6 (Optional) Add `case "pwsh":` as an alias that falls through to the `"powershell"` case
 
-### [ ] 4.0 PowerShell Template Tests
+### [x] 4.0 PowerShell Template Tests
 
 Extend `shellinit_test.go` with the same structural validation tests for the PowerShell template: subcommand routing, `{BIN}` placeholder, navigation fallthrough, parent navigation, and worktree navigation patterns (using PowerShell syntax equivalents).
 
@@ -83,12 +83,12 @@ Extend `shellinit_test.go` with the same structural validation tests for the Pow
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Add `{"powershell", powershellInitTemplate}` to the `templates` slice in `TestShellTemplatesRouteSubcommands` so subcommand routing is validated (note: PowerShell uses `switch` not `case`, so the Contains checks may need PowerShell-specific patterns — see 4.5)
-- [ ] 4.2 Add a `{BIN}` placeholder check for `powershellInitTemplate` in `TestShellTemplatesContainBinPlaceholder`
-- [ ] 4.3 Add `powershellInitTemplate` to `TestShellTemplatesContainNavigationFallthrough` — check for PowerShell-equivalent navigation pattern (e.g., `Set-Location` and `& {BIN}`)
-- [ ] 4.4 Add `powershellInitTemplate` to `TestShellTemplatesContainWorktreeNavigation` — check for `-wt` flag detection, `--worktree` with branch argument, bare `--worktree` invocation, `worktree` case block, and worktree subcommand passthrough using PowerShell syntax patterns
-- [ ] 4.5 Add `powershellInitTemplate` to `TestShellTemplatesContainParentNavigation` — check for `-p`, `--parent`, `parent` keyword routing, and `{BIN} parent` invocation. If the existing string-match patterns don't work for PowerShell syntax (e.g., different quoting), add PowerShell-specific sub-tests alongside the bash/zsh ones rather than forcing identical patterns.
-- [ ] 4.6 Run `go test -v ./cmd/git-workspace/` and confirm all tests pass with no regressions
+- [x] 4.1 Add `{"powershell", powershellInitTemplate}` to the `templates` slice in `TestShellTemplatesRouteSubcommands` so subcommand routing is validated (note: PowerShell uses `switch` not `case`, so the Contains checks may need PowerShell-specific patterns — see 4.5)
+- [x] 4.2 Add a `{BIN}` placeholder check for `powershellInitTemplate` in `TestShellTemplatesContainBinPlaceholder`
+- [x] 4.3 Add `powershellInitTemplate` to `TestShellTemplatesContainNavigationFallthrough` — check for PowerShell-equivalent navigation pattern (e.g., `Set-Location` and `& {BIN}`)
+- [x] 4.4 Add `powershellInitTemplate` to `TestShellTemplatesContainWorktreeNavigation` — check for `-wt` flag detection, `--worktree` with branch argument, bare `--worktree` invocation, `worktree` case block, and worktree subcommand passthrough using PowerShell syntax patterns
+- [x] 4.5 Add `powershellInitTemplate` to `TestShellTemplatesContainParentNavigation` — check for `-p`, `--parent`, `parent` keyword routing, and `{BIN} parent` invocation. If the existing string-match patterns don't work for PowerShell syntax (e.g., different quoting), add PowerShell-specific sub-tests alongside the bash/zsh ones rather than forcing identical patterns.
+- [x] 4.6 Run `go test -v ./cmd/git-workspace/` and confirm all tests pass with no regressions
 
 ### [ ] 5.0 Windows Install Documentation and Release Notes
 

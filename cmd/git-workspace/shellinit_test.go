@@ -15,6 +15,7 @@ func TestShellTemplatesRouteSubcommands(t *testing.T) {
 	}{
 		{"zsh", zshInitTemplate},
 		{"bash", bashInitTemplate},
+		{"powershell", powershellInitTemplate},
 	}
 
 	for _, tmpl := range templates {
@@ -36,15 +37,25 @@ func TestShellTemplatesContainBinPlaceholder(t *testing.T) {
 	if !strings.Contains(bashInitTemplate, "{BIN}") {
 		t.Error("bash template missing {BIN} placeholder")
 	}
+	if !strings.Contains(powershellInitTemplate, "{BIN}") {
+		t.Error("powershell template missing {BIN} placeholder")
+	}
 }
 
 func TestShellTemplatesContainNavigationFallthrough(t *testing.T) {
-	// The * case should handle navigation via cd
+	// The default/fallthrough case should handle navigation via cd/Set-Location
 	if !strings.Contains(zshInitTemplate, `_dest="$({BIN}`) {
 		t.Error("zsh template missing navigation fallthrough")
 	}
 	if !strings.Contains(bashInitTemplate, `dest="$({BIN}`) {
 		t.Error("bash template missing navigation fallthrough")
+	}
+	// PowerShell uses Set-Location and & {BIN} for navigation
+	if !strings.Contains(powershellInitTemplate, `& {BIN}`) {
+		t.Error("powershell template missing binary invocation")
+	}
+	if !strings.Contains(powershellInitTemplate, `Set-Location`) {
+		t.Error("powershell template missing Set-Location navigation")
 	}
 }
 
@@ -80,6 +91,30 @@ func TestShellTemplatesContainWorktreeNavigation(t *testing.T) {
 			}
 		})
 	}
+
+	// PowerShell-specific worktree checks
+	t.Run("powershell", func(t *testing.T) {
+		// -wt flag detection
+		if !strings.Contains(powershellInitTemplate, `'-wt'`) {
+			t.Error("powershell template missing -wt flag check")
+		}
+		// --worktree flag in navigation command
+		if !strings.Contains(powershellInitTemplate, `--worktree $branch`) {
+			t.Error("powershell template missing --worktree with branch argument")
+		}
+		// Bare --worktree (no value) for selection mode
+		if !strings.Contains(powershellInitTemplate, `--worktree -q`) {
+			t.Error("powershell template missing bare --worktree invocation")
+		}
+		// worktree case block
+		if !strings.Contains(powershellInitTemplate, `'^worktree$'`) {
+			t.Error("powershell template missing worktree case block")
+		}
+		// worktree subcommands (list, align, add) are passed through
+		if !strings.Contains(powershellInitTemplate, "'list', 'align', 'add'") {
+			t.Error("powershell template missing worktree subcommand passthrough")
+		}
+	})
 }
 
 func TestShellTemplatesContainParentNavigation(t *testing.T) {
@@ -107,4 +142,20 @@ func TestShellTemplatesContainParentNavigation(t *testing.T) {
 			}
 		})
 	}
+
+	// PowerShell-specific parent navigation checks
+	t.Run("powershell", func(t *testing.T) {
+		if !strings.Contains(powershellInitTemplate, `'-p'`) {
+			t.Error("powershell template missing -p flag check")
+		}
+		if !strings.Contains(powershellInitTemplate, `'--parent'`) {
+			t.Error("powershell template missing --parent flag check")
+		}
+		if !strings.Contains(powershellInitTemplate, `parent`) {
+			t.Error("powershell template missing 'parent' keyword case")
+		}
+		if !strings.Contains(powershellInitTemplate, `{BIN} parent`) {
+			t.Error("powershell template missing '{BIN} parent' invocation")
+		}
+	})
 }
