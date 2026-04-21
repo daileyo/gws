@@ -56,18 +56,26 @@ Get-Content "$env:TEMP\checksums.txt" | Select-String "windows_amd64"
 
 ### Build from Source
 
+**Linux / macOS:**
+
 ```bash
-# Clone the repository
 git clone https://github.com/daileyo/gws.git
 cd gws
-
-# Build the binary
 make build
-
 # The binary will be in ./build/git-workspace
 # Optionally, install to your PATH
 make install
 ```
+
+**Windows (PowerShell):**
+
+```powershell
+git clone https://github.com/daileyo/gws.git
+cd gws
+go build -o "$HOME\.local\bin\git-workspace.exe" ./cmd/git-workspace
+```
+
+> **Note:** The Makefile requires a Unix shell (`bash`/`zsh`). On Windows, use `go build` directly as shown above.
 
 ## Shell Integration
 
