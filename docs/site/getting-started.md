@@ -72,6 +72,9 @@ make install
 ```powershell
 git clone https://github.com/daileyo/gws.git
 cd gws
+
+# Build and install to ~/.local/bin in one step
+New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
 go build -o "$HOME\.local\bin\git-workspace.exe" ./cmd/git-workspace
 ```
 
