@@ -8,6 +8,52 @@
 brew install daileyo/gws/git-workspace
 ```
 
+### Install on Windows (PowerShell)
+
+Download the latest release and extract to `$HOME\.local\bin`:
+
+**Using `Invoke-WebRequest`:**
+
+```powershell
+# Set the version you want to install
+$VERSION = "2.19.1"
+
+# Download and extract
+$url = "https://github.com/daileyo/gws/releases/download/v$VERSION/git-workspace_${VERSION}_windows_amd64.zip"
+$zip = "$env:TEMP\git-workspace.zip"
+Invoke-WebRequest -Uri $url -OutFile $zip
+New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
+Expand-Archive -Path $zip -DestinationPath "$HOME\.local\bin" -Force
+Remove-Item $zip
+```
+
+**Using `curl.exe`:**
+
+```powershell
+# Set the version you want to install
+$VERSION = "2.19.1"
+
+# Download and extract
+curl.exe -Lo "$env:TEMP\git-workspace.zip" "https://github.com/daileyo/gws/releases/download/v$VERSION/git-workspace_${VERSION}_windows_amd64.zip"
+New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
+Expand-Archive -Path "$env:TEMP\git-workspace.zip" -DestinationPath "$HOME\.local\bin" -Force
+Remove-Item "$env:TEMP\git-workspace.zip"
+```
+
+**Verify checksum (optional):**
+
+```powershell
+curl.exe -Lo "$env:TEMP\checksums.txt" "https://github.com/daileyo/gws/releases/download/v$VERSION/checksums.txt"
+(Get-FileHash "$HOME\.local\bin\git-workspace.exe" -Algorithm SHA256).Hash
+Get-Content "$env:TEMP\checksums.txt" | Select-String "windows_amd64"
+```
+
+**Verify installation:**
+
+```powershell
+& "$HOME\.local\bin\git-workspace.exe" --version
+```
+
 ### Build from Source
 
 ```bash
@@ -25,12 +71,40 @@ make install
 
 ## Shell Integration
 
-Before using the `gws` shorthand, set up shell integration. Add these lines to your `~/.zshrc` (or `~/.bashrc`):
+### Linux / macOS (bash / zsh)
+
+Add these lines to your `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
 ```
+
+### Windows (PowerShell)
+
+Add the following to your PowerShell `$PROFILE`. To find your profile path, run `echo $PROFILE` in PowerShell.
+
+```powershell
+# Add git-workspace to PATH
+$env:Path = "$HOME\.local\bin;$env:Path"
+
+# Set up the gws function and tab completion
+Invoke-Expression (& git-workspace shell-init powershell | Out-String)
+```
+
+**To add automatically via `Add-Content`:**
+
+```powershell
+# Create profile if it doesn't exist
+if (!(Test-Path -Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force | Out-Null }
+
+# Append shell integration
+Add-Content -Path $PROFILE -Value "`n# git-workspace shell integration"
+Add-Content -Path $PROFILE -Value '$env:Path = "$HOME\.local\bin;$env:Path"'
+Add-Content -Path $PROFILE -Value 'Invoke-Expression (& git-workspace shell-init powershell | Out-String)'
+```
+
+Restart your PowerShell session (or run `. $PROFILE`) to activate.
 
 This gives you the `gws` function with tab completion. See [Shell Integration](shell-integration.md) for full details.
 

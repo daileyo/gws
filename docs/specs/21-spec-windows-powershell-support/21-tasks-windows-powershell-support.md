@@ -90,7 +90,7 @@ Extend `shellinit_test.go` with the same structural validation tests for the Pow
 - [x] 4.5 Add `powershellInitTemplate` to `TestShellTemplatesContainParentNavigation` — check for `-p`, `--parent`, `parent` keyword routing, and `{BIN} parent` invocation. If the existing string-match patterns don't work for PowerShell syntax (e.g., different quoting), add PowerShell-specific sub-tests alongside the bash/zsh ones rather than forcing identical patterns.
 - [x] 4.6 Run `go test -v ./cmd/git-workspace/` and confirm all tests pass with no regressions
 
-### [ ] 5.0 Windows Install Documentation and Release Notes
+### [x] 5.0 Windows Install Documentation and Release Notes
 
 Create a Windows install guide with versioned download instructions using both `Invoke-WebRequest` and `curl.exe`, targeting `$HOME\.local\bin\`. Include complete `$PROFILE` setup instructions (PATH addition, `shell-init powershell` integration, checksum verification). Update the `.goreleaser.yml` release footer with Windows-specific instructions.
 
@@ -103,8 +103,8 @@ Create a Windows install guide with versioned download instructions using both `
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Add a "Windows (PowerShell)" install section to `docs/site/getting-started.md` with `Invoke-WebRequest` download commands targeting `$HOME\.local\bin\git-workspace.exe`, including version placeholder and checksum verification via `checksums.txt`
-- [ ] 5.2 Add equivalent `curl.exe` download commands to the same section as an alternative method
-- [ ] 5.3 Add `$PROFILE` setup instructions to the getting-started guide: a complete example snippet showing PATH addition (`$env:Path` update) and `Invoke-Expression (& git-workspace shell-init powershell)`, with both manual and `Add-Content` approaches
-- [ ] 5.4 Add a "PowerShell" section to `docs/site/shell-integration.md` covering setup, navigation examples (bare, parent, worktree), and tab completion — mirroring the structure of the existing bash/zsh content
-- [ ] 5.5 Update the `.goreleaser.yml` release footer to add Windows-specific install instructions (PowerShell download, extract zip, add to PATH) alongside the existing Linux/macOS section
+- [x] 5.1 Add a "Windows (PowerShell)" install section to `docs/site/getting-started.md` with `Invoke-WebRequest` download commands targeting `$HOME\.local\bin\git-workspace.exe`, including version placeholder and checksum verification via `checksums.txt`
+- [x] 5.2 Add equivalent `curl.exe` download commands to the same section as an alternative method
+- [x] 5.3 Add `$PROFILE` setup instructions to the getting-started guide: a complete example snippet showing PATH addition (`$env:Path` update) and `Invoke-Expression (& git-workspace shell-init powershell)`, with both manual and `Add-Content` approaches
+- [x] 5.4 Add a "PowerShell" section to `docs/site/shell-integration.md` covering setup, navigation examples (bare, parent, worktree), and tab completion — mirroring the structure of the existing bash/zsh content
+- [x] 5.5 Update the `.goreleaser.yml` release footer to add Windows-specific install instructions (PowerShell download, extract zip, add to PATH) alongside the existing Linux/macOS section

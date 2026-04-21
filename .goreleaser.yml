@@ -116,13 +116,29 @@ release:
 
     Download the appropriate binary for your platform and add it to your PATH.
 
-    ```bash
-    # Linux/macOS
-    tar -xzf git-workspace_{{ .Version }}_<os>_<arch>.tar.gz
-    sudo mv git-workspace /usr/local/bin/
+    **Linux/macOS:**
 
-    # Windows
-    # Extract the zip and add to PATH
+    ```bash
+    tar -xzf git-workspace_{{ .Version }}_<os>_<arch>.tar.gz
+    mkdir -p ~/.local/bin
+    mv git-workspace ~/.local/bin/
+    eval "$(git-workspace shell-init zsh)"   # or: bash
+    ```
+
+    **Windows (PowerShell):**
+
+    ```powershell
+    Invoke-WebRequest -Uri "https://github.com/daileyo/gws/releases/download/{{ .Tag }}/git-workspace_{{ .Version }}_windows_amd64.zip" -OutFile "$env:TEMP\git-workspace.zip"
+    New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
+    Expand-Archive -Path "$env:TEMP\git-workspace.zip" -DestinationPath "$HOME\.local\bin" -Force
+    Remove-Item "$env:TEMP\git-workspace.zip"
+    ```
+
+    Add to your PowerShell `$PROFILE`:
+
+    ```powershell
+    $env:Path = "$HOME\.local\bin;$env:Path"
+    Invoke-Expression (& git-workspace shell-init powershell | Out-String)
     ```
 
 announce:
