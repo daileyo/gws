@@ -975,11 +975,11 @@ func displayMultiColumn(names []string) {
 	termWidth := getTerminalWidth()
 	colGap := 2
 
-	// Find the widest name
+	// Find the widest visible name (ignoring ANSI escape codes)
 	maxLen := 0
 	for _, name := range names {
-		if len(name) > maxLen {
-			maxLen = len(name)
+		if w := displayWidth(name); w > maxLen {
+			maxLen = w
 		}
 	}
 
@@ -1017,7 +1017,12 @@ func displayMultiColumn(names []string) {
 			if isLastCol {
 				fmt.Print(names[idx])
 			} else {
-				fmt.Printf("%-*s", colWidth, names[idx])
+				// Pad based on visible width to handle ANSI codes
+				pad := colWidth - displayWidth(names[idx])
+				if pad < 0 {
+					pad = 0
+				}
+				fmt.Print(names[idx] + strings.Repeat(" ", pad))
 			}
 		}
 		fmt.Println()
