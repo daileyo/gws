@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.19.2](https://github.com/daileyo/gws/compare/v2.19.1...v2.19.2) (2026-04-23)
+
+
+### Bug Fixes
+
+* use visible width for multi-column alignment with ANSI codes ([df38172](https://github.com/daileyo/gws/commit/df3817254798f6fc91833d71751c2efde7a8d391))
+
 ## [2.19.1](https://github.com/daileyo/gws/compare/v2.19.0...v2.19.1) (2026-04-20)
 
 
