@@ -2,13 +2,26 @@ package discovery
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+// gitWorktreeAdd creates a linked worktree for repoDir on a new branch.
+func gitWorktreeAdd(t *testing.T, repoDir, branch, destPath string) {
+	t.Helper()
+	cmd := exec.Command("git", "worktree", "add", "-b", branch, destPath)
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add %s failed: %s\n%s", destPath, err, out)
+	}
+}
 
 // createTestRepo creates a test git repository in the given directory
 func createTestRepo(t *testing.T, path string, remoteURL string) {
@@ -436,6 +449,345 @@ func TestScan_RepositoryAtScanRoot(t *testing.T) {
 	}
 	if len(result.Repositories) > 0 && result.Repositories[0].Path != tmpDir {
 		t.Errorf("Expected the scan root itself, got %s", result.Repositories[0].Path)
+	}
+}
+
+// symlink creates a symlink at linkPath pointing to target.
+func symlink(t *testing.T, target, linkPath string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(linkPath), 0755); err != nil {
+		t.Fatalf("Failed to create parent for symlink: %v", err)
+	}
+	if err := os.Symlink(target, linkPath); err != nil {
+		t.Fatalf("Failed to create symlink %s -> %s: %v", linkPath, target, err)
+	}
+}
+
+// realPath resolves a path for comparison against scanner output.
+func realPath(t *testing.T, path string) string {
+	t.Helper()
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return filepath.Clean(path)
+	}
+	return resolved
+}
+
+// scanWithDeadline runs a scan and fails the test if it does not finish in
+// time, so a traversal-loop regression fails rather than hanging CI.
+func scanWithDeadline(t *testing.T, root string, opts Options) *ScanResult {
+	t.Helper()
+
+	type outcome struct {
+		result *ScanResult
+		err    error
+	}
+	done := make(chan outcome, 1)
+	go func() {
+		result, err := Scan(root, opts)
+		done <- outcome{result, err}
+	}()
+
+	select {
+	case got := <-done:
+		if got.err != nil {
+			t.Fatalf("Scan failed: %v", got.err)
+		}
+		return got.result
+	case <-time.After(30 * time.Second):
+		t.Fatal("Scan did not complete within 30s — likely a traversal loop")
+		return nil
+	}
+}
+
+// TestScan_CuratedSymlinkWorkspace covers the workspace model that the previous
+// filepath.Walk implementation could not see at all: a workspace directory
+// containing nothing but symlinks to repositories living elsewhere.
+func TestScan_CuratedSymlinkWorkspace(t *testing.T) {
+	external := t.TempDir()
+	workspace := t.TempDir()
+
+	names := []string{"dratlab-apps", "dratlab-kubernetes", "dratlab-tooling"}
+	for _, name := range names {
+		repoDir := filepath.Join(external, name)
+		mkRepo(t, repoDir)
+		symlink(t, repoDir, filepath.Join(workspace, name))
+	}
+
+	result := scanWithDeadline(t, workspace, Options{})
+
+	if result.Count != len(names) {
+		t.Fatalf("Expected %d repositories, got %d: %v", len(names), result.Count, repoNameSet(result))
+	}
+
+	found := repoNameSet(result)
+	for _, name := range names {
+		if !found[name] {
+			t.Errorf("Expected symlinked repository %q to be discovered, got %v", name, found)
+		}
+	}
+
+	// Stored paths must be the real external locations, not the symlink paths.
+	for _, repo := range result.Repositories {
+		wantPrefix := realPath(t, external)
+		if !strings.HasPrefix(repo.Path, wantPrefix) {
+			t.Errorf("Expected repository path under %s, got %s", wantPrefix, repo.Path)
+		}
+		if !result.ReachablePaths[repo.Path] {
+			t.Errorf("Expected %s to be recorded in ReachablePaths", repo.Path)
+		}
+	}
+}
+
+// TestScan_SymlinkedRepoInsideContainer covers a symlink nested below the
+// workspace root rather than a direct child.
+func TestScan_SymlinkedRepoInsideContainer(t *testing.T) {
+	external := t.TempDir()
+	workspace := t.TempDir()
+
+	repoDir := filepath.Join(external, "deep-repo")
+	mkRepo(t, repoDir)
+	symlink(t, repoDir, filepath.Join(workspace, "group", "sub", "deep-repo"))
+
+	result := scanWithDeadline(t, workspace, Options{})
+
+	if result.Count != 1 {
+		t.Fatalf("Expected 1 repository, got %d: %v", result.Count, repoNameSet(result))
+	}
+	if got, want := result.Repositories[0].Path, realPath(t, repoDir); got != want {
+		t.Errorf("Expected stored path %s, got %s", want, got)
+	}
+}
+
+// TestScan_DeduplicatesByRealPath asserts that a repository reachable both
+// physically and through a symlink registers exactly once, in either traversal
+// order. Entry names are chosen so that ReadDir's lexical ordering visits the
+// symlink first in one case and the physical directory first in the other.
+func TestScan_DeduplicatesByRealPath(t *testing.T) {
+	tests := []struct {
+		name         string
+		physicalName string
+		linkName     string
+	}{
+		{"physical visited first", "aaa-repo", "zzz-link"},
+		{"symlink visited first", "zzz-repo", "aaa-link"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			workspace := t.TempDir()
+
+			repoDir := filepath.Join(workspace, tt.physicalName)
+			mkRepo(t, repoDir)
+			symlink(t, repoDir, filepath.Join(workspace, tt.linkName))
+
+			result := scanWithDeadline(t, workspace, Options{})
+
+			if result.Count != 1 {
+				t.Fatalf("Expected 1 repository after deduplication, got %d: %v",
+					result.Count, repoNameSet(result))
+			}
+			if got, want := result.Repositories[0].Path, realPath(t, repoDir); got != want {
+				t.Errorf("Expected the real path %s, got %s", want, got)
+			}
+			if got, want := result.Repositories[0].Name, tt.physicalName; got != want {
+				t.Errorf("Expected name from the real path %q, got %q", want, got)
+			}
+		})
+	}
+}
+
+// TestScan_DeduplicatesExternalRepoReachedTwice covers the same repository
+// reached through two different symlinks.
+func TestScan_DeduplicatesExternalRepoReachedTwice(t *testing.T) {
+	external := t.TempDir()
+	workspace := t.TempDir()
+
+	repoDir := filepath.Join(external, "shared-repo")
+	mkRepo(t, repoDir)
+	symlink(t, repoDir, filepath.Join(workspace, "first-alias"))
+	symlink(t, repoDir, filepath.Join(workspace, "second-alias"))
+
+	result := scanWithDeadline(t, workspace, Options{})
+
+	if result.Count != 1 {
+		t.Fatalf("Expected 1 repository, got %d: %v", result.Count, repoNameSet(result))
+	}
+}
+
+func TestScan_SymlinkLoopSafety(t *testing.T) {
+	t.Run("symlink pointing at the workspace root", func(t *testing.T) {
+		workspace := t.TempDir()
+		mkRepo(t, filepath.Join(workspace, "real-repo"))
+		symlink(t, workspace, filepath.Join(workspace, "loop-to-root"))
+
+		result := scanWithDeadline(t, workspace, Options{})
+
+		if result.Count != 1 {
+			t.Errorf("Expected 1 repository, got %d: %v", result.Count, repoNameSet(result))
+		}
+	})
+
+	t.Run("symlink pointing at its own parent", func(t *testing.T) {
+		workspace := t.TempDir()
+		group := filepath.Join(workspace, "group")
+		mkRepo(t, filepath.Join(group, "real-repo"))
+		symlink(t, group, filepath.Join(group, "loop-to-parent"))
+
+		result := scanWithDeadline(t, workspace, Options{})
+
+		if result.Count != 1 {
+			t.Errorf("Expected 1 repository, got %d: %v", result.Count, repoNameSet(result))
+		}
+	})
+
+	t.Run("two directories symlinked to each other", func(t *testing.T) {
+		workspace := t.TempDir()
+		dirA := filepath.Join(workspace, "a")
+		dirB := filepath.Join(workspace, "b")
+		mkRepo(t, filepath.Join(dirA, "repo-a"))
+		mkRepo(t, filepath.Join(dirB, "repo-b"))
+		symlink(t, dirB, filepath.Join(dirA, "to-b"))
+		symlink(t, dirA, filepath.Join(dirB, "to-a"))
+
+		result := scanWithDeadline(t, workspace, Options{})
+
+		names := repoNameSet(result)
+		if !names["repo-a"] || !names["repo-b"] {
+			t.Errorf("Expected both repo-a and repo-b, got %v", names)
+		}
+		if result.Count != 2 {
+			t.Errorf("Expected 2 repositories, got %d: %v", result.Count, names)
+		}
+	})
+
+	t.Run("symlink to an ancestor above the workspace root", func(t *testing.T) {
+		base := t.TempDir()
+		workspace := filepath.Join(base, "workspace")
+		mkRepo(t, filepath.Join(workspace, "real-repo"))
+		symlink(t, base, filepath.Join(workspace, "escape-hatch"))
+
+		result := scanWithDeadline(t, workspace, Options{})
+
+		if result.Count != 1 {
+			t.Errorf("Expected 1 repository, got %d: %v", result.Count, repoNameSet(result))
+		}
+	})
+}
+
+func TestScan_WorktreesAreNotRegisteredAsRepositories(t *testing.T) {
+	workspace := t.TempDir()
+	repoDir := filepath.Join(workspace, "main-repo")
+	mkRepo(t, repoDir)
+
+	// An aligned worktree under <repo>.wt/ and an unaligned one elsewhere.
+	alignedWT := filepath.Join(workspace, "main-repo.wt", "feature")
+	unalignedWT := filepath.Join(workspace, "loose", "hotfix")
+	gitWorktreeAdd(t, repoDir, "feature", alignedWT)
+	gitWorktreeAdd(t, repoDir, "hotfix", unalignedWT)
+
+	result := scanWithDeadline(t, workspace, Options{})
+
+	names := repoNameSet(result)
+	if result.Count != 1 {
+		t.Fatalf("Expected only the main repository, got %d: %v", result.Count, names)
+	}
+	if !names["main-repo"] {
+		t.Errorf("Expected 'main-repo', got %v", names)
+	}
+	for _, unwanted := range []string{"feature", "hotfix"} {
+		if names[unwanted] {
+			t.Errorf("Worktree %q must not be registered as a repository", unwanted)
+		}
+	}
+
+	// The scan records the main repository inferred from each worktree so the
+	// reconciliation layer can register untracked main repositories.
+	wantMain := realPath(t, repoDir)
+	if !result.WorktreeMainRepos[wantMain] {
+		t.Errorf("Expected WorktreeMainRepos to contain %s, got %v", wantMain, result.WorktreeMainRepos)
+	}
+}
+
+// TestScan_CloneInDotWtDirectoryIsRegistered confirms discovery never filters
+// on directory naming: a real clone in a directory ending in .wt is a
+// repository like any other.
+func TestScan_CloneInDotWtDirectoryIsRegistered(t *testing.T) {
+	workspace := t.TempDir()
+	mkRepo(t, filepath.Join(workspace, "important-repo.wt"))
+
+	result := scanWithDeadline(t, workspace, Options{})
+
+	if result.Count != 1 {
+		t.Fatalf("Expected 1 repository, got %d: %v", result.Count, repoNameSet(result))
+	}
+	if got := result.Repositories[0].Name; got != "important-repo.wt" {
+		t.Errorf("Expected 'important-repo.wt', got %q", got)
+	}
+}
+
+func TestScan_BrokenSymlinkRecordedAsError(t *testing.T) {
+	workspace := t.TempDir()
+	mkRepo(t, filepath.Join(workspace, "good-repo"))
+	symlink(t, filepath.Join(workspace, "does-not-exist"), filepath.Join(workspace, "dangling"))
+
+	result := scanWithDeadline(t, workspace, Options{})
+
+	if result.Count != 1 {
+		t.Errorf("Expected the scan to continue and find 1 repository, got %d", result.Count)
+	}
+	if len(result.Errors) == 0 {
+		t.Error("Expected a scan error for the dangling symlink, got none")
+	}
+}
+
+func TestScan_UnreadableDirectoryRecordedAsError(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("running as root; permission bits are not enforced")
+	}
+
+	workspace := t.TempDir()
+	mkRepo(t, filepath.Join(workspace, "good-repo"))
+
+	locked := filepath.Join(workspace, "locked")
+	if err := os.MkdirAll(locked, 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	if err := os.Chmod(locked, 0000); err != nil {
+		t.Fatalf("Failed to chmod directory: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(locked, 0755) })
+
+	result := scanWithDeadline(t, workspace, Options{})
+
+	if result.Count != 1 {
+		t.Errorf("Expected the scan to continue and find 1 repository, got %d", result.Count)
+	}
+	if len(result.Errors) == 0 {
+		t.Error("Expected a scan error for the unreadable directory, got none")
+	}
+}
+
+func TestIsAncestorOrEqual(t *testing.T) {
+	tests := []struct {
+		candidate string
+		path      string
+		want      bool
+	}{
+		{"/a/b", "/a/b", true},
+		{"/a", "/a/b", true},
+		{"/a", "/a/b/c", true},
+		{"/a/b", "/a", false},
+		{"/a/b", "/a/bc", false},
+		{"/a/b/", "/a/b/c", true},
+		{"/x", "/a/b", false},
+	}
+
+	for _, tt := range tests {
+		got := isAncestorOrEqual(tt.candidate, tt.path)
+		if got != tt.want {
+			t.Errorf("isAncestorOrEqual(%q, %q) = %v, want %v", tt.candidate, tt.path, got, tt.want)
+		}
 	}
 }
 

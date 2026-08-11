@@ -70,7 +70,7 @@ Replace the `filepath.Walk` implementation in `internal/discovery` with an expli
 - [x] 1.10 Write tests for the depth cap: build a fixture nesting repositories from depth 1 to depth 8, then assert that scanning with the default registers those at depth 6 and shallower, and that an explicit `MaxDepth` of 3 registers only those at depth 3 and shallower.
 - [x] 1.11 Run `make lint` and `make test-race`; resolve any `gosec` G304 findings on the new file reads by cleaning paths and adding narrowly scoped suppressions with justifying comments.
 
-### [ ] 2.0 Symlink Resolution and Structural Worktree Detection
+### [x] 2.0 Symlink Resolution and Structural Worktree Detection
 
 Teach the scanner to follow symlinked directories safely and to distinguish worktrees from clones without relying on directory naming. This completes `internal/discovery` and is the task that fixes the curated-symlink-workspace failure on `gws init`.
 
@@ -85,21 +85,21 @@ Teach the scanner to follow symlinked directories safely and to distinguish work
 - Test: `internal/discovery/scanner_test.go` — broken and inaccessible symlinks are recorded as scan errors without aborting the scan, demonstrating error resilience
 - Command: `make lint` and `make test-race` pass
 
-#### 2.0 Tasks
+##### 2.0 Tasks
 
-- [ ] 2.1 In `internal/git/worktree.go`, add `IsLinkedWorktree(dir string) (isWorktree bool, mainRepoPath string, err error)`. Fast path: when `dir/.git` is a regular file, read it, parse the `gitdir: <path>` value, and treat it as a linked worktree when the target resolves to a path containing a `worktrees` path segment. Derive `mainRepoPath` from the target by walking up from `<main>/.git/worktrees/<name>` to `<main>`.
-- [ ] 2.2 Add the ambiguous-case fallback to `IsLinkedWorktree`: when the `.git` file is unreadable, malformed, or its target does not match the expected shape, run `git rev-parse --git-dir` and `git rev-parse --git-common-dir` in `dir` using the `gitCommand` helper, and classify as a linked worktree only when the two values differ. Derive `mainRepoPath` from the common dir in that case.
-- [ ] 2.3 Write tests in `internal/git/worktree_test.go` for `IsLinkedWorktree` using real temp repositories created with `git init` and `git worktree add`, covering: a normal clone (false), a linked worktree (true, with the correct main repository path), a clone in a directory named `<name>.wt` (false), and a `.git` file containing garbage (falls back and does not panic).
-- [ ] 2.4 In `internal/discovery/scanner.go`, call `IsLinkedWorktree` when a candidate directory contains a `.git` file, and skip the directory without registering it when the result is true. Do not descend into it either way.
-- [ ] 2.5 Add symlink resolution to the walker: for each directory entry, use `os.Lstat` to detect symlinks and `filepath.EvalSymlinks` to resolve them to a real path before deciding what to do with them. Record resolution failures as scan errors and continue.
-- [ ] 2.6 Add a `visited map[string]bool` of resolved real directory paths to the scan state. Before traversing or registering any directory, check and populate it so no real directory is processed twice within a single scan. This is what makes deduplication independent of traversal order.
-- [ ] 2.7 Add the two symlink ancestor guards: refuse to descend when the resolved target is an ancestor of, or equal to, the workspace root; and refuse to descend when the resolved target is an ancestor of the current traversal path. Implement ancestor checks on cleaned absolute paths with a separator-aware prefix comparison, matching the approach in `git.IsAligned`.
-- [ ] 2.8 Set `Repository.Path` to the resolved real path for every registered repository, and add a `ReachablePaths map[string]bool` field to `ScanResult` recording every real repository path that was reachable from under the workspace root. Task 5.0 needs this for the repair-only symlink rule.
-- [ ] 2.9 Write tests for the curated symlink workspace: a `t.TempDir()` workspace containing only symlinks to repositories created in a separate temp directory, asserting all are discovered with their real paths stored.
-- [ ] 2.10 Write order-independence tests for deduplication: a workspace where the same repository appears both physically and via a symlink, run twice with entry names chosen so the symlink sorts first in one fixture and second in the other, asserting exactly one entry each time.
-- [ ] 2.11 Write loop-safety tests: a symlink pointing at the workspace root, a symlink pointing at its own parent directory, and a pair of directories symlinked to each other. Each must complete and return without hanging — consider guarding these with a generous `context` timeout or a test-level deadline so a regression fails rather than stalls CI.
-- [ ] 2.12 Write error-resilience tests: a dangling symlink and (where the platform permits) a directory with permissions removed both produce entries in `ScanResult.Errors` while the rest of the scan completes.
-- [ ] 2.13 Run `make lint` and `make test-race`.
+- [x] 2.1 In `internal/git/worktree.go`, add `IsLinkedWorktree(dir string) (isWorktree bool, mainRepoPath string, err error)`. Fast path: when `dir/.git` is a regular file, read it, parse the `gitdir: <path>` value, and treat it as a linked worktree when the target resolves to a path containing a `worktrees` path segment. Derive `mainRepoPath` from the target by walking up from `<main>/.git/worktrees/<name>` to `<main>`.
+- [x] 2.2 Add the ambiguous-case fallback to `IsLinkedWorktree`: when the `.git` file is unreadable, malformed, or its target does not match the expected shape, run `git rev-parse --git-dir` and `git rev-parse --git-common-dir` in `dir` using the `gitCommand` helper, and classify as a linked worktree only when the two values differ. Derive `mainRepoPath` from the common dir in that case.
+- [x] 2.3 Write tests in `internal/git/worktree_test.go` for `IsLinkedWorktree` using real temp repositories created with `git init` and `git worktree add`, covering: a normal clone (false), a linked worktree (true, with the correct main repository path), a clone in a directory named `<name>.wt` (false), and a `.git` file containing garbage (falls back and does not panic).
+- [x] 2.4 In `internal/discovery/scanner.go`, call `IsLinkedWorktree` when a candidate directory contains a `.git` file, and skip the directory without registering it when the result is true. Do not descend into it either way.
+- [x] 2.5 Add symlink resolution to the walker: for each directory entry, use `os.Lstat` to detect symlinks and `filepath.EvalSymlinks` to resolve them to a real path before deciding what to do with them. Record resolution failures as scan errors and continue.
+- [x] 2.6 Add a `visited map[string]bool` of resolved real directory paths to the scan state. Before traversing or registering any directory, check and populate it so no real directory is processed twice within a single scan. This is what makes deduplication independent of traversal order.
+- [x] 2.7 Add the two symlink ancestor guards: refuse to descend when the resolved target is an ancestor of, or equal to, the workspace root; and refuse to descend when the resolved target is an ancestor of the current traversal path. Implement ancestor checks on cleaned absolute paths with a separator-aware prefix comparison, matching the approach in `git.IsAligned`.
+- [x] 2.8 Set `Repository.Path` to the resolved real path for every registered repository, and add a `ReachablePaths map[string]bool` field to `ScanResult` recording every real repository path that was reachable from under the workspace root. Task 5.0 needs this for the repair-only symlink rule.
+- [x] 2.9 Write tests for the curated symlink workspace: a `t.TempDir()` workspace containing only symlinks to repositories created in a separate temp directory, asserting all are discovered with their real paths stored.
+- [x] 2.10 Write order-independence tests for deduplication: a workspace where the same repository appears both physically and via a symlink, run twice with entry names chosen so the symlink sorts first in one fixture and second in the other, asserting exactly one entry each time.
+- [x] 2.11 Write loop-safety tests: a symlink pointing at the workspace root, a symlink pointing at its own parent directory, and a pair of directories symlinked to each other. Each must complete and return without hanging — consider guarding these with a generous `context` timeout or a test-level deadline so a regression fails rather than stalls CI.
+- [x] 2.12 Write error-resilience tests: a dangling symlink and (where the platform permits) a directory with permissions removed both produce entries in `ScanResult.Errors` while the rest of the scan completes.
+- [x] 2.13 Run `make lint` and `make test-race`.
 
 ### [ ] 3.0 Shared Reconciliation Engine
 

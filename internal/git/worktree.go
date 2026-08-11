@@ -13,6 +13,101 @@ type WorktreeEntry struct {
 	Branch string // Branch checked out (without refs/heads/ prefix)
 }
 
+// IsLinkedWorktree reports whether dir is a linked git worktree rather than a
+// repository clone, and returns the path of the worktree's main repository.
+//
+// Detection is structural and never depends on directory naming: a clone's
+// .git is a directory, while a linked worktree's .git is a file containing
+// "gitdir: <main>/.git/worktrees/<name>". A .git file may also belong to a
+// submodule or to a clone created with --separate-git-dir; neither is a
+// linked worktree, and both are reported as false.
+//
+// The fast path reads the .git file only. When that file is missing, malformed,
+// or its target does not have the expected shape, detection falls back to
+// comparing "git rev-parse --git-dir" with "git rev-parse --git-common-dir",
+// which differ only inside a linked worktree.
+func IsLinkedWorktree(dir string) (bool, string, error) {
+	gitPath := filepath.Join(filepath.Clean(dir), ".git")
+
+	info, err := os.Lstat(gitPath)
+	if err != nil {
+		return false, "", err
+	}
+	if info.IsDir() {
+		// A .git directory is always a repository clone.
+		return false, "", nil
+	}
+
+	// Fast path: read the .git file and interpret its gitdir target.
+	// #nosec G304 -- gitPath is a cleaned path built from a directory the
+	// scanner is already traversing; only the fixed ".git" name is appended.
+	if data, readErr := os.ReadFile(gitPath); readErr == nil {
+		if target := parseGitdirPointer(string(data)); target != "" {
+			if !filepath.IsAbs(target) {
+				target = filepath.Join(filepath.Clean(dir), target)
+			}
+			if mainRepo, ok := mainRepoFromWorktreeGitDir(target); ok {
+				return true, mainRepo, nil
+			}
+		}
+	}
+
+	// Ambiguous: unreadable, malformed, or an unexpected target shape.
+	return linkedWorktreeViaGit(dir)
+}
+
+// parseGitdirPointer extracts the path from a "gitdir: <path>" .git file.
+// Returns an empty string when the content does not have that form.
+func parseGitdirPointer(content string) string {
+	for _, line := range strings.Split(content, "\n") {
+		line = strings.TrimSpace(line)
+		if after, found := strings.CutPrefix(line, "gitdir:"); found {
+			return strings.TrimSpace(after)
+		}
+	}
+	return ""
+}
+
+// mainRepoFromWorktreeGitDir derives the main repository path from a linked
+// worktree's git directory, which git writes as <main>/.git/worktrees/<name>.
+// Returns false when the path does not have that shape.
+func mainRepoFromWorktreeGitDir(gitDir string) (string, bool) {
+	worktreesDir := filepath.Dir(filepath.Clean(gitDir))
+	if filepath.Base(worktreesDir) != "worktrees" {
+		return "", false
+	}
+	commonDir := filepath.Dir(worktreesDir)
+	if filepath.Base(commonDir) != ".git" {
+		return "", false
+	}
+	return filepath.Dir(commonDir), true
+}
+
+// linkedWorktreeViaGit asks git directly whether dir is a linked worktree.
+// Inside a linked worktree the git directory and the common git directory
+// differ; everywhere else they are the same.
+func linkedWorktreeViaGit(dir string) (bool, string, error) {
+	gitDir, err := gitCommand(dir, "rev-parse", "--absolute-git-dir")
+	if err != nil {
+		return false, "", err
+	}
+
+	commonDir, err := gitCommand(dir, "rev-parse", "--git-common-dir")
+	if err != nil {
+		return false, "", err
+	}
+	if !filepath.IsAbs(commonDir) {
+		commonDir = filepath.Join(filepath.Clean(dir), commonDir)
+	}
+
+	if filepath.Clean(gitDir) == filepath.Clean(commonDir) {
+		return false, "", nil
+	}
+
+	// commonDir points at <main>/.git for a linked worktree.
+	return true, filepath.Dir(filepath.Clean(commonDir)), nil
+}
+
 // ListWorktrees runs "git worktree list --porcelain" for the given repo and
 // returns all worktrees except the main one (whose path matches repoPath).
 func ListWorktrees(repoPath string) ([]WorktreeEntry, error) {

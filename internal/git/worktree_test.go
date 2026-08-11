@@ -27,6 +27,242 @@ func initBareGitRepo(t *testing.T, dir string) {
 	}
 }
 
+// gitIn runs a git command in dir and fails the test if it errors.
+func gitIn(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v in %s failed: %s\n%s", args, dir, err, out)
+	}
+}
+
+func TestIsLinkedWorktree_NormalClone(t *testing.T) {
+	repoDir := t.TempDir()
+	initBareGitRepo(t, repoDir)
+
+	isWT, mainRepo, err := IsLinkedWorktree(repoDir)
+	if err != nil {
+		t.Fatalf("IsLinkedWorktree failed: %v", err)
+	}
+	if isWT {
+		t.Errorf("Expected a normal clone to report false, got true (main=%s)", mainRepo)
+	}
+	if mainRepo != "" {
+		t.Errorf("Expected empty main repo path for a clone, got %q", mainRepo)
+	}
+}
+
+func TestIsLinkedWorktree_LinkedWorktree(t *testing.T) {
+	base := t.TempDir()
+	repoDir := filepath.Join(base, "main-repo")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatalf("Failed to create repo dir: %v", err)
+	}
+	initBareGitRepo(t, repoDir)
+
+	wtDir := filepath.Join(base, "main-repo.wt", "feature")
+	gitIn(t, repoDir, "worktree", "add", "-b", "feature", wtDir)
+
+	isWT, mainRepo, err := IsLinkedWorktree(wtDir)
+	if err != nil {
+		t.Fatalf("IsLinkedWorktree failed: %v", err)
+	}
+	if !isWT {
+		t.Fatal("Expected a linked worktree to report true, got false")
+	}
+
+	wantMain, err := filepath.EvalSymlinks(repoDir)
+	if err != nil {
+		wantMain = repoDir
+	}
+	gotMain, err := filepath.EvalSymlinks(mainRepo)
+	if err != nil {
+		gotMain = mainRepo
+	}
+	if gotMain != wantMain {
+		t.Errorf("Expected main repo %q, got %q", wantMain, gotMain)
+	}
+}
+
+// TestIsLinkedWorktree_CloneInDotWtDirectory verifies that detection is purely
+// structural: a real clone that happens to live in a directory named with the
+// .wt suffix must still be reported as a clone.
+func TestIsLinkedWorktree_CloneInDotWtDirectory(t *testing.T) {
+	base := t.TempDir()
+	repoDir := filepath.Join(base, "important-repo.wt")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatalf("Failed to create repo dir: %v", err)
+	}
+	initBareGitRepo(t, repoDir)
+
+	isWT, _, err := IsLinkedWorktree(repoDir)
+	if err != nil {
+		t.Fatalf("IsLinkedWorktree failed: %v", err)
+	}
+	if isWT {
+		t.Error("Expected a clone in a .wt-named directory to report false, got true")
+	}
+}
+
+// TestIsLinkedWorktree_SeparateGitDir verifies that a clone created with
+// --separate-git-dir has a .git file but is not a linked worktree.
+func TestIsLinkedWorktree_SeparateGitDir(t *testing.T) {
+	base := t.TempDir()
+	workDir := filepath.Join(base, "work")
+	gitDir := filepath.Join(base, "elsewhere.git")
+
+	cmd := exec.Command("git", "init", "--separate-git-dir="+gitDir, workDir)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git init --separate-git-dir failed: %s\n%s", err, out)
+	}
+
+	info, err := os.Lstat(filepath.Join(workDir, ".git"))
+	if err != nil {
+		t.Fatalf("Failed to stat .git: %v", err)
+	}
+	if info.IsDir() {
+		t.Skip("git did not create a .git file for --separate-git-dir on this platform")
+	}
+
+	isWT, _, err := IsLinkedWorktree(workDir)
+	if err != nil {
+		t.Fatalf("IsLinkedWorktree failed: %v", err)
+	}
+	if isWT {
+		t.Error("Expected a --separate-git-dir clone to report false, got true")
+	}
+}
+
+// TestIsLinkedWorktree_MalformedGitFile exercises the git rev-parse fallback
+// when the .git file cannot be interpreted directly.
+func TestIsLinkedWorktree_MalformedGitFile(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{"garbage content", "this is not a gitdir pointer\n"},
+		{"empty file", ""},
+		{"gitdir with no worktrees segment", "gitdir: /tmp/somewhere/else\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, ".git"), []byte(tt.content), 0600); err != nil {
+				t.Fatalf("Failed to write .git file: %v", err)
+			}
+
+			// Must not panic. The directory is not a valid repository, so the
+			// fallback reports an error rather than classifying it.
+			isWT, _, err := IsLinkedWorktree(dir)
+			if isWT {
+				t.Errorf("Expected false for a malformed .git file, got true (err=%v)", err)
+			}
+		})
+	}
+}
+
+// TestIsLinkedWorktree_MalformedGitFileInRealWorktree verifies the fallback
+// still identifies a genuine worktree when its .git file is unreadable.
+func TestIsLinkedWorktree_MalformedGitFileInRealWorktree(t *testing.T) {
+	base := t.TempDir()
+	repoDir := filepath.Join(base, "main-repo")
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatalf("Failed to create repo dir: %v", err)
+	}
+	initBareGitRepo(t, repoDir)
+
+	wtDir := filepath.Join(base, "wt", "feature")
+	gitIn(t, repoDir, "worktree", "add", "-b", "feature", wtDir)
+
+	// Rewrite the .git file so the fast path cannot interpret it, forcing the
+	// rev-parse fallback. Git itself still resolves the worktree because the
+	// pointer remains valid, just formatted unexpectedly.
+	gitFile := filepath.Join(wtDir, ".git")
+	original, err := os.ReadFile(gitFile) //nolint:gosec // test-controlled path
+	if err != nil {
+		t.Fatalf("Failed to read .git file: %v", err)
+	}
+	target := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(string(original)), "gitdir:"))
+	if err := os.WriteFile(gitFile, []byte("gitdir:"+target+"\n"), 0600); err != nil {
+		t.Fatalf("Failed to rewrite .git file: %v", err)
+	}
+
+	isWT, mainRepo, err := IsLinkedWorktree(wtDir)
+	if err != nil {
+		t.Fatalf("IsLinkedWorktree failed: %v", err)
+	}
+	if !isWT {
+		t.Error("Expected the worktree to be detected, got false")
+	}
+	if mainRepo == "" {
+		t.Error("Expected a main repository path, got empty string")
+	}
+}
+
+func TestIsLinkedWorktree_NoGitEntry(t *testing.T) {
+	dir := t.TempDir()
+
+	isWT, _, err := IsLinkedWorktree(dir)
+	if err == nil {
+		t.Error("Expected an error for a directory with no .git entry")
+	}
+	if isWT {
+		t.Error("Expected false for a directory with no .git entry")
+	}
+}
+
+func TestParseGitdirPointer(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    string
+	}{
+		{"standard pointer", "gitdir: /repo/.git/worktrees/feature\n", "/repo/.git/worktrees/feature"},
+		{"no space after colon", "gitdir:/repo/.git/worktrees/feature", "/repo/.git/worktrees/feature"},
+		{"extra whitespace", "  gitdir:   /repo/.git/worktrees/feature  \n", "/repo/.git/worktrees/feature"},
+		{"relative pointer", "gitdir: ../.git/worktrees/feature", "../.git/worktrees/feature"},
+		{"not a pointer", "hello world", ""},
+		{"empty", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := parseGitdirPointer(tt.content); got != tt.want {
+				t.Errorf("parseGitdirPointer(%q) = %q, want %q", tt.content, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMainRepoFromWorktreeGitDir(t *testing.T) {
+	tests := []struct {
+		name     string
+		gitDir   string
+		wantMain string
+		wantOK   bool
+	}{
+		{"standard worktree git dir", "/home/u/proj/.git/worktrees/feature", "/home/u/proj", true},
+		{"trailing separator", "/home/u/proj/.git/worktrees/feature/", "/home/u/proj", true},
+		{"submodule git dir", "/home/u/proj/.git/modules/sub", "", false},
+		{"separate git dir", "/home/u/elsewhere.git", "", false},
+		{"plain git dir", "/home/u/proj/.git", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotMain, gotOK := mainRepoFromWorktreeGitDir(tt.gitDir)
+			if gotOK != tt.wantOK {
+				t.Errorf("mainRepoFromWorktreeGitDir(%q) ok = %v, want %v", tt.gitDir, gotOK, tt.wantOK)
+			}
+			if gotMain != tt.wantMain {
+				t.Errorf("mainRepoFromWorktreeGitDir(%q) = %q, want %q", tt.gitDir, gotMain, tt.wantMain)
+			}
+		})
+	}
+}
+
 func TestListWorktrees(t *testing.T) {
 	repoDir := t.TempDir()
 	initBareGitRepo(t, repoDir)
