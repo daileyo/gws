@@ -4,7 +4,7 @@
 
 ### Automatic Classification
 
-When repositories are discovered with `gws init`, they are automatically classified based on their remote URL:
+When repositories are discovered with `gws init` or `gws refresh`, they are automatically classified based on their remote URL:
 
 | Repository Type | Detected From |
 |----------------|---------------|
@@ -280,12 +280,29 @@ gws init [directory]
 
 Initialize a workspace by scanning a directory for git repositories. Defaults to the current directory if no path is given.
 
+`init` creates the metadata library and then performs a full reconciliation. It shares one discovery and reconciliation engine with [`gws refresh`](#refresh-workspace), so a freshly initialized workspace has exactly the same repository and worktree model a refreshed one does. The two commands differ in lifecycle, not in what they find.
+
 **What it does:**
 
-- Recursively scans the directory for git repositories
+- Recursively scans the directory for git repositories (see [Discovery Rules](#discovery-rules))
 - Extracts repository metadata (name, path, remote URL)
 - Detects repository type and git user configuration
+- Discovers git worktrees for every repository it finds
 - Saves the configuration to `~/.gws/config.json`
+
+`init` never creates workspace symlinks — that is [`gws add`](#add-repository)'s job when you add an external repository, and `gws refresh` repairs those links if they go missing.
+
+**Example output:**
+
+```
+Initialized workspace at: /home/user/projects
+Found 8 repositories.
+Repositories with user configuration: 6
+Repositories with worktrees: 2
+Worktrees: 3 (1 aligned, 2 unaligned)
+```
+
+The conditional lines (Repositories with user configuration, Repositories with worktrees, Worktrees) only appear when their counts are greater than zero.
 
 **Examples:**
 
@@ -299,6 +316,50 @@ gws init ~/projects
 # Initialize with absolute path
 gws init /path/to/your/workspace
 ```
+
+**If a workspace already exists**, `init` is protective: it prints a notice, changes nothing, and exits with status 0.
+
+```
+Workspace already initialized at: /home/user/projects
+
+To re-scan the workspace and pick up changes:  gws refresh
+To add a single repository:                    gws add
+```
+
+---
+
+## Discovery Rules
+
+`gws init` and `gws refresh` use the same rules to decide what counts as a repository and where to look for one.
+
+**Traversal**
+
+- Scanning recurses through arbitrary organizational or container directories, so `~/gws/org-a/team-one/service-api` is found just as readily as `~/gws/service-api`.
+- Once a directory is identified as a repository root, it is registered and traversal **stops there**. Submodules and clones nested inside a repository are deliberately not tracked separately.
+- Traversal descends at most `scan_max_depth` directory levels below the workspace root (default `6`, see [Configuration](configuration.md#preferences-fields)). A repository found at exactly that depth is registered; nothing below it is traversed.
+- These directories are always skipped: `node_modules`, `vendor`, `.venv`, `venv`, `__pycache__`, `.tox`, `target`, `build`, `dist`, `.cache`, `.terraform`.
+- Hidden directories — any name beginning with `.` — are skipped at every level. A repository placed at `~/gws/.dotfiles` is not discovered.
+
+**Symlinks**
+
+- Symlinked directories are followed at any depth, which is what makes a curated workspace of symlinks to external repositories work:
+
+    ```
+    ~/gws/
+    ├── dratlab-apps -> /actual/path/dratlab-apps
+    ├── dratlab-kubernetes -> /actual/path/dratlab-kubernetes
+    └── ...
+    ```
+
+- Repositories are recorded and de-duplicated by their **real path**. A repository reachable both directly and through a symlink is tracked exactly once, no matter which route is walked first.
+- Traversal will not follow a symlink that points at the workspace root, above it, or back up the branch currently being walked, so symlink loops terminate.
+- Broken or unreadable symlinks are reported as warnings on stderr and do not stop the scan.
+
+**Repositories vs. worktrees**
+
+- A git clone has a `.git` **directory**; a linked worktree has a `.git` **file**. Worktrees are identified structurally and are never registered as repositories — they are attached to their main repository instead.
+- No directory naming convention is used to make this decision. A genuine clone in a directory named `important-repo.wt` is registered as an ordinary repository.
+- If a worktree is found whose main repository is not yet tracked, that main repository is registered so the worktree has an owner. This works even when the main repository lives outside the workspace root.
 
 ---
 
@@ -345,24 +406,29 @@ gws add ~/projects -r
 gws refresh
 ```
 
-Re-scan the workspace and update repository metadata.
+Re-scan the workspace and update repository metadata. This is the normal "make gws agree with reality again" command.
+
+`refresh` applies exactly the same [Discovery Rules](#discovery-rules) as `gws init` — it is the same engine, run against an existing metadata library rather than a new one.
 
 **What it does:**
 
-- Re-scans workspace for new repositories
+- Re-scans the workspace root recursively for repositories
 - Removes repositories whose paths are no longer valid
 - Updates remote URLs and classification
 - Re-detects git user configuration
 - Discovers git worktrees for all tracked repositories
-- Clears and rebuilds git status cache
+- Clears the git status cache
+- Repairs missing workspace symlinks for tracked external repositories
 - Preserves all custom tags
 
 **When to use:**
 
-- After adding new repositories to your workspace
-- When remote URLs have changed
-- To force update of cached git status
-- After bulk repository operations
+- After cloning a repository into a directory gws already scans
+- After moving, nesting, or flattening your repository hierarchy
+- After deleting an old checkout
+- After creating git worktrees outside gws
+- When remote URLs, branches, or git identity have changed
+- To force an update of the cached git status
 
 **Example output:**
 
@@ -378,9 +444,33 @@ Found 2 new repositories
 Updated 3 repositories
 Repositories with user configuration: 12
 Repositories with worktrees: 3
+Worktrees: 5 (3 aligned, 2 unaligned)
 ```
 
-The conditional lines (Removed, Found, Updated, Repositories with user configuration, Repositories with worktrees) only appear when their counts are greater than zero.
+The conditional lines (Removed, Found, Updated, Repositories with user configuration, Repositories with worktrees, Worktrees) only appear when their counts are greater than zero.
+
+### Workspace symlinks
+
+When a repository lives outside the workspace root, gws tracks it by its real path and keeps a symlink inside the workspace pointing at it. `gws add` creates that link.
+
+`refresh` **repairs** those links but never invents new ones. It creates a link only for a repository that is already tracked, lives outside the workspace root, and can no longer be reached from the workspace at all. A repository the scan can already reach — including one behind a symlink nested in a container directory — is left alone.
+
+This is what keeps repeated refreshes idempotent: running `gws refresh` against an unchanged workspace produces no new symlinks and no changes to `config.json`.
+
+Removing a link is equally conservative. When a tracked repository disappears, gws removes the workspace entry only if it is a symlink pointing at that exact repository, leaving real directories and differently-targeted links untouched.
+
+### Scan warnings
+
+Problems that do not stop the scan — broken symlinks, unreadable directories — are reported on **stderr**, listing at most five before collapsing the rest into a count:
+
+```
+Warning: 7 errors occurred during scanning:
+  - broken symlink or inaccessible entry /home/user/projects/dangling: ...
+  ...
+  ... and 2 more errors
+```
+
+`gws init` and `gws refresh` report these identically.
 
 ---
 

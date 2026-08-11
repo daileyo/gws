@@ -199,7 +199,7 @@ Move `runRefresh` onto the shared engine while keeping the responsibilities that
 - [x] 5.14 Write the two parity tests: identical repository and worktree totals from `runInit` and `runRefresh` against the same fixture, and byte-identical stderr warning output from both for the same injected scan errors, with stdout containing no warnings.
 - [x] 5.15 Run `make lint` and `make test-race`, then run the full `go test ./...` to confirm no regressions in `list`, `navigate`, `tag`, `user`, or the worktree subcommands.
 
-### [ ] 6.0 Documentation Sync
+### [x] 6.0 Documentation Sync
 
 Bring the MkDocs site and README into line with the new behavior, per the repository standard established by spec 18.
 
@@ -213,11 +213,11 @@ Bring the MkDocs site and README into line with the new behavior, per the reposi
 
 #### 6.0 Tasks
 
-- [ ] 6.1 Update the `Initialize Workspace` section of `docs/site/commands-core.md` (around line 275) to describe recursive discovery through container directories, pruning at repository boundaries, symlink resolution, worktree discovery, and the fact that `init` does not create workspace symlinks.
-- [ ] 6.2 Update the `Refresh Workspace` section (around line 342) to state that `refresh` applies the same discovery rules as `init`, and to describe what it additionally does: clears the status cache and repairs workspace symlinks.
-- [ ] 6.3 Replace the example output blocks in both sections with real captured output from a fixture workspace, matching the summary formats implemented in tasks 4.5 and 5.8.
-- [ ] 6.4 Document the traversal rules that users can actually observe: the skip list, hidden directories being skipped, and the depth cap.
-- [ ] 6.5 Add a `scan_max_depth` entry to `docs/site/configuration.md` covering its default of `6`, how depth is counted relative to the workspace root, and when a user would raise it.
-- [ ] 6.6 Update the `Repository Classification` note at the top of `commands-core.md` if it describes discovery in terms that the new scanner contradicts.
-- [ ] 6.7 Update `README.md` wherever it describes `init` or `refresh`, keeping the wording consistent with the docs site.
-- [ ] 6.8 Run `make docs` and confirm the site builds cleanly, then review the rendered `Initialize Workspace`, `Refresh Workspace`, and configuration pages for broken formatting or stale links.
+- [x] 6.1 Update the `Initialize Workspace` section of `docs/site/commands-core.md` (around line 275) to describe recursive discovery through container directories, pruning at repository boundaries, symlink resolution, worktree discovery, and the fact that `init` does not create workspace symlinks.
+- [x] 6.2 Update the `Refresh Workspace` section (around line 342) to state that `refresh` applies the same discovery rules as `init`, and to describe what it additionally does: clears the status cache and repairs workspace symlinks.
+- [x] 6.3 Replace the example output blocks in both sections with real captured output from a fixture workspace, matching the summary formats implemented in tasks 4.5 and 5.8.
+- [x] 6.4 Document the traversal rules that users can actually observe: the skip list, hidden directories being skipped, and the depth cap.
+- [x] 6.5 Add a `scan_max_depth` entry to `docs/site/configuration.md` covering its default of `6`, how depth is counted relative to the workspace root, and when a user would raise it.
+- [x] 6.6 Update the `Repository Classification` note at the top of `commands-core.md` if it describes discovery in terms that the new scanner contradicts.
+- [x] 6.7 Update `README.md` wherever it describes `init` or `refresh`, keeping the wording consistent with the docs site.
+- [x] 6.8 Run `make docs` and confirm the site builds cleanly, then review the rendered `Initialize Workspace`, `Refresh Workspace`, and configuration pages for broken formatting or stale links.

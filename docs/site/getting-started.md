@@ -53,10 +53,13 @@ gws init /path/to/your/workspace
 
 This command will:
 
-- Recursively scan the directory for git repositories
+- Recursively scan the directory for git repositories, descending through container directories and following workspace symlinks
 - Extract repository metadata (name, path, remote URL)
 - Detect repository type and user configuration
+- Discover git worktrees for every repository it finds
 - Save the configuration to `~/.gws/config.json`
+
+Later, when your checkouts change, [`gws refresh`](commands-core.md#refresh-workspace) re-runs exactly the same discovery against the workspace you initialized.
 
 ### 2. List Your Repositories
 

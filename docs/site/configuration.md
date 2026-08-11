@@ -61,7 +61,8 @@ git-workspace stores its configuration in `~/.gws/config.json`. The configuratio
     }
   ],
   "preferences": {
-    "status_workers": 8
+    "status_workers": 8,
+    "scan_max_depth": 6
   }
 }
 ```
@@ -121,6 +122,25 @@ Each entry in the `worktrees` array represents a git worktree associated with a 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `status_workers` | integer | `8` | Number of concurrent workers for fetching git status. Also configurable per-invocation with `gws list --workers`. |
+| `scan_max_depth` | integer | `6` | How many directory levels below the workspace root repository discovery traverses. |
+
+#### `scan_max_depth`
+
+Depth is counted in directory levels below the workspace root: a repository at `~/gws/service-api` is depth 1, and one at `~/gws/org-a/team-one/service-api` is depth 3. A repository found at exactly `scan_max_depth` is registered; nothing below it is traversed.
+
+The default of `6` comfortably covers host / organization / team / repository layouts. Raise it if you group repositories more deeply than that and `gws refresh` is not finding them:
+
+```json
+{
+  "preferences": {
+    "scan_max_depth": 8
+  }
+}
+```
+
+Lowering it speeds up scanning of very large trees at the risk of missing deeply nested repositories. Values of zero or below are ignored and the default applies.
+
+Note that traversal also stops at every repository boundary regardless of depth, so the limit only applies to the container directories above your repositories. See [Discovery Rules](commands-core.md#discovery-rules) for the full set of traversal rules.
 
 ## Config File Location
 

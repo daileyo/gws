@@ -15,7 +15,8 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 
 - **Subcommand-Based CLI**: Clean command structure with `list`, `init`, `add`, `refresh`, `tag`, `user`, `parent`, and `worktree` subcommands
 - **Compact Default View**: Multi-column repository names at a glance, with verbose modes for detailed tables
-- **Repository Discovery**: Automatically find all git repositories in a directory tree
+- **Repository Discovery**: Recursively find git repositories through container directories, following workspace symlinks and stopping at each repository boundary
+- **Unified Reconciliation**: `gws init` and `gws refresh` share one discovery engine, so you get the same repository and worktree model whichever you run
 - **Automatic Classification**: Detect repository type (GitHub, GitLab, Azure DevOps, Bitbucket) from remote URLs
 - **Dual-Purpose Filtering**: Lowercase flags filter results; uppercase flags show columns with optional filtering
 - **Git Status Integration**: View branch, clean/dirty state, and ahead/behind indicators with color output
