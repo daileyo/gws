@@ -164,7 +164,7 @@ func validateExistingRepos(cfg *config.Config) ([]config.Repository, int, int) {
 
 			// Scan the parent directory to pick up any repos added at the same level.
 			parentDir := filepath.Dir(repo.Path)
-			if scanResult, scanErr := discovery.Scan(parentDir); scanErr == nil {
+			if scanResult, scanErr := discovery.Scan(parentDir, discovery.Options{MaxDepth: cfg.EffectiveScanMaxDepth()}); scanErr == nil {
 				for _, found := range scanResult.Repositories {
 					if !trackedPaths[found.Path] {
 						trackedPaths[found.Path] = true
@@ -177,7 +177,7 @@ func validateExistingRepos(cfg *config.Config) ([]config.Repository, int, int) {
 		}
 
 		// Re-read metadata so remote URL, type, visibility are current.
-		updated, buildErr := buildRepository(repo.Path)
+		updated, buildErr := discovery.BuildRepository(repo.Path)
 		if buildErr != nil {
 			// Can't rebuild — keep existing entry unchanged.
 			validRepos = append(validRepos, repo)
@@ -286,7 +286,7 @@ func scanWorkspaceForNewRepos(workspacePath string, existingRepos []config.Repos
 			continue
 		}
 
-		repo, err := buildRepository(realPath)
+		repo, err := discovery.BuildRepository(realPath)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to read repository at %s: %w", realPath, err))
 			continue

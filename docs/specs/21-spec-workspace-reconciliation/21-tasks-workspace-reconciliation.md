@@ -43,7 +43,7 @@
 
 ## Tasks
 
-### [ ] 1.0 Boundary-Aware Recursive Scanner
+### [x] 1.0 Boundary-Aware Recursive Scanner
 
 Replace the `filepath.Walk` implementation in `internal/discovery` with an explicit recursive traversal that prunes below repository roots, honors the skip list and hidden-directory rule, and stops at a configurable maximum depth. Symlink and worktree handling are deliberately deferred to task 2.0 so this task can be verified in isolation.
 
@@ -58,17 +58,17 @@ Replace the `filepath.Walk` implementation in `internal/discovery` with an expli
 
 #### 1.0 Tasks
 
-- [ ] 1.1 In `internal/config/config.go`, add `ScanMaxDepth int` with tag `json:"scan_max_depth,omitempty"` to the `Preferences` struct, and add `const DefaultScanMaxDepth = 6`.
-- [ ] 1.2 In `internal/config/config.go`, add a helper method on `*Config` that returns the effective scan depth — the preference value when set and greater than zero, otherwise `DefaultScanMaxDepth`. Follow the existing pattern used for `StatusWorkers` at `cmd/git-workspace/list.go:414`.
-- [ ] 1.3 In `internal/config/config_test.go`, add table-driven tests for the helper covering: nil `Preferences`, `Preferences` with the field unset, an explicit value, and a zero or negative value. Add a test that unmarshals a `config.json` fixture with no `preferences` key and confirms the default applies.
-- [ ] 1.4 In `internal/discovery/scanner.go`, define an `Options` struct with a `MaxDepth int` field, and change the exported entry point to `Scan(rootPath string, opts Options) (*ScanResult, error)`. Treat a zero `MaxDepth` as `config.DefaultScanMaxDepth` so callers cannot accidentally disable the cap.
-- [ ] 1.5 Replace the `filepath.Walk` body with a recursive directory walker that takes the current path and current depth. For each directory it must, in order: stop if depth exceeds `MaxDepth`; skip if the directory name is in the existing skip list; skip if the directory name begins with `.`; register the directory as a repository and return without descending when it contains a `.git` **directory**; otherwise read its entries and recurse into subdirectories.
-- [ ] 1.6 Export the repository-building logic as `BuildRepository(path string) (*config.Repository, error)` in `internal/discovery`, consolidating the near-identical `parseRepository` in `scanner.go` and `buildRepository` in `cmd/git-workspace/add.go` into one implementation. Delete both duplicates.
-- [ ] 1.7 Update all three `discovery.Scan` call sites for the new signature — `cmd/git-workspace/init.go:73`, `cmd/git-workspace/refresh.go:167`, and `cmd/git-workspace/add.go:164` — and point `add.go` at `discovery.BuildRepository`. Run `go test ./cmd/git-workspace/` and confirm the existing `add` tests still pass; if any fail because `add --recursive` now prunes or filters differently, record the behavior change in the test rather than weakening the scanner.
-- [ ] 1.8 Write tests in `internal/discovery/scanner_test.go` for boundary pruning: build a `t.TempDir()` fixture with container directories nesting repositories at several levels, plus a repository containing a nested clone, and assert the exact set of discovered paths.
-- [ ] 1.9 Write tests for traversal filtering: assert that a repository inside a `node_modules` directory and a repository inside a `.hidden` directory are both absent from results, at more than one nesting level.
-- [ ] 1.10 Write tests for the depth cap: build a fixture nesting repositories from depth 1 to depth 8, then assert that scanning with the default registers those at depth 6 and shallower, and that an explicit `MaxDepth` of 3 registers only those at depth 3 and shallower.
-- [ ] 1.11 Run `make lint` and `make test-race`; resolve any `gosec` G304 findings on the new file reads by cleaning paths and adding narrowly scoped suppressions with justifying comments.
+- [x] 1.1 In `internal/config/config.go`, add `ScanMaxDepth int` with tag `json:"scan_max_depth,omitempty"` to the `Preferences` struct, and add `const DefaultScanMaxDepth = 6`.
+- [x] 1.2 In `internal/config/config.go`, add a helper method on `*Config` that returns the effective scan depth — the preference value when set and greater than zero, otherwise `DefaultScanMaxDepth`. Follow the existing pattern used for `StatusWorkers` at `cmd/git-workspace/list.go:414`.
+- [x] 1.3 In `internal/config/config_test.go`, add table-driven tests for the helper covering: nil `Preferences`, `Preferences` with the field unset, an explicit value, and a zero or negative value. Add a test that unmarshals a `config.json` fixture with no `preferences` key and confirms the default applies.
+- [x] 1.4 In `internal/discovery/scanner.go`, define an `Options` struct with a `MaxDepth int` field, and change the exported entry point to `Scan(rootPath string, opts Options) (*ScanResult, error)`. Treat a zero `MaxDepth` as `config.DefaultScanMaxDepth` so callers cannot accidentally disable the cap.
+- [x] 1.5 Replace the `filepath.Walk` body with a recursive directory walker that takes the current path and current depth. For each directory it must, in order: stop if depth exceeds `MaxDepth`; skip if the directory name is in the existing skip list; skip if the directory name begins with `.`; register the directory as a repository and return without descending when it contains a `.git` **directory**; otherwise read its entries and recurse into subdirectories.
+- [x] 1.6 Export the repository-building logic as `BuildRepository(path string) (*config.Repository, error)` in `internal/discovery`, consolidating the near-identical `parseRepository` in `scanner.go` and `buildRepository` in `cmd/git-workspace/add.go` into one implementation. Delete both duplicates.
+- [x] 1.7 Update all three `discovery.Scan` call sites for the new signature — `cmd/git-workspace/init.go:73`, `cmd/git-workspace/refresh.go:167`, and `cmd/git-workspace/add.go:164` — and point `add.go` at `discovery.BuildRepository`. Run `go test ./cmd/git-workspace/` and confirm the existing `add` tests still pass; if any fail because `add --recursive` now prunes or filters differently, record the behavior change in the test rather than weakening the scanner.
+- [x] 1.8 Write tests in `internal/discovery/scanner_test.go` for boundary pruning: build a `t.TempDir()` fixture with container directories nesting repositories at several levels, plus a repository containing a nested clone, and assert the exact set of discovered paths.
+- [x] 1.9 Write tests for traversal filtering: assert that a repository inside a `node_modules` directory and a repository inside a `.hidden` directory are both absent from results, at more than one nesting level.
+- [x] 1.10 Write tests for the depth cap: build a fixture nesting repositories from depth 1 to depth 8, then assert that scanning with the default registers those at depth 6 and shallower, and that an explicit `MaxDepth` of 3 registers only those at depth 3 and shallower.
+- [x] 1.11 Run `make lint` and `make test-race`; resolve any `gosec` G304 findings on the new file reads by cleaning paths and adding narrowly scoped suppressions with justifying comments.
 
 ### [ ] 2.0 Symlink Resolution and Structural Worktree Detection
 

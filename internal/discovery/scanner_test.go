@@ -67,7 +67,7 @@ func TestScan_SingleRepository(t *testing.T) {
 
 	createTestRepo(t, repoDir, "https://github.com/test/repo.git")
 
-	result, err := Scan(tmpDir)
+	result, err := Scan(tmpDir, Options{})
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestScan_MultipleRepositories(t *testing.T) {
 		createTestRepo(t, repoDir, r.remoteURL)
 	}
 
-	result, err := Scan(tmpDir)
+	result, err := Scan(tmpDir, Options{})
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -151,19 +151,24 @@ func TestScan_NestedRepositories(t *testing.T) {
 	createTestRepo(t, parentDir, "https://github.com/test/parent.git")
 	createTestRepo(t, childDir, "https://github.com/test/child.git")
 
-	result, err := Scan(tmpDir)
+	result, err := Scan(tmpDir, Options{})
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
 
-	// Should find both parent and child repos
-	if result.Count != 2 {
-		t.Errorf("Expected 2 repositories, got %d", result.Count)
+	// Strict boundary pruning: traversal stops at the parent repository root,
+	// so the nested clone is never registered.
+	if result.Count != 1 {
+		t.Errorf("Expected 1 repository (nested clone pruned), got %d", result.Count)
+	}
+
+	if len(result.Repositories) > 0 && result.Repositories[0].Name != "parent" {
+		t.Errorf("Expected to find 'parent', got '%s'", result.Repositories[0].Name)
 	}
 }
 
 func TestScan_NonExistentDirectory(t *testing.T) {
-	result, err := Scan("/nonexistent/directory/path")
+	result, err := Scan("/nonexistent/directory/path", Options{})
 	if err == nil {
 		t.Error("Expected error for nonexistent directory, got nil")
 	}
@@ -176,7 +181,7 @@ func TestScan_NonExistentDirectory(t *testing.T) {
 func TestScan_EmptyDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	result, err := Scan(tmpDir)
+	result, err := Scan(tmpDir, Options{})
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -210,7 +215,7 @@ func TestScan_SkipsCommonDirectories(t *testing.T) {
 	}
 	createTestRepo(t, validRepoDir, "")
 
-	result, err := Scan(tmpDir)
+	result, err := Scan(tmpDir, Options{})
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -234,7 +239,7 @@ func TestScan_RepositoryWithoutRemote(t *testing.T) {
 
 	createTestRepo(t, repoDir, "") // No remote URL
 
-	result, err := Scan(tmpDir)
+	result, err := Scan(tmpDir, Options{})
 	if err != nil {
 		t.Fatalf("Scan failed: %v", err)
 	}
@@ -250,6 +255,187 @@ func TestScan_RepositoryWithoutRemote(t *testing.T) {
 
 	if repo.RemoteURL != "" {
 		t.Errorf("Expected empty remote URL, got '%s'", repo.RemoteURL)
+	}
+}
+
+// repoNameSet returns the set of repository names in a scan result.
+func repoNameSet(result *ScanResult) map[string]bool {
+	names := make(map[string]bool, len(result.Repositories))
+	for _, repo := range result.Repositories {
+		names[repo.Name] = true
+	}
+	return names
+}
+
+// mkRepo creates a git repository at the given path, creating parents as needed.
+func mkRepo(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatalf("Failed to create dir %s: %v", path, err)
+	}
+	createTestRepo(t, path, "")
+}
+
+func TestScan_BoundaryPruningThroughContainers(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Container directories at varying depths, each holding a repository.
+	// The repository under "org-a/team-one" also contains a vendored clone
+	// that must never be registered.
+	mkRepo(t, filepath.Join(tmpDir, "top-level-repo"))
+	mkRepo(t, filepath.Join(tmpDir, "org-a", "team-one", "service-api"))
+	mkRepo(t, filepath.Join(tmpDir, "org-a", "team-two", "service-web"))
+	mkRepo(t, filepath.Join(tmpDir, "org-b", "tooling"))
+	mkRepo(t, filepath.Join(tmpDir, "org-a", "team-one", "service-api", "third_party", "embedded"))
+
+	result, err := Scan(tmpDir, Options{})
+	if err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+
+	want := []string{"top-level-repo", "service-api", "service-web", "tooling"}
+	if result.Count != len(want) {
+		t.Errorf("Expected %d repositories, got %d: %v", len(want), result.Count, repoNameSet(result))
+	}
+
+	names := repoNameSet(result)
+	for _, name := range want {
+		if !names[name] {
+			t.Errorf("Expected repository %q in results, got %v", name, names)
+		}
+	}
+	if names["embedded"] {
+		t.Error("Nested clone 'embedded' should have been pruned, but was registered")
+	}
+}
+
+func TestScan_SiblingsScannedAfterPruning(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// A repository and a sibling container directory at the same level.
+	// Pruning below the repository must not stop the sibling being scanned.
+	mkRepo(t, filepath.Join(tmpDir, "group", "first-repo"))
+	mkRepo(t, filepath.Join(tmpDir, "group", "first-repo", "nested"))
+	mkRepo(t, filepath.Join(tmpDir, "group", "second-repo"))
+	mkRepo(t, filepath.Join(tmpDir, "other-group", "third-repo"))
+
+	result, err := Scan(tmpDir, Options{})
+	if err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+
+	names := repoNameSet(result)
+	for _, want := range []string{"first-repo", "second-repo", "third-repo"} {
+		if !names[want] {
+			t.Errorf("Expected repository %q, got %v", want, names)
+		}
+	}
+	if names["nested"] {
+		t.Error("Nested repository should have been pruned")
+	}
+	if result.Count != 3 {
+		t.Errorf("Expected 3 repositories, got %d: %v", result.Count, names)
+	}
+}
+
+func TestScan_SkipsFilteredDirectoriesAtEveryLevel(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Skip-list and hidden directories at depth 1 and deeper.
+	mkRepo(t, filepath.Join(tmpDir, "node_modules", "shallow-skipped"))
+	mkRepo(t, filepath.Join(tmpDir, "group", "node_modules", "deep-skipped"))
+	mkRepo(t, filepath.Join(tmpDir, ".hidden", "shallow-hidden"))
+	mkRepo(t, filepath.Join(tmpDir, "group", ".hidden", "deep-hidden"))
+	mkRepo(t, filepath.Join(tmpDir, ".dotfiles"))
+	mkRepo(t, filepath.Join(tmpDir, "group", "visible-repo"))
+
+	result, err := Scan(tmpDir, Options{})
+	if err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+
+	names := repoNameSet(result)
+	if !names["visible-repo"] {
+		t.Errorf("Expected 'visible-repo' to be found, got %v", names)
+	}
+	for _, unwanted := range []string{"shallow-skipped", "deep-skipped", "shallow-hidden", "deep-hidden", ".dotfiles"} {
+		if names[unwanted] {
+			t.Errorf("Expected %q to be filtered out, got %v", unwanted, names)
+		}
+	}
+	if result.Count != 1 {
+		t.Errorf("Expected 1 repository, got %d: %v", result.Count, names)
+	}
+}
+
+func TestScan_MaxDepth(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Nest repositories at depths 1 through 8:
+	//   tmpDir/d1                      (depth 1)
+	//   tmpDir/c1/d2                   (depth 2)
+	//   tmpDir/c1/c2/d3                (depth 3) ... and so on
+	for depth := 1; depth <= 8; depth++ {
+		parts := []string{tmpDir}
+		for c := 1; c < depth; c++ {
+			parts = append(parts, "c"+string(rune('0'+c)))
+		}
+		parts = append(parts, "d"+string(rune('0'+depth)))
+		mkRepo(t, filepath.Join(parts...))
+	}
+
+	tests := []struct {
+		name      string
+		opts      Options
+		wantDepth int
+	}{
+		{"default depth registers through depth 6", Options{}, 6},
+		{"explicit depth 3 registers through depth 3", Options{MaxDepth: 3}, 3},
+		{"explicit depth 1 registers only the top level", Options{MaxDepth: 1}, 1},
+		{"zero falls back to the default", Options{MaxDepth: 0}, 6},
+		{"negative falls back to the default", Options{MaxDepth: -5}, 6},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Scan(tmpDir, tt.opts)
+			if err != nil {
+				t.Fatalf("Scan failed: %v", err)
+			}
+
+			names := repoNameSet(result)
+			for depth := 1; depth <= 8; depth++ {
+				repoName := "d" + string(rune('0'+depth))
+				want := depth <= tt.wantDepth
+				if names[repoName] != want {
+					t.Errorf("repository %q at depth %d: found=%v, want=%v (results: %v)",
+						repoName, depth, names[repoName], want, names)
+				}
+			}
+			if result.Count != tt.wantDepth {
+				t.Errorf("Expected %d repositories, got %d: %v", tt.wantDepth, result.Count, names)
+			}
+		})
+	}
+}
+
+func TestScan_RepositoryAtScanRoot(t *testing.T) {
+	tmpDir := t.TempDir()
+	mkRepo(t, tmpDir)
+	mkRepo(t, filepath.Join(tmpDir, "inner"))
+
+	result, err := Scan(tmpDir, Options{})
+	if err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+
+	// The scan root is itself a repository, so it is registered and nothing
+	// below it is traversed.
+	if result.Count != 1 {
+		t.Errorf("Expected 1 repository, got %d: %v", result.Count, repoNameSet(result))
+	}
+	if len(result.Repositories) > 0 && result.Repositories[0].Path != tmpDir {
+		t.Errorf("Expected the scan root itself, got %s", result.Repositories[0].Path)
 	}
 }
 
@@ -270,7 +456,10 @@ func TestShouldSkipDir(t *testing.T) {
 		{".terraform", true},
 		{"valid-dir", false},
 		{"my-project", false},
-		{".git", false}, // .git is handled separately
+		{".git", true},        // hidden directories are skipped at every level
+		{".dotfiles", true},   // hidden, even though not in the skip list
+		{".", false},          // current-directory marker is not "hidden"
+		{"not.hidden", false}, // a dot elsewhere in the name is fine
 	}
 
 	for _, tt := range tests {

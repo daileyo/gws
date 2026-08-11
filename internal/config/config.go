@@ -10,6 +10,12 @@ import (
 // Version of the config format for future migrations
 const ConfigVersion = "1.1.0"
 
+// DefaultScanMaxDepth is the number of directory levels below the workspace
+// root that repository discovery traverses when no preference is set.
+// A repository found at exactly this depth is registered; nothing below it
+// is traversed.
+const DefaultScanMaxDepth = 6
+
 // Config represents the gws workspace configuration
 type Config struct {
 	Version      string       `json:"version"`
@@ -22,6 +28,16 @@ type Config struct {
 // Preferences holds user-configurable settings
 type Preferences struct {
 	StatusWorkers int `json:"status_workers,omitempty"`
+	ScanMaxDepth  int `json:"scan_max_depth,omitempty"`
+}
+
+// EffectiveScanMaxDepth returns the configured scan depth, falling back to
+// DefaultScanMaxDepth when unset or non-positive.
+func (c *Config) EffectiveScanMaxDepth() int {
+	if c != nil && c.Preferences != nil && c.Preferences.ScanMaxDepth > 0 {
+		return c.Preferences.ScanMaxDepth
+	}
+	return DefaultScanMaxDepth
 }
 
 // RepositoryType represents the type of git hosting provider

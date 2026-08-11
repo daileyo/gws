@@ -6,10 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	gogit "github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
 
-	"github.com/daileyo/gws/internal/classifier"
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 )
@@ -103,7 +101,7 @@ func runAdd(path string, recursive bool) error {
 	}
 
 	// Extract repository metadata using go-git
-	newRepo, err := buildRepository(absPath)
+	newRepo, err := discovery.BuildRepository(absPath)
 	if err != nil {
 		return fmt.Errorf("failed to read repository metadata: %w", err)
 	}
@@ -160,16 +158,16 @@ func runAddRecursive() error {
 		return fmt.Errorf("failed to resolve current directory: %w", err)
 	}
 
-	// Scan for all git repositories under CWD
-	result, err := discovery.Scan(scanRoot)
-	if err != nil {
-		return fmt.Errorf("failed to scan for repositories: %w", err)
-	}
-
 	// Load existing config and build a fast-lookup set of tracked paths
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load workspace configuration: %w", err)
+	}
+
+	// Scan for all git repositories under CWD
+	result, err := discovery.Scan(scanRoot, discovery.Options{MaxDepth: cfg.EffectiveScanMaxDepth()})
+	if err != nil {
+		return fmt.Errorf("failed to scan for repositories: %w", err)
 	}
 
 	trackedPaths := make(map[string]bool, len(cfg.Repositories))
@@ -228,42 +226,6 @@ func runAddRecursive() error {
 	)
 
 	return nil
-}
-
-// buildRepository opens a git repo at absPath and returns a populated config.Repository.
-func buildRepository(absPath string) (*config.Repository, error) {
-	repo, err := gogit.PlainOpen(absPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open git repository: %w", err)
-	}
-
-	remoteURL := ""
-	remotes, err := repo.Remotes()
-	if err == nil {
-		for _, remote := range remotes {
-			if remote.Config().Name == "origin" {
-				if urls := remote.Config().URLs; len(urls) > 0 {
-					remoteURL = urls[0]
-				}
-				break
-			}
-		}
-		if remoteURL == "" && len(remotes) > 0 {
-			if urls := remotes[0].Config().URLs; len(urls) > 0 {
-				remoteURL = urls[0]
-			}
-		}
-	}
-
-	gwsRepo := &config.Repository{
-		Name:      filepath.Base(absPath),
-		Path:      absPath,
-		RemoteURL: remoteURL,
-		Tags:      []string{},
-	}
-	classifier.Classify(gwsRepo)
-
-	return gwsRepo, nil
 }
 
 // createSymlinkIfExternal creates a symlink inside the workspace directory when

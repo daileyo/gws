@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -483,6 +484,130 @@ func TestBackwardCompatibility(t *testing.T) {
 			t.Errorf("Expected UserSource to be empty for old config, got '%s'", repo.UserSource)
 		}
 	}
+}
+
+func TestEffectiveScanMaxDepth(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *Config
+		want int
+	}{
+		{
+			name: "nil config falls back to default",
+			cfg:  nil,
+			want: DefaultScanMaxDepth,
+		},
+		{
+			name: "nil preferences falls back to default",
+			cfg:  &Config{Workspace: "/test"},
+			want: DefaultScanMaxDepth,
+		},
+		{
+			name: "preferences present but field unset falls back to default",
+			cfg:  &Config{Preferences: &Preferences{StatusWorkers: 4}},
+			want: DefaultScanMaxDepth,
+		},
+		{
+			name: "explicit value is used",
+			cfg:  &Config{Preferences: &Preferences{ScanMaxDepth: 3}},
+			want: 3,
+		},
+		{
+			name: "zero falls back to default",
+			cfg:  &Config{Preferences: &Preferences{ScanMaxDepth: 0}},
+			want: DefaultScanMaxDepth,
+		},
+		{
+			name: "negative falls back to default",
+			cfg:  &Config{Preferences: &Preferences{ScanMaxDepth: -1}},
+			want: DefaultScanMaxDepth,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.EffectiveScanMaxDepth(); got != tt.want {
+				t.Errorf("EffectiveScanMaxDepth() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestScanMaxDepthBackwardCompatibility(t *testing.T) {
+	t.Run("config without preferences key defaults to 6", func(t *testing.T) {
+		oldConfigJSON := `{
+			"version": "1.1.0",
+			"workspace": "/test/workspace",
+			"repositories": []
+		}`
+
+		var cfg Config
+		if err := json.Unmarshal([]byte(oldConfigJSON), &cfg); err != nil {
+			t.Fatalf("Failed to unmarshal config without preferences: %v", err)
+		}
+
+		if cfg.Preferences != nil {
+			t.Errorf("Expected Preferences to be nil, got %+v", cfg.Preferences)
+		}
+		if got := cfg.EffectiveScanMaxDepth(); got != DefaultScanMaxDepth {
+			t.Errorf("Expected default depth %d, got %d", DefaultScanMaxDepth, got)
+		}
+	})
+
+	t.Run("config with existing preferences but no scan_max_depth defaults to 6", func(t *testing.T) {
+		configJSON := `{
+			"version": "1.1.0",
+			"workspace": "/test/workspace",
+			"preferences": {"status_workers": 8},
+			"repositories": []
+		}`
+
+		var cfg Config
+		if err := json.Unmarshal([]byte(configJSON), &cfg); err != nil {
+			t.Fatalf("Failed to unmarshal config: %v", err)
+		}
+
+		if cfg.Preferences == nil || cfg.Preferences.StatusWorkers != 8 {
+			t.Fatalf("Expected StatusWorkers 8 to survive, got %+v", cfg.Preferences)
+		}
+		if got := cfg.EffectiveScanMaxDepth(); got != DefaultScanMaxDepth {
+			t.Errorf("Expected default depth %d, got %d", DefaultScanMaxDepth, got)
+		}
+	})
+
+	t.Run("scan_max_depth round-trips and is omitted when zero", func(t *testing.T) {
+		cfg := &Config{
+			Version:      ConfigVersion,
+			Workspace:    "/test/workspace",
+			Preferences:  &Preferences{ScanMaxDepth: 4},
+			Repositories: []Repository{},
+		}
+
+		data, err := json.Marshal(cfg)
+		if err != nil {
+			t.Fatalf("Failed to marshal config: %v", err)
+		}
+		if !strings.Contains(string(data), `"scan_max_depth":4`) {
+			t.Errorf("Expected scan_max_depth in JSON, got %s", string(data))
+		}
+
+		var decoded Config
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			t.Fatalf("Failed to unmarshal config: %v", err)
+		}
+		if got := decoded.EffectiveScanMaxDepth(); got != 4 {
+			t.Errorf("Expected depth 4 after round-trip, got %d", got)
+		}
+
+		zeroCfg := &Config{Preferences: &Preferences{StatusWorkers: 2}}
+		zeroData, err := json.Marshal(zeroCfg)
+		if err != nil {
+			t.Fatalf("Failed to marshal config: %v", err)
+		}
+		if strings.Contains(string(zeroData), "scan_max_depth") {
+			t.Errorf("Expected scan_max_depth to be omitted when zero, got %s", string(zeroData))
+		}
+	})
 }
 
 func TestRepositoryWithWorktreesMarshaling(t *testing.T) {

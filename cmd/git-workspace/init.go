@@ -70,7 +70,7 @@ func runInit(dir string) error {
 	}
 
 	// Scan for repositories
-	result, err := discovery.Scan(absPath)
+	result, err := discovery.Scan(absPath, discovery.Options{MaxDepth: config.DefaultScanMaxDepth})
 	if err != nil {
 		return fmt.Errorf("failed to scan workspace: %w", err)
 	}
