@@ -26,6 +26,43 @@ func TestProgress_Increment(t *testing.T) {
 	})
 }
 
+func TestNewProgress_UsesDefaultLabel(t *testing.T) {
+	p := NewProgress(10)
+	if p.label != DefaultProgressLabel {
+		t.Errorf("label = %q, want %q", p.label, DefaultProgressLabel)
+	}
+	if p.total != 10 {
+		t.Errorf("total = %d, want 10", p.total)
+	}
+}
+
+func TestNewProgressWithLabel(t *testing.T) {
+	tests := []struct {
+		name      string
+		label     string
+		wantLabel string
+	}{
+		{"custom label is used", "Reconciling workspace...", "Reconciling workspace..."},
+		{"empty label falls back to the default", "", DefaultProgressLabel},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewProgressWithLabel(5, tt.label)
+			if p.label != tt.wantLabel {
+				t.Errorf("label = %q, want %q", p.label, tt.wantLabel)
+			}
+			// The lifecycle must stay intact regardless of label.
+			p.Start()
+			p.Increment()
+			p.Stop()
+			if got := p.completed.Load(); got != 1 {
+				t.Errorf("completed = %d, want 1", got)
+			}
+		})
+	}
+}
+
 func TestProgress_StopWithoutStart(t *testing.T) {
 	// Stop should not panic if Start was never called
 	p := &Progress{

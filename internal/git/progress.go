@@ -9,21 +9,35 @@ import (
 	"golang.org/x/term"
 )
 
+// DefaultProgressLabel is shown by NewProgress when no label is supplied.
+const DefaultProgressLabel = "Checking repos..."
+
 // Progress manages a spinner with progress count displayed on stderr.
 // It is safe for concurrent use via atomic operations.
 type Progress struct {
 	total     int
+	label     string
 	completed atomic.Int32
 	isTTY     bool
 	stop      chan struct{}
 	done      chan struct{}
 }
 
-// NewProgress creates a new Progress tracker. The spinner only renders
-// if stderr is a TTY.
+// NewProgress creates a new Progress tracker using DefaultProgressLabel.
+// The spinner only renders if stderr is a TTY.
 func NewProgress(total int) *Progress {
+	return NewProgressWithLabel(total, DefaultProgressLabel)
+}
+
+// NewProgressWithLabel creates a Progress tracker that renders the given
+// label ahead of the completed/total count.
+func NewProgressWithLabel(total int, label string) *Progress {
+	if label == "" {
+		label = DefaultProgressLabel
+	}
 	return &Progress{
 		total: total,
+		label: label,
 		isTTY: term.IsTerminal(int(os.Stderr.Fd())),
 		stop:  make(chan struct{}),
 		done:  make(chan struct{}),
@@ -62,7 +76,7 @@ func (p *Progress) Start() {
 				return
 			case <-ticker.C:
 				c := p.completed.Load()
-				fmt.Fprintf(os.Stderr, "\r%c Checking repos... %d/%d", frames[frameIdx], c, p.total)
+				fmt.Fprintf(os.Stderr, "\r%c %s %d/%d", frames[frameIdx], p.label, c, p.total)
 				frameIdx = (frameIdx + 1) % len(frames)
 			}
 		}
