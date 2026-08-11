@@ -92,5 +92,6 @@ func ReconcileWorkspace(workspaceRoot string, existing *config.Config, opts Opti
 		RemovedRepositories: removedRepos,
 		Errors:              scan.Errors,
 		ReachablePaths:      scan.ReachablePaths,
+		WorktreeMainRepos:   resolvePathSet(scan.WorktreeMainRepos),
 	}, nil
 }

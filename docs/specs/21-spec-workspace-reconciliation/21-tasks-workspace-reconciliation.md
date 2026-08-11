@@ -19,15 +19,19 @@
 - `internal/reconcile/result.go` - New: `Result` struct carrying all summary counts, scan errors, and reachable real paths
 - `internal/reconcile/errors.go` - New: shared scan-error reporter (stderr, cap 5, `... and N more errors`)
 - `internal/reconcile/errors_test.go` - Tests for reporter output shape and truncation
+- `internal/reconcile/testhelpers_test.go` - New: shared fixture helpers for the reconcile package tests
 - `cmd/git-workspace/init.go` - Rewrite `runInit` to delegate to `ReconcileWorkspace`; new summary lines; reworded guard message
 - `cmd/git-workspace/init_test.go` - Tests for init summary output, symlink workspaces, worktree persistence, guard behavior
 - `cmd/git-workspace/refresh.go` - Rewrite `runRefresh` to delegate to `ReconcileWorkspace`; retain cache clear, safety net; repair-only symlinks
 - `cmd/git-workspace/refresh_test.go` - Tests for recursive rescan, removals, worktrees, idempotence, symlink repair, cross-command parity
 - `cmd/git-workspace/add.go` - Update the `discovery.Scan` call site for the new signature; remove the duplicate `buildRepository`
 - `cmd/git-workspace/add_test.go` - Confirm `gws add --recursive` still behaves correctly under the new scanner
+- `cmd/git-workspace/deprecated.go` - Propagate the `io.Writer` signature change to the deprecated `--init` and `--refresh` dispatch call sites
+- `cmd/git-workspace/reconcilefixture_test.go` - New: shared workspace fixture builder used by both the init and refresh test suites
 - `cmd/git-workspace/userdetect.go` - No change expected; `detectUserForRepos` and `syncProfilesFromRepos` are called identically by both commands
 - `docs/site/commands-core.md` - Update `Initialize Workspace` and `Refresh Workspace` sections and example output
 - `docs/site/configuration.md` - Document the `scan_max_depth` preference
+- `docs/site/getting-started.md` - Correct the `gws init` description, which omits worktree discovery and symlink following
 - `README.md` - Sync `init` and `refresh` descriptions with the docs site
 
 ### Notes

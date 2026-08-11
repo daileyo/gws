@@ -83,7 +83,7 @@ func runRefresh(stdout io.Writer) error {
 	for _, removed := range result.RemovedRepositories {
 		removeWorkspaceSymlink(cfg.Workspace, removed.Name, removed.Path)
 	}
-	repairWorkspaceSymlinks(cfg, repos, result.ReachablePaths, linkOwned)
+	repairWorkspaceSymlinks(cfg, repos, result, linkOwned)
 
 	fmt.Fprintln(stdout, "Detecting git user configuration...")
 	userDetectedCount := detectUserForRepos(repos, cfg.Profiles)
@@ -172,14 +172,18 @@ func rescanRemovedParents(cfg *config.Config, result *reconcile.Result) []config
 }
 
 // workspaceLinkOwnedRepos returns the set of tracked repository paths that gws
-// is responsible for linking into the workspace: repositories already in the
-// metadata library that live outside the workspace root.
+// may be responsible for linking into the workspace: repositories already in
+// the metadata library that live outside the workspace root.
 //
-// Being tracked and external is what makes a repository link-owned, because
-// that is the only way it can have entered the library — through 'gws add' or
-// a previous refresh, both of which create the workspace symlink. Checking the
-// filesystem instead would be self-defeating: the case worth repairing is
-// precisely the one where the link is missing.
+// Being tracked and external is a necessary condition, not a sufficient one.
+// It holds for repositories the user added with 'gws add', which creates the
+// workspace symlink — but it also holds for main repositories auto-registered
+// from a worktree, which were never linked. repairWorkspaceSymlinks filters
+// those out.
+//
+// Checking the filesystem for an existing link instead would be
+// self-defeating: the case worth repairing is precisely the one where the link
+// is missing.
 func workspaceLinkOwnedRepos(cfg *config.Config) map[string]bool {
 	owned := make(map[string]bool)
 	for _, repo := range cfg.Repositories {
@@ -192,17 +196,36 @@ func workspaceLinkOwnedRepos(cfg *config.Config) map[string]bool {
 
 // repairWorkspaceSymlinks recreates missing workspace symlinks, and only those.
 //
-// A repository the scan could reach needs no link: it is already findable from
-// the workspace root, whether directly or through a symlink someone else
-// created. Creating one anyway is what used to accumulate duplicate links on
-// every refresh, because a repository discovered through a nested symlink has
-// an external real path and looked link-worthy.
-func repairWorkspaceSymlinks(cfg *config.Config, repos []config.Repository, reachable, linkOwned map[string]bool) {
+// Three conditions must all hold before a link is created:
+//
+//  1. The scan could not reach the repository. Anything reachable is already
+//     findable from the workspace root, whether directly or through a symlink
+//     someone else created. Linking it anyway is what used to accumulate
+//     duplicate links on every refresh, because a repository discovered
+//     through a nested symlink has an external real path and looked
+//     link-worthy.
+//
+//  2. The repository was already tracked and lives outside the workspace, so
+//     this is a repair rather than a discovery-driven creation.
+//
+//  3. The repository is not one gws registered on its own behalf because a
+//     worktree of it turned up in the workspace. Those are tracked by real
+//     path and deliberately get no symlink; creating one would put an entry
+//     in the user's workspace that they never asked for.
+//
+// Condition 3 means a user-added external repository that also has a worktree
+// inside the workspace will not have a deleted link auto-repaired. That is the
+// conservative side of the trade: gws declines to act rather than risk
+// creating a link it does not own.
+func repairWorkspaceSymlinks(cfg *config.Config, repos []config.Repository, result *reconcile.Result, linkOwned map[string]bool) {
 	for _, repo := range repos {
-		if reachable[repo.Path] {
+		if result.ReachablePaths[repo.Path] {
 			continue
 		}
 		if !linkOwned[repo.Path] {
+			continue
+		}
+		if result.WorktreeMainRepos[repo.Path] {
 			continue
 		}
 		ensureWorkspaceSymlink(cfg, repo.Path, repo.Name)

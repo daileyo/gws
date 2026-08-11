@@ -696,3 +696,64 @@ func countWorktrees(cfg *config.Config) int {
 	}
 	return total
 }
+
+// TestRunRefresh_NoSymlinkForOrphanWorktreeMainRepo is the regression test for
+// validation issue V-1.
+//
+// When a worktree turns up in the workspace whose main repository is untracked
+// and external, reconciliation registers that main repository so the worktree
+// has an owner. gws registered it on its own behalf, so it must not then
+// create a workspace symlink for it — the spec's Technical Considerations say
+// these "receive no workspace symlink".
+//
+// The earlier repair rule inferred link ownership from "tracked and external",
+// which these repositories satisfy, so refresh created a link the user never
+// asked for.
+func TestRunRefresh_NoSymlinkForOrphanWorktreeMainRepo(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := resolvedTempDir(t)
+	external := resolvedTempDir(t)
+
+	// Main repository outside the workspace; only its worktree lives inside.
+	mainRepo := fixtureRepo(t, filepath.Join(external, "proj"))
+	fixtureWorktree(t, mainRepo, "feature", filepath.Join(root, "proj.wt", "feature"))
+
+	if err := runInit(root, io.Discard); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+
+	afterInit := symlinkEntries(workspaceListing(t, root))
+	if len(afterInit) != 0 {
+		t.Fatalf("init should create no symlinks, got %v", afterInit)
+	}
+
+	// Repeated refreshes must not introduce one either.
+	for i := 1; i <= 3; i++ {
+		if err := runRefresh(io.Discard); err != nil {
+			t.Fatalf("runRefresh %d failed: %v", i, err)
+		}
+		links := symlinkEntries(workspaceListing(t, root))
+		if len(links) != 0 {
+			t.Fatalf("refresh %d created a symlink for an orphan worktree main repository: %v", i, links)
+		}
+	}
+
+	// The main repository must still be tracked, with its worktree attached.
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	var found *config.Repository
+	for i := range cfg.Repositories {
+		if cfg.Repositories[i].Path == mainRepo {
+			found = &cfg.Repositories[i]
+		}
+	}
+	if found == nil {
+		t.Fatalf("Expected the main repository %s to remain tracked, got %v", mainRepo, cfg.Repositories)
+	}
+	if len(found.Worktrees) != 1 || found.Worktrees[0].Branch != "feature" {
+		t.Errorf("Expected the worktree to stay attached, got %v", found.Worktrees)
+	}
+}

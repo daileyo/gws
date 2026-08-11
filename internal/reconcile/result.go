@@ -50,4 +50,11 @@ type Result struct {
 	// this set still exists on disk but can no longer be reached from within
 	// the workspace.
 	ReachablePaths map[string]bool
+
+	// WorktreeMainRepos is the set of main repository paths inferred from
+	// linked worktrees found during this pass. A repository listed here is
+	// tracked because one of its worktrees lives in the workspace, not
+	// because the user added it, so callers must not treat it as one they
+	// are responsible for linking.
+	WorktreeMainRepos map[string]bool
 }

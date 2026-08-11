@@ -118,3 +118,13 @@ func resolveRealPath(path string) string {
 	}
 	return resolved
 }
+
+// resolvePathSet resolves every path in a set, so callers can compare against
+// the resolved paths stored on repositories.
+func resolvePathSet(paths map[string]bool) map[string]bool {
+	resolved := make(map[string]bool, len(paths))
+	for path := range paths {
+		resolved[resolveRealPath(path)] = true
+	}
+	return resolved
+}
