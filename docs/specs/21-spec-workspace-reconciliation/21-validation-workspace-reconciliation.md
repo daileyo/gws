@@ -4,7 +4,7 @@
 **Task List:** `docs/specs/21-spec-workspace-reconciliation/21-tasks-workspace-reconciliation.md`
 **Branch:** `feat/workspace-reconciliation`
 **Baseline:** `c4eccde` (chore(main): release 2.19.2)
-**Head:** `f107744`
+**Validated range:** `c4eccde..HEAD` on `feat/workspace-reconciliation` (11 commits)
 
 ---
 
@@ -22,10 +22,11 @@
 |---|---|
 | Functional requirements verified | **59 / 59 (100%)** — 0 Failed, 0 Unknown |
 | Proof artifacts working | **107 / 107 test claims (100%)** — all exist in source and pass on a cleared cache |
+| Validation issues | **3 raised, 3 resolved** (1 HIGH, 1 MEDIUM, 1 LOW) |
 | Original acceptance criteria met | **9 / 9** |
 | Files changed vs declared | 29 code/doc changed; **29 declared-and-changed; 0 undeclared** |
-| Code delta | 25 Go files, +3,786 / −322 |
-| Full suite | **388 tests pass**, `-race` clean, `make vet` and `make lint` exit 0 |
+| Code delta | 25 Go files, +3,974 / −324 |
+| Full suite | **389 tests pass**, `-race` clean, `make vet` and `make lint` exit 0 |
 
 ---
 
@@ -369,7 +370,7 @@ All 107 test names appearing as `--- PASS` in the six proof files were extracted
 ### Post-fix re-verification
 
 ```text
-$ go clean -testcache && go test ./...          → all 8 packages ok (388 tests)
+$ go clean -testcache && go test ./...          → all 8 packages ok (389 tests)
 $ make test-race                                 → all 8 packages ok
 $ make vet                                       → exit 0
 $ make lint                                      → exit 0
