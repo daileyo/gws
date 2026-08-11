@@ -195,7 +195,7 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 	// Dispatch deprecated init
 	if depInit {
 		emitDeprecationWarnings(cmd)
-		return true, runInit("")
+		return true, runInit("", os.Stdout)
 	}
 
 	// Dispatch deprecated add

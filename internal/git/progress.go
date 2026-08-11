@@ -83,6 +83,13 @@ func (p *Progress) Start() {
 	}()
 }
 
+// SetTotal updates the denominator shown by the spinner. Call it before Start:
+// the rendering goroutine reads the total, and setting it beforehand keeps that
+// read ordered behind goroutine creation.
+func (p *Progress) SetTotal(total int) {
+	p.total = total
+}
+
 // Increment marks one more repo as completed. Safe for concurrent use.
 func (p *Progress) Increment() {
 	p.completed.Add(1)

@@ -136,7 +136,7 @@ Create `internal/reconcile` with the single entry point both commands will call.
 - [x] 3.15 Write `internal/reconcile/errors_test.go` using a `bytes.Buffer`, covering zero errors, three errors, exactly five errors, and ten errors.
 - [x] 3.16 Run `make lint` and `make test-race`.
 
-### [ ] 4.0 `gws init` Adoption
+### [x] 4.0 `gws init` Adoption
 
 Rewrite `runInit` to create the metadata library and then delegate to the shared engine, producing a complete workspace model — including worktrees — from a single command. Adds the new summary lines, the reworded guard message, and progress reporting.
 
@@ -152,18 +152,18 @@ Rewrite `runInit` to create the metadata library and then delegate to the shared
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Change `runInit` in `cmd/git-workspace/init.go` to accept an `io.Writer` for its summary output, following the `runWorktreeList(repoFilter string, stdout io.Writer)` pattern at `worktree_list.go:49`, so output can be asserted in tests. Update the Cobra `RunE` to pass `os.Stdout`.
-- [ ] 4.2 Replace the `discovery.Scan` call and inline config assembly with: resolve the absolute workspace path, build the config via `config.New`, then call `reconcile.ReconcileWorkspace(absPath, nil, opts)` with the effective scan depth and a progress reporter.
-- [ ] 4.3 Delete the inline scan-error printing block at `init.go:79-89` and call `reconcile.ReportScanErrors(os.Stderr, result.Errors)` instead.
-- [ ] 4.4 Keep the existing post-reconcile steps in place and in the same order as `refresh` will use: `detectUserForRepos`, then `syncProfilesFromRepos`, then `config.Save`.
-- [ ] 4.5 Implement the summary output exactly as specified: `Initialized workspace at: <path>`, `Found N repositories.`, then `Repositories with user configuration: N`, `Repositories with worktrees: N`, and `Worktrees: N (X aligned, Y unaligned)` — each conditional line omitted when its count is zero. Keep the existing `pluralize` helper.
-- [ ] 4.6 Reword the already-initialized guard message so `gws refresh` is clearly the recommended next step, keeping it on stderr and keeping the `return nil` exit-zero behavior.
-- [ ] 4.7 Add a test helper in `cmd/git-workspace/init_test.go` that builds a fixture workspace in `t.TempDir()` containing: two repositories at the root, one repository two container directories deep, one external repository reached by a symlink, one repository with an aligned worktree, and one with an unaligned worktree. Isolate `HOME` with `t.Setenv` so the real `~/.gws/config.json` is never touched. This helper is reused by task 5.0.
-- [ ] 4.8 Write the summary-output test against that fixture, asserting the exact expected lines and counts.
-- [ ] 4.9 Write the curated-symlink-workspace test asserting a non-zero repository count, which is the behavior that was previously broken.
-- [ ] 4.10 Write a test that runs `runInit` and then `runWorktreeList` with no command in between, asserting both the aligned and unaligned worktrees appear.
-- [ ] 4.11 Write tests for conditional line omission, for the reworded guard message on stderr with a nil return, and for the absence of any newly created symlinks in the workspace directory after `init`.
-- [ ] 4.12 Run `make lint` and `make test-race`.
+- [x] 4.1 Change `runInit` in `cmd/git-workspace/init.go` to accept an `io.Writer` for its summary output, following the `runWorktreeList(repoFilter string, stdout io.Writer)` pattern at `worktree_list.go:49`, so output can be asserted in tests. Update the Cobra `RunE` to pass `os.Stdout`.
+- [x] 4.2 Replace the `discovery.Scan` call and inline config assembly with: resolve the absolute workspace path, build the config via `config.New`, then call `reconcile.ReconcileWorkspace(absPath, nil, opts)` with the effective scan depth and a progress reporter.
+- [x] 4.3 Delete the inline scan-error printing block at `init.go:79-89` and call `reconcile.ReportScanErrors(os.Stderr, result.Errors)` instead.
+- [x] 4.4 Keep the existing post-reconcile steps in place and in the same order as `refresh` will use: `detectUserForRepos`, then `syncProfilesFromRepos`, then `config.Save`.
+- [x] 4.5 Implement the summary output exactly as specified: `Initialized workspace at: <path>`, `Found N repositories.`, then `Repositories with user configuration: N`, `Repositories with worktrees: N`, and `Worktrees: N (X aligned, Y unaligned)` — each conditional line omitted when its count is zero. Keep the existing `pluralize` helper.
+- [x] 4.6 Reword the already-initialized guard message so `gws refresh` is clearly the recommended next step, keeping it on stderr and keeping the `return nil` exit-zero behavior.
+- [x] 4.7 Add a test helper in `cmd/git-workspace/init_test.go` that builds a fixture workspace in `t.TempDir()` containing: two repositories at the root, one repository two container directories deep, one external repository reached by a symlink, one repository with an aligned worktree, and one with an unaligned worktree. Isolate `HOME` with `t.Setenv` so the real `~/.gws/config.json` is never touched. This helper is reused by task 5.0.
+- [x] 4.8 Write the summary-output test against that fixture, asserting the exact expected lines and counts.
+- [x] 4.9 Write the curated-symlink-workspace test asserting a non-zero repository count, which is the behavior that was previously broken.
+- [x] 4.10 Write a test that runs `runInit` and then `runWorktreeList` with no command in between, asserting both the aligned and unaligned worktrees appear.
+- [x] 4.11 Write tests for conditional line omission, for the reworded guard message on stderr with a nil return, and for the absence of any newly created symlinks in the workspace directory after `init`.
+- [x] 4.12 Run `make lint` and `make test-race`.
 
 ### [ ] 5.0 `gws refresh` Adoption and Symlink Repair Rules
 

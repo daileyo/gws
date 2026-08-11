@@ -10,7 +10,11 @@ import (
 
 // ProgressReporter receives progress during the per-repository phases.
 // *git.Progress satisfies it.
+//
+// The repository count is not known until the merge completes, so the engine
+// calls SetTotal before Start.
 type ProgressReporter interface {
+	SetTotal(total int)
 	Start()
 	Increment()
 	Stop()
@@ -68,6 +72,7 @@ func ReconcileWorkspace(workspaceRoot string, existing *config.Config, opts Opti
 
 	// Phase 3: discover worktrees for every tracked repository.
 	if opts.Progress != nil {
+		opts.Progress.SetTotal(len(merged))
 		opts.Progress.Start()
 		defer opts.Progress.Stop()
 	}

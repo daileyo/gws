@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/discovery"
+	"github.com/daileyo/gws/internal/git"
+	"github.com/daileyo/gws/internal/reconcile"
 )
 
 // initCmd is the Cobra subcommand for initializing a workspace.
@@ -16,7 +18,8 @@ var initCmd = &cobra.Command{
 	Use:   "init [directory]",
 	Short: "Initialize a gws workspace",
 	Long: `Initialize a gws workspace in the specified directory (defaults to current directory).
-Scans for existing git repositories and creates the workspace configuration.
+Recursively scans for git repositories, discovers their worktrees, and creates
+the workspace configuration.
 
 Examples:
   gws init                # Initialize in current directory
@@ -27,7 +30,7 @@ Examples:
 		if len(args) > 0 {
 			dir = args[0]
 		}
-		return runInit(dir)
+		return runInit(dir, os.Stdout)
 	},
 }
 
@@ -35,61 +38,50 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
-// runInit handles the init logic.
+// runInit creates the workspace metadata library and performs the first full
+// reconciliation against it.
+//
 // dir is the directory to initialize (empty string means current directory).
-func runInit(dir string) error {
+// init and refresh share one reconciliation engine, so a freshly initialized
+// workspace has the same repository and worktree model a refreshed one does.
+func runInit(dir string, stdout io.Writer) error {
 	// Guard: if a workspace is already initialized, notify and exit cleanly
 	exists, err := config.Exists()
 	if err != nil {
 		return fmt.Errorf("failed to check workspace status: %w", err)
 	}
 	if exists {
-		cfg, err := config.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load workspace configuration: %w", err)
+		cfg, loadErr := config.Load()
+		if loadErr != nil {
+			return fmt.Errorf("failed to load workspace configuration: %w", loadErr)
 		}
 		fmt.Fprintf(os.Stderr, "Workspace already initialized at: %s\n", cfg.Workspace)
 		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "To add more repositories:  gws add")
-		fmt.Fprintln(os.Stderr, "To re-scan the workspace:  gws refresh")
+		fmt.Fprintln(os.Stderr, "To re-scan the workspace and pick up changes:  gws refresh")
+		fmt.Fprintln(os.Stderr, "To add a single repository:                    gws add")
 		return nil
 	}
 
-	// Resolve workspace path
-	var absPath string
-	if dir == "" || dir == "." {
-		absPath, err = os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to resolve current directory: %w", err)
-		}
-	} else {
-		absPath, err = filepath.Abs(dir)
-		if err != nil {
-			return fmt.Errorf("failed to resolve directory path: %w", err)
-		}
-	}
-
-	// Scan for repositories
-	result, err := discovery.Scan(absPath, discovery.Options{MaxDepth: config.DefaultScanMaxDepth})
+	absPath, err := resolveWorkspacePath(dir)
 	if err != nil {
-		return fmt.Errorf("failed to scan workspace: %w", err)
+		return err
 	}
 
-	// Display scan errors if any
-	if len(result.Errors) > 0 {
-		fmt.Fprintf(os.Stderr, "Warning: %d errors occurred during scanning:\n", len(result.Errors))
-		for i, scanErr := range result.Errors {
-			if i < 5 {
-				fmt.Fprintf(os.Stderr, "  - %v\n", scanErr)
-			}
-		}
-		if len(result.Errors) > 5 {
-			fmt.Fprintf(os.Stderr, "  ... and %d more errors\n", len(result.Errors)-5)
-		}
-	}
-
-	// Create and save configuration
+	// Create the metadata library, then reconcile it. Passing a nil existing
+	// configuration is what marks this as the init case.
 	cfg := config.New(absPath)
+
+	progress := git.NewProgressWithLabel(0, "Scanning workspace...")
+	result, err := reconcile.ReconcileWorkspace(absPath, nil, reconcile.Options{
+		MaxDepth: cfg.EffectiveScanMaxDepth(),
+		Progress: progress,
+	})
+	if err != nil {
+		return err
+	}
+
+	reconcile.ReportScanErrors(os.Stderr, result.Errors)
+
 	cfg.Repositories = result.Repositories
 
 	// Detect git user configuration for discovered repos
@@ -102,13 +94,47 @@ func runInit(dir string) error {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}
 
-	fmt.Printf("Initialized workspace at: %s\n", absPath)
-	fmt.Printf("Found %d %s.\n", result.Count, pluralize(result.Count, "repository", "repositories"))
+	fmt.Fprintf(stdout, "Initialized workspace at: %s\n", absPath)
+	fmt.Fprintf(stdout, "Found %d %s.\n",
+		result.TotalRepositories,
+		pluralize(result.TotalRepositories, "repository", "repositories"))
 	if userDetectedCount > 0 {
-		fmt.Printf("Repositories with user configuration: %d\n", userDetectedCount)
+		fmt.Fprintf(stdout, "Repositories with user configuration: %d\n", userDetectedCount)
 	}
+	writeWorktreeSummary(stdout, result)
 
 	return nil
+}
+
+// resolveWorkspacePath turns a user-supplied directory into an absolute path,
+// defaulting to the current directory.
+func resolveWorkspacePath(dir string) (string, error) {
+	if dir == "" || dir == "." {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve current directory: %w", err)
+		}
+		return cwd, nil
+	}
+
+	absPath, err := filepath.Abs(dir)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve directory path: %w", err)
+	}
+	return absPath, nil
+}
+
+// writeWorktreeSummary prints the shared worktree lines used by both init and
+// refresh, so the two commands never describe the same workspace differently.
+// Nothing is printed when no worktrees were found.
+func writeWorktreeSummary(w io.Writer, result *reconcile.Result) {
+	if result.ReposWithWorktrees > 0 {
+		fmt.Fprintf(w, "Repositories with worktrees: %d\n", result.ReposWithWorktrees)
+	}
+	if result.TotalWorktrees > 0 {
+		fmt.Fprintf(w, "Worktrees: %d (%d aligned, %d unaligned)\n",
+			result.TotalWorktrees, result.AlignedWorktrees, result.UnalignedWorktrees)
+	}
 }
 
 func pluralize(count int, singular, plural string) string { //nolint:unparam // singular is always "repository" but kept for readability

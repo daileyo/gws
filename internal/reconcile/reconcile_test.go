@@ -243,6 +243,9 @@ func TestReconcileWorkspace_ProgressLifecycle(t *testing.T) {
 	if spy.increments != result.TotalRepositories {
 		t.Errorf("Increment called %d times, want %d", spy.increments, result.TotalRepositories)
 	}
+	if spy.total != result.TotalRepositories {
+		t.Errorf("SetTotal called with %d, want %d", spy.total, result.TotalRepositories)
+	}
 }
 
 func TestReconcileWorkspace_ScanErrorsAreReturnedNotPrinted(t *testing.T) {
@@ -265,14 +268,16 @@ func TestReconcileWorkspace_ScanErrorsAreReturnedNotPrinted(t *testing.T) {
 
 // progressSpy records ProgressReporter calls.
 type progressSpy struct {
+	total      int
 	starts     int
 	increments int
 	stops      int
 }
 
-func (p *progressSpy) Start()     { p.starts++ }
-func (p *progressSpy) Increment() { p.increments++ }
-func (p *progressSpy) Stop()      { p.stops++ }
+func (p *progressSpy) SetTotal(total int) { p.total = total }
+func (p *progressSpy) Start()             { p.starts++ }
+func (p *progressSpy) Increment()         { p.increments++ }
+func (p *progressSpy) Stop()              { p.stops++ }
 
 // listDirRecursive returns a sorted listing of every entry under root,
 // recording symlinks as links rather than following them.
