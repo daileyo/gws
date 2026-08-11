@@ -259,14 +259,32 @@ $ comm -13 <declared> <changed>
 
 The only remaining asymmetry is two files declared but deliberately unchanged (`add_test.go`, `userdetect.go`), covered by Observation O-3.
 
-### V-3 · LOW · Spec Open Questions remain unresolved
+### V-3 · LOW · ✅ RESOLVED · Spec Open Questions were unresolved
 
-Spec Open Questions 1 and 2 were never closed:
+Both spec Open Questions were decided by the spec owner on 2026-08-10 and recorded in the spec.
 
-1. *Should the `Worktrees: N (X aligned, Y unaligned)` line appear in `refresh` as well as `init`?* — implemented in **both**, on the reasoning that acceptance criterion 8 requires consistent totals. Not confirmed by the spec owner.
-2. *Does adding the optional `scan_max_depth` preference warrant a `ConfigVersion` bump from `1.1.0`?* — assumed **no**; `ConfigVersion` is unchanged. The field is additive and `omitempty`, and `TestScanMaxDepthBackwardCompatibility` proves older configs load unchanged, so no defect follows — but the decision is unrecorded.
+1. *Should the `Worktrees: N (X aligned, Y unaligned)` line appear in `refresh` as well as `init`?* — **Confirmed: both.** No code change; the implementation already emitted it from the shared `writeWorktreeSummary` helper. Covered by `TestInitAndRefresh_ReportIdenticalTotals`.
 
-**Recommendation.** Record both decisions in the spec, or close them explicitly before merge.
+2. *Does the additive `scan_max_depth` preference warrant a `ConfigVersion` bump?* — **Decided: yes, `1.1.0` → `1.2.0`.**
+
+#### Resolution (commit `eb995f0`)
+
+`ConfigVersion` is now `1.2.0`, and `config.Save` stamps it on every write so a file always declares the format actually written to it. Previously a workspace initialized under `1.1.0` would report `1.1.0` forever, even after newer code rewrote the file. No migration step exists or is needed: older files load unchanged and `scan_max_depth` defaults to `6`.
+
+**New test:** `TestConfigVersion` (4 sub-cases) covers the constant, new-config stamping, an in-place upgrade that asserts repositories/tags/workspace survive, and a plain load of a pre-`1.2.0` file.
+
+**Verified with the real binary** against a hand-written `1.1.0` config:
+
+```text
+BEFORE                                AFTER gws refresh
+ version: 1.1.0                        version: 1.2.0
+ workers: 4                            workers: 4
+ repos: legacy-repo                    repos: legacy-repo
+        tags [important, legacy]              tags [important, legacy]
+                                       scan_max_depth written? No (omitempty; default 6 applies)
+```
+
+Documentation updated: `configuration.md` example and the `version` field row now show `1.2.0` and note the stamping behavior.
 
 ---
 
@@ -361,9 +379,9 @@ $ live 3-case symlink probe                      → repair YES / duplicate NO /
 
 ---
 
-## Remaining Non-Blocking Item
+## Remaining Items
 
-**V-3** — record decisions on the two spec Open Questions (the `Worktrees:` line on `refresh`, and whether `ConfigVersion` should bump for the additive `scan_max_depth` preference). Neither affects correctness; both are currently implemented under stated assumptions.
+**None.** All three validation issues are resolved and the spec has no open questions.
 
 The implementation is ready for final human code review and merge.
 
