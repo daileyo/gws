@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 )
 
-// Version of the config format for future migrations
-const ConfigVersion = "1.1.0"
+// Version of the config format for future migrations.
+//
+// 1.2.0 added the optional scan_max_depth preference. The change is additive
+// and older files load unchanged, so no migration is required.
+const ConfigVersion = "1.2.0"
 
 // DefaultScanMaxDepth is the number of directory levels below the workspace
 // root that repository discovery traverses when no preference is set.
@@ -142,8 +145,16 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-// Save writes the configuration to ~/.gws/config.json
+// Save writes the configuration to ~/.gws/config.json.
+//
+// The version field is stamped with ConfigVersion on every write, so a file
+// always declares the format actually written to it. Without this, a workspace
+// initialized under an older version would keep reporting that version forever
+// even after being rewritten by newer code. Nothing branches on the value
+// today; it exists to make future migrations possible.
 func Save(cfg *Config) error {
+	cfg.Version = ConfigVersion
+
 	configDir, err := GetConfigDir()
 	if err != nil {
 		return err

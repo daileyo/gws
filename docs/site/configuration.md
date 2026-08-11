@@ -12,7 +12,7 @@ git-workspace stores its configuration in `~/.gws/config.json`. The configuratio
 
 ```json
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "workspace": "/home/user/projects",
   "profiles": [
     {
@@ -73,7 +73,7 @@ git-workspace stores its configuration in `~/.gws/config.json`. The configuratio
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `version` | string | Config file format version (currently `"1.1.0"`) |
+| `version` | string | Config file format version (currently `"1.2.0"`). Stamped on every write; no migration is required from earlier versions. |
 | `workspace` | string | Absolute path to the root directory of the workspace |
 | `profiles` | array | List of git user profile objects (see below) |
 | `repositories` | array | List of all discovered repository objects |

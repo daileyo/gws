@@ -486,6 +486,79 @@ func TestBackwardCompatibility(t *testing.T) {
 	}
 }
 
+func TestConfigVersion(t *testing.T) {
+	t.Run("current version is 1.2.0", func(t *testing.T) {
+		if ConfigVersion != "1.2.0" {
+			t.Errorf("ConfigVersion = %q, want \"1.2.0\"", ConfigVersion)
+		}
+	})
+
+	t.Run("new configs declare the current version", func(t *testing.T) {
+		cfg := New("/test/workspace")
+		if cfg.Version != ConfigVersion {
+			t.Errorf("New() version = %q, want %q", cfg.Version, ConfigVersion)
+		}
+	})
+
+	t.Run("save upgrades an older version in place", func(t *testing.T) {
+		t.Setenv("HOME", t.TempDir())
+
+		older := &Config{
+			Version:      "1.1.0",
+			Workspace:    "/test/workspace",
+			Repositories: []Repository{{Name: "keep", Path: "/test/workspace/keep", Tags: []string{"mine"}}},
+		}
+		if err := Save(older); err != nil {
+			t.Fatalf("Save failed: %v", err)
+		}
+
+		loaded, err := Load()
+		if err != nil {
+			t.Fatalf("Load failed: %v", err)
+		}
+		if loaded.Version != ConfigVersion {
+			t.Errorf("version after save = %q, want %q", loaded.Version, ConfigVersion)
+		}
+
+		// Upgrading the version must not disturb anything else.
+		if len(loaded.Repositories) != 1 {
+			t.Fatalf("Expected 1 repository, got %d", len(loaded.Repositories))
+		}
+		if len(loaded.Repositories[0].Tags) != 1 || loaded.Repositories[0].Tags[0] != "mine" {
+			t.Errorf("Expected tags preserved, got %v", loaded.Repositories[0].Tags)
+		}
+		if loaded.Workspace != "/test/workspace" {
+			t.Errorf("Expected workspace preserved, got %q", loaded.Workspace)
+		}
+	})
+
+	t.Run("a pre-1.2.0 file still loads without migration", func(t *testing.T) {
+		oldJSON := `{
+			"version": "1.1.0",
+			"workspace": "/test/workspace",
+			"preferences": {"status_workers": 4},
+			"repositories": [{"name": "old", "path": "/test/workspace/old", "tags": ["legacy"]}]
+		}`
+
+		var cfg Config
+		if err := json.Unmarshal([]byte(oldJSON), &cfg); err != nil {
+			t.Fatalf("Failed to unmarshal a 1.1.0 config: %v", err)
+		}
+		if cfg.Version != "1.1.0" {
+			t.Errorf("Expected the stored version to survive a plain load, got %q", cfg.Version)
+		}
+		if cfg.Preferences.StatusWorkers != 4 {
+			t.Errorf("Expected status_workers preserved, got %d", cfg.Preferences.StatusWorkers)
+		}
+		if got := cfg.EffectiveScanMaxDepth(); got != DefaultScanMaxDepth {
+			t.Errorf("Expected the new preference to default to %d, got %d", DefaultScanMaxDepth, got)
+		}
+		if len(cfg.Repositories) != 1 || cfg.Repositories[0].Tags[0] != "legacy" {
+			t.Errorf("Expected repositories and tags intact, got %v", cfg.Repositories)
+		}
+	})
+}
+
 func TestEffectiveScanMaxDepth(t *testing.T) {
 	tests := []struct {
 		name string

@@ -255,5 +255,16 @@ No graphical interface is involved. The command-line output requirements are spe
 
 ## Open Questions
 
-1. Should the `Worktrees: N (X aligned, Y unaligned)` line appear in `gws refresh` output as well as `gws init`? This spec includes it in both, because the original request's acceptance criteria require repository and worktree totals to be reported consistently by both commands. Confirm, or drop it from `refresh`.
-2. Does adding the optional `scan_max_depth` preference warrant a `ConfigVersion` bump from `1.1.0`? The change is additive and backward compatible, so this spec assumes no bump.
+Both questions were resolved by the spec owner on 2026-08-10. No open questions remain.
+
+1. **Should the `Worktrees: N (X aligned, Y unaligned)` line appear in `gws refresh` output as well as `gws init`?**
+   **Resolved: yes, both commands.** Parity is the point of this spec, and the original acceptance criteria require repository and worktree totals to be reported consistently by both commands. Both commands emit the line through the shared `writeWorktreeSummary` helper, so they cannot drift. Covered by `TestInitAndRefresh_ReportIdenticalTotals`.
+
+2. **Does adding the optional `scan_max_depth` preference warrant a `ConfigVersion` bump from `1.1.0`?**
+   **Resolved: yes, bump to `1.2.0`.** Although the change is additive and older files load unchanged, the stored format did gain a field, and the version should say so.
+
+   Two consequences follow, both intentional:
+   - `Save` now stamps `ConfigVersion` on every write, so a file always declares the format actually written to it. Without this, a workspace initialized under `1.1.0` would keep reporting `1.1.0` forever even after newer code rewrote it. Nothing branches on the value today; it exists to make future migrations possible.
+   - No migration step is required or provided. A pre-`1.2.0` file loads unchanged, `scan_max_depth` defaults to `6`, and the version is upgraded the next time the file is written.
+
+   Covered by `TestConfigVersion` (4 sub-cases, including an in-place upgrade that asserts repositories, tags, and workspace survive) and `TestScanMaxDepthBackwardCompatibility`.
