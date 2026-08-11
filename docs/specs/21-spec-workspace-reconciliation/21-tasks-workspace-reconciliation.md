@@ -165,7 +165,7 @@ Rewrite `runInit` to create the metadata library and then delegate to the shared
 - [x] 4.11 Write tests for conditional line omission, for the reworded guard message on stderr with a nil return, and for the absence of any newly created symlinks in the workspace directory after `init`.
 - [x] 4.12 Run `make lint` and `make test-race`.
 
-### [ ] 5.0 `gws refresh` Adoption and Symlink Repair Rules
+### [x] 5.0 `gws refresh` Adoption and Symlink Repair Rules
 
 Move `runRefresh` onto the shared engine while keeping the responsibilities that are genuinely refresh-specific: status cache clearing, the parent-directory rescan safety net, and workspace symlink maintenance — now constrained to repair only, which is what stops symlink accumulation across runs.
 
@@ -183,21 +183,21 @@ Move `runRefresh` onto the shared engine while keeping the responsibilities that
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Change `runRefresh` in `cmd/git-workspace/refresh.go` to accept an `io.Writer` for summary output, matching the change made to `runInit`, and update the Cobra `RunE` to pass `os.Stdout`.
-- [ ] 5.2 Replace `validateExistingRepos`, `scanWorkspaceForNewRepos`, and the inline worktree phase with a single `reconcile.ReconcileWorkspace(cfg.Workspace, cfg, opts)` call. Delete `scanWorkspaceForNewRepos` and the parts of `validateExistingRepos` now handled by the engine.
-- [ ] 5.3 Preserve the parent-directory rescan safety net: for each repository the engine reports as removed, scan its parent directory with `discovery.Scan` and merge in any repositories found there that are not already tracked. Keep this in `refresh.go` as a post-reconcile step so the engine stays pure.
-- [ ] 5.4 Replace the inline scan-error printing block at `refresh.go:49-59` with `reconcile.ReportScanErrors(os.Stderr, result.Errors)`. This intentionally changes two behaviors: the preview limit rises from 3 to 5, and warnings move from stdout to stderr.
-- [ ] 5.5 Rewrite `ensureWorkspaceSymlink` to implement the repair-only rule: create a link only when the repository's real path is absent from `result.ReachablePaths` **and** the repository was previously tracked with a workspace symlink. Determine "previously tracked with a symlink" by checking the pre-reconcile config for the repository together with the presence of a matching symlink entry, and pass that set in rather than probing the filesystem twice.
-- [ ] 5.6 Leave `removeWorkspaceSymlink` behavior unchanged — remove only when the entry is a symlink whose target matches the removed repository's path, never touching non-symlink or differently-targeted entries.
-- [ ] 5.7 Keep the status cache clear and its `Cleared git status cache` message exactly as they are today, after reconciliation and before the summary.
-- [ ] 5.8 Implement the summary output as specified, keeping today's wording — `Refreshing workspace at:`, `Detecting git user configuration...`, `Refresh complete!`, `Total repositories:`, and the conditional removed, new, updated, user-configuration, and worktree lines — with the added `Worktrees: N (X aligned, Y unaligned)` line, and all counts sourced from `Result`.
-- [ ] 5.9 Write tests for recursive rescan and removals using the shared fixture helper from task 4.7: add a repository three container directories deep after an initial reconcile and assert it is found; delete a tracked repository and assert it is removed and counted.
-- [ ] 5.10 Write the immediate-worktree-visibility test: create a worktree with `git worktree add` after an initial reconcile, run `runRefresh`, then `runWorktreeList`, and assert the new worktree appears.
-- [ ] 5.11 Write the idempotence test: run `runRefresh` twice against an unchanged curated symlink workspace and assert the workspace directory listing is identical between runs, with no new symlinks and no change to the set of stored repository paths.
-- [ ] 5.12 Write the repair-only symlink tests: one case where a previously symlinked external repository has had its link deleted and refresh recreates it, and one case where a repository discovered by traversing an existing nested symlink gets no additional link at the workspace root.
-- [ ] 5.13 Write tests confirming the retained refresh-specific behavior: the status cache is cleared, and a repository replaced in place at a removed repository's parent directory is picked up by the safety net.
-- [ ] 5.14 Write the two parity tests: identical repository and worktree totals from `runInit` and `runRefresh` against the same fixture, and byte-identical stderr warning output from both for the same injected scan errors, with stdout containing no warnings.
-- [ ] 5.15 Run `make lint` and `make test-race`, then run the full `go test ./...` to confirm no regressions in `list`, `navigate`, `tag`, `user`, or the worktree subcommands.
+- [x] 5.1 Change `runRefresh` in `cmd/git-workspace/refresh.go` to accept an `io.Writer` for summary output, matching the change made to `runInit`, and update the Cobra `RunE` to pass `os.Stdout`.
+- [x] 5.2 Replace `validateExistingRepos`, `scanWorkspaceForNewRepos`, and the inline worktree phase with a single `reconcile.ReconcileWorkspace(cfg.Workspace, cfg, opts)` call. Delete `scanWorkspaceForNewRepos` and the parts of `validateExistingRepos` now handled by the engine.
+- [x] 5.3 Preserve the parent-directory rescan safety net: for each repository the engine reports as removed, scan its parent directory with `discovery.Scan` and merge in any repositories found there that are not already tracked. Keep this in `refresh.go` as a post-reconcile step so the engine stays pure.
+- [x] 5.4 Replace the inline scan-error printing block at `refresh.go:49-59` with `reconcile.ReportScanErrors(os.Stderr, result.Errors)`. This intentionally changes two behaviors: the preview limit rises from 3 to 5, and warnings move from stdout to stderr.
+- [x] 5.5 Rewrite `ensureWorkspaceSymlink` to implement the repair-only rule: create a link only when the repository's real path is absent from `result.ReachablePaths` **and** the repository was previously tracked with a workspace symlink. Determine "previously tracked with a symlink" by checking the pre-reconcile config for the repository together with the presence of a matching symlink entry, and pass that set in rather than probing the filesystem twice.
+- [x] 5.6 Leave `removeWorkspaceSymlink` behavior unchanged — remove only when the entry is a symlink whose target matches the removed repository's path, never touching non-symlink or differently-targeted entries.
+- [x] 5.7 Keep the status cache clear and its `Cleared git status cache` message exactly as they are today, after reconciliation and before the summary.
+- [x] 5.8 Implement the summary output as specified, keeping today's wording — `Refreshing workspace at:`, `Detecting git user configuration...`, `Refresh complete!`, `Total repositories:`, and the conditional removed, new, updated, user-configuration, and worktree lines — with the added `Worktrees: N (X aligned, Y unaligned)` line, and all counts sourced from `Result`.
+- [x] 5.9 Write tests for recursive rescan and removals using the shared fixture helper from task 4.7: add a repository three container directories deep after an initial reconcile and assert it is found; delete a tracked repository and assert it is removed and counted.
+- [x] 5.10 Write the immediate-worktree-visibility test: create a worktree with `git worktree add` after an initial reconcile, run `runRefresh`, then `runWorktreeList`, and assert the new worktree appears.
+- [x] 5.11 Write the idempotence test: run `runRefresh` twice against an unchanged curated symlink workspace and assert the workspace directory listing is identical between runs, with no new symlinks and no change to the set of stored repository paths.
+- [x] 5.12 Write the repair-only symlink tests: one case where a previously symlinked external repository has had its link deleted and refresh recreates it, and one case where a repository discovered by traversing an existing nested symlink gets no additional link at the workspace root.
+- [x] 5.13 Write tests confirming the retained refresh-specific behavior: the status cache is cleared, and a repository replaced in place at a removed repository's parent directory is picked up by the safety net.
+- [x] 5.14 Write the two parity tests: identical repository and worktree totals from `runInit` and `runRefresh` against the same fixture, and byte-identical stderr warning output from both for the same injected scan errors, with stdout containing no warnings.
+- [x] 5.15 Run `make lint` and `make test-race`, then run the full `go test ./...` to confirm no regressions in `list`, `navigate`, `tag`, `user`, or the worktree subcommands.
 
 ### [ ] 6.0 Documentation Sync
 

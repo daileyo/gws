@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -11,20 +13,27 @@ import (
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/discovery"
 	"github.com/daileyo/gws/internal/git"
+	"github.com/daileyo/gws/internal/reconcile"
 )
 
 // refreshCmd is the Cobra subcommand for refreshing repository metadata.
 var refreshCmd = &cobra.Command{
 	Use:   "refresh",
 	Short: "Refresh repository metadata and git status cache",
-	Long: `Re-scan the workspace for repositories, update metadata, and clear the git status cache.
-New repositories are added, removed repositories are cleaned up, and existing tags are preserved.
+	Long: `Re-scan the workspace for repositories, update metadata, discover worktrees,
+and clear the git status cache.
+
+Refresh applies the same discovery rules as 'gws init': it recurses through
+container directories, stops at repository boundaries, follows workspace
+symlinks, and asks git for each repository's worktrees. New repositories are
+added, repositories whose paths are gone are removed, and existing tags are
+preserved.
 
 Examples:
   gws refresh`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runRefresh()
+		return runRefresh(os.Stdout)
 	},
 }
 
@@ -32,171 +41,180 @@ func init() {
 	rootCmd.AddCommand(refreshCmd)
 }
 
-// runRefresh handles the refresh logic.
-func runRefresh() error {
+// runRefresh reconciles the existing metadata library against the filesystem.
+//
+// It shares one reconciliation engine with init and adds the responsibilities
+// that belong to refresh alone: clearing the git status cache, rescanning the
+// parents of removed repositories, and repairing workspace symlinks.
+func runRefresh(stdout io.Writer) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Refreshing workspace at: %s\n", cfg.Workspace)
+	fmt.Fprintf(stdout, "Refreshing workspace at: %s\n", cfg.Workspace)
 
-	// Phase 1: Validate existing repos using their stored real paths.
-	validRepos, removedCount, updatedCount := validateExistingRepos(cfg)
+	// Capture which repositories gws is responsible for linking before
+	// reconciliation changes the tracked set.
+	linkOwned := workspaceLinkOwnedRepos(cfg)
 
-	// Phase 2: Scan workspace for entries not yet tracked.
-	newRepos, scanErrors := scanWorkspaceForNewRepos(cfg.Workspace, validRepos)
-	if len(scanErrors) > 0 {
-		fmt.Printf("\nWarning: %d errors occurred during workspace scan:\n", len(scanErrors))
-		for i, e := range scanErrors {
-			if i < 3 {
-				fmt.Printf("  - %v\n", e)
-			}
-		}
-		if len(scanErrors) > 3 {
-			fmt.Printf("  ... and %d more errors\n", len(scanErrors)-3)
-		}
+	progress := git.NewProgressWithLabel(0, "Scanning workspace...")
+	result, err := reconcile.ReconcileWorkspace(cfg.Workspace, cfg, reconcile.Options{
+		MaxDepth: cfg.EffectiveScanMaxDepth(),
+		Progress: progress,
+	})
+	if err != nil {
+		return err
 	}
 
-	allRepos := append(validRepos, newRepos...)
+	reconcile.ReportScanErrors(os.Stderr, result.Errors)
 
-	fmt.Println("Detecting git user configuration...")
-	userDetectedCount := detectUserForRepos(allRepos, cfg.Profiles)
+	repos := result.Repositories
 
-	// Phase 3: Discover worktrees for all repos.
-	worktreeRepoCount := discoverWorktrees(allRepos)
+	// Safety net: a repository replaced in place at the same location is
+	// picked up by rescanning the parent of anything that disappeared.
+	recovered := rescanRemovedParents(cfg, result)
+	if len(recovered) > 0 {
+		repos = append(repos, recovered...)
+		sort.Slice(repos, func(i, j int) bool { return repos[i].Path < repos[j].Path })
+	}
 
-	cfg.Repositories = allRepos
+	// Symlink maintenance belongs to refresh, never to init.
+	for _, removed := range result.RemovedRepositories {
+		removeWorkspaceSymlink(cfg.Workspace, removed.Name, removed.Path)
+	}
+	repairWorkspaceSymlinks(cfg, repos, result.ReachablePaths, linkOwned)
+
+	fmt.Fprintln(stdout, "Detecting git user configuration...")
+	userDetectedCount := detectUserForRepos(repos, cfg.Profiles)
+
+	cfg.Repositories = repos
 	syncProfilesFromRepos(cfg)
 
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}
 
-	cachePath, err := git.GetCachePath()
-	if err == nil {
+	cachePath, cacheErr := git.GetCachePath()
+	if cacheErr == nil {
 		statusCache := git.NewCache(git.DefaultTTL)
 		statusCache.Clear()
 		_ = statusCache.Save(cachePath)
-		fmt.Println("Cleared git status cache")
+		fmt.Fprintln(stdout, "Cleared git status cache")
 	}
 
-	fmt.Printf("\nRefresh complete!\n")
-	fmt.Printf("Total repositories: %d\n", len(allRepos))
-	if removedCount > 0 {
-		fmt.Printf("Removed %d %s (path no longer valid)\n", removedCount, pluralize(removedCount, "repository", "repositories"))
-	}
-	if len(newRepos) > 0 {
-		fmt.Printf("Found %d new %s\n", len(newRepos), pluralize(len(newRepos), "repository", "repositories"))
-	}
-	if updatedCount > 0 {
-		fmt.Printf("Updated %d %s\n", updatedCount, pluralize(updatedCount, "repository", "repositories"))
-	}
-	if userDetectedCount > 0 {
-		fmt.Printf("Repositories with user configuration: %d\n", userDetectedCount)
-	}
-	if worktreeRepoCount > 0 {
-		fmt.Printf("Repositories with worktrees: %d\n", worktreeRepoCount)
-	}
+	writeRefreshSummary(stdout, result, len(repos), len(recovered), userDetectedCount)
 
 	return nil
 }
 
-// discoverWorktrees populates the Worktrees field on each repo by running
-// git worktree list. Returns the number of repos that have worktrees.
-func discoverWorktrees(repos []config.Repository) int {
-	count := 0
-	for i := range repos {
-		// Repair broken links first, then prune truly dead entries
-		_ = git.RepairWorktrees(repos[i].Path)
-		_ = git.PruneWorktrees(repos[i].Path)
-		entries, err := git.ListWorktrees(repos[i].Path)
-		if err != nil {
-			continue
-		}
-		if len(entries) == 0 {
-			repos[i].Worktrees = nil
-			continue
-		}
-		var wts []config.Worktree
-		for _, e := range entries {
-			// Skip worktrees whose path no longer exists (prunable)
-			if _, err := os.Stat(e.Path); err != nil {
-				continue
-			}
-			wts = append(wts, config.Worktree{
-				Path:    e.Path,
-				Branch:  e.Branch,
-				Aligned: git.IsAligned(e.Path, repos[i].Path),
-			})
-		}
-		if len(wts) == 0 {
-			repos[i].Worktrees = nil
-			continue
-		}
-		repos[i].Worktrees = wts
-		count++
+// writeRefreshSummary prints the refresh report. Counts come from the same
+// reconciliation result init reports from, so the two commands cannot disagree
+// about the same workspace.
+func writeRefreshSummary(w io.Writer, result *reconcile.Result, totalRepos, recovered, userDetectedCount int) {
+	added := result.Added + recovered
+
+	fmt.Fprintf(w, "\nRefresh complete!\n")
+	fmt.Fprintf(w, "Total repositories: %d\n", totalRepos)
+	if result.Removed > 0 {
+		fmt.Fprintf(w, "Removed %d %s (path no longer valid)\n",
+			result.Removed, pluralize(result.Removed, "repository", "repositories"))
 	}
-	return count
+	if added > 0 {
+		fmt.Fprintf(w, "Found %d new %s\n", added, pluralize(added, "repository", "repositories"))
+	}
+	if result.Updated > 0 {
+		fmt.Fprintf(w, "Updated %d %s\n", result.Updated, pluralize(result.Updated, "repository", "repositories"))
+	}
+	if userDetectedCount > 0 {
+		fmt.Fprintf(w, "Repositories with user configuration: %d\n", userDetectedCount)
+	}
+	writeWorktreeSummary(w, result)
 }
 
-// validateExistingRepos iterates cfg.Repositories and validates each repo by
-// checking its stored real path. Returns the set of valid repos, a count of
-// repos removed (path gone), and a count whose metadata changed.
-func validateExistingRepos(cfg *config.Config) ([]config.Repository, int, int) {
-	var validRepos []config.Repository
-	removedCount := 0
-	updatedCount := 0
-
-	// trackedPaths guards against adding the same real path twice.
-	trackedPaths := make(map[string]bool, len(cfg.Repositories))
-	for _, repo := range cfg.Repositories {
-		trackedPaths[repo.Path] = true
+// rescanRemovedParents scans the parent directory of every repository that
+// disappeared, so a checkout replaced in place is picked up in the same run.
+// Returns repositories that are not already tracked.
+func rescanRemovedParents(cfg *config.Config, result *reconcile.Result) []config.Repository {
+	if len(result.RemovedRepositories) == 0 {
+		return nil
 	}
 
-	for _, repo := range cfg.Repositories {
-		gitDir := filepath.Join(repo.Path, ".git")
-		if _, err := os.Stat(gitDir); err != nil {
-			// Repo no longer exists at its stored path.
-			removedCount++
-			removeWorkspaceSymlink(cfg.Workspace, repo.Name, repo.Path)
-			delete(trackedPaths, repo.Path)
+	tracked := make(map[string]bool, len(result.Repositories))
+	for _, repo := range result.Repositories {
+		tracked[repo.Path] = true
+	}
 
-			// Scan the parent directory to pick up any repos added at the same level.
-			parentDir := filepath.Dir(repo.Path)
-			if scanResult, scanErr := discovery.Scan(parentDir, discovery.Options{MaxDepth: cfg.EffectiveScanMaxDepth()}); scanErr == nil {
-				for _, found := range scanResult.Repositories {
-					if !trackedPaths[found.Path] {
-						trackedPaths[found.Path] = true
-						ensureWorkspaceSymlink(cfg, found.Path, found.Name)
-						validRepos = append(validRepos, found)
-					}
-				}
+	var recovered []config.Repository
+	scannedParents := make(map[string]bool)
+
+	for _, removed := range result.RemovedRepositories {
+		parentDir := filepath.Dir(removed.Path)
+		if scannedParents[parentDir] {
+			continue
+		}
+		scannedParents[parentDir] = true
+
+		scanResult, scanErr := discovery.Scan(parentDir, discovery.Options{MaxDepth: cfg.EffectiveScanMaxDepth()})
+		if scanErr != nil {
+			continue
+		}
+		for _, found := range scanResult.Repositories {
+			if tracked[found.Path] {
+				continue
 			}
-			continue
+			tracked[found.Path] = true
+			recovered = append(recovered, found)
 		}
-
-		// Re-read metadata so remote URL, type, visibility are current.
-		updated, buildErr := discovery.BuildRepository(repo.Path)
-		if buildErr != nil {
-			// Can't rebuild — keep existing entry unchanged.
-			validRepos = append(validRepos, repo)
-			continue
-		}
-
-		// Preserve user-set tags.
-		updated.Tags = repo.Tags
-
-		if updated.RemoteURL != repo.RemoteURL || updated.Name != repo.Name ||
-			updated.Type != repo.Type || updated.Visibility != repo.Visibility {
-			updatedCount++
-		}
-
-		ensureWorkspaceSymlink(cfg, repo.Path, repo.Name)
-		validRepos = append(validRepos, *updated)
 	}
 
-	return validRepos, removedCount, updatedCount
+	return recovered
+}
+
+// workspaceLinkOwnedRepos returns the set of tracked repository paths that gws
+// is responsible for linking into the workspace: repositories already in the
+// metadata library that live outside the workspace root.
+//
+// Being tracked and external is what makes a repository link-owned, because
+// that is the only way it can have entered the library — through 'gws add' or
+// a previous refresh, both of which create the workspace symlink. Checking the
+// filesystem instead would be self-defeating: the case worth repairing is
+// precisely the one where the link is missing.
+func workspaceLinkOwnedRepos(cfg *config.Config) map[string]bool {
+	owned := make(map[string]bool)
+	for _, repo := range cfg.Repositories {
+		if !isInsideWorkspace(cfg.Workspace, repo.Path) {
+			owned[repo.Path] = true
+		}
+	}
+	return owned
+}
+
+// repairWorkspaceSymlinks recreates missing workspace symlinks, and only those.
+//
+// A repository the scan could reach needs no link: it is already findable from
+// the workspace root, whether directly or through a symlink someone else
+// created. Creating one anyway is what used to accumulate duplicate links on
+// every refresh, because a repository discovered through a nested symlink has
+// an external real path and looked link-worthy.
+func repairWorkspaceSymlinks(cfg *config.Config, repos []config.Repository, reachable, linkOwned map[string]bool) {
+	for _, repo := range repos {
+		if reachable[repo.Path] {
+			continue
+		}
+		if !linkOwned[repo.Path] {
+			continue
+		}
+		ensureWorkspaceSymlink(cfg, repo.Path, repo.Name)
+	}
+}
+
+// isInsideWorkspace reports whether repoPath is the workspace root or below it.
+func isInsideWorkspace(workspace, repoPath string) bool {
+	workspacePath := filepath.Clean(workspace)
+	repoClean := filepath.Clean(repoPath)
+	return repoClean == workspacePath ||
+		strings.HasPrefix(repoClean, workspacePath+string(filepath.Separator))
 }
 
 // removeWorkspaceSymlink removes workspace/name only when it is a symlink
@@ -222,9 +240,7 @@ func removeWorkspaceSymlink(workspace, name, repoPath string) {
 // repos that live outside the workspace directory. No-op for repos inside the
 // workspace.
 func ensureWorkspaceSymlink(cfg *config.Config, repoPath, repoName string) {
-	workspacePath := filepath.Clean(cfg.Workspace)
-	repoClean := filepath.Clean(repoPath)
-	if repoClean == workspacePath || strings.HasPrefix(repoClean, workspacePath+string(filepath.Separator)) {
+	if isInsideWorkspace(cfg.Workspace, repoPath) {
 		return
 	}
 
@@ -244,57 +260,4 @@ func ensureWorkspaceSymlink(cfg *config.Config, repoPath, repoName string) {
 	}
 
 	_ = os.Symlink(repoPath, symlinkPath)
-}
-
-// scanWorkspaceForNewRepos reads the workspace directory one level deep,
-// resolves symlinks, and returns repos not already present in existingRepos.
-func scanWorkspaceForNewRepos(workspacePath string, existingRepos []config.Repository) ([]config.Repository, []error) {
-	trackedPaths := make(map[string]bool, len(existingRepos))
-	for _, repo := range existingRepos {
-		trackedPaths[repo.Path] = true
-	}
-
-	entries, err := os.ReadDir(workspacePath)
-	if err != nil {
-		return nil, []error{fmt.Errorf("failed to read workspace directory: %w", err)}
-	}
-
-	var newRepos []config.Repository
-	var errs []error
-
-	for _, entry := range entries {
-		entryPath := filepath.Join(workspacePath, entry.Name())
-
-		// Resolve to real path — follows symlinks.
-		realPath, err := filepath.EvalSymlinks(entryPath)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("broken symlink or inaccessible entry %s: %w", entryPath, err))
-			continue
-		}
-
-		fi, err := os.Stat(realPath)
-		if err != nil || !fi.IsDir() {
-			continue
-		}
-
-		if trackedPaths[realPath] {
-			continue
-		}
-
-		// Must contain a .git directory to qualify as a repo.
-		if _, err := os.Stat(filepath.Join(realPath, ".git")); err != nil {
-			continue
-		}
-
-		repo, err := discovery.BuildRepository(realPath)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to read repository at %s: %w", realPath, err))
-			continue
-		}
-
-		trackedPaths[realPath] = true
-		newRepos = append(newRepos, *repo)
-	}
-
-	return newRepos, errs
 }

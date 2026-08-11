@@ -268,7 +268,7 @@ func handleDeprecatedFlags(cmd *cobra.Command, args []string) (bool, error) {
 	// Dispatch deprecated refresh
 	if depRefresh {
 		emitDeprecationWarnings(cmd)
-		return true, runRefresh()
+		return true, runRefresh(os.Stdout)
 	}
 
 	// Dispatch deprecated --go
