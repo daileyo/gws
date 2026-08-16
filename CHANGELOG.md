@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.20.0](https://github.com/daileyo/gws/compare/v2.19.2...v2.20.0) (2026-08-16)
+
+
+### Features
+
+* **shell:** add PowerShell shell-init template with full navigation support ([0794e63](https://github.com/daileyo/gws/commit/0794e6349e72f8ac3e28de8d92101bcb74a5ec26))
+
 ## [2.19.2](https://github.com/daileyo/gws/compare/v2.19.1...v2.19.2) (2026-04-23)
 
 
