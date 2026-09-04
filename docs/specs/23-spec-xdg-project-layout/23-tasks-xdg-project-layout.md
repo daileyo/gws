@@ -2,8 +2,8 @@
 
 ## Relevant Files
 
-- `internal/xdg/xdg.go` - **New.** Authoritative resolution of `ConfigDir()`, `ConfigFile()`, `ProjectsDir()` with XDG variables and Windows fallbacks.
-- `internal/xdg/xdg_test.go` - **New.** Resolution tests across set / unset / relative env vars and platform defaults.
+- `internal/xdg/xdg.go` - **New.** Authoritative resolution of `ConfigDir()`, `ConfigFile()`, `ProjectsDir()` — identical layout on every platform, XDG variables honored everywhere including Windows.
+- `internal/xdg/xdg_test.go` - **New.** Resolution tests across set / unset / relative env vars, plus a cross-platform parity assertion.
 - `internal/config/config.go` - `GetConfigPath()` and `GetConfigDir()` currently build `~/.gws` directly (lines ~88-105); `Load()`/`Save()` use them. Migration logic lands here. `ConfigVersion` const is here.
 - `internal/config/config_test.go` - Config load/save tests; migration cases go here.
 - `internal/git/worktree.go` - `IsAligned()` at line ~215 derives `repoPath + ".wt"`. `MoveWorktree()` at line ~113 needs the cross-device branch.
@@ -35,17 +35,18 @@ Create `internal/xdg` as the single source of truth for where gws keeps its file
 
 - Test: `go test ./internal/xdg/` passes covering set, unset, and relative `XDG_CONFIG_HOME`/`XDG_DATA_HOME` plus platform defaults demonstrates resolution is correct
 - CLI: `XDG_CONFIG_HOME=/tmp/xdgc git-workspace init` writes `/tmp/xdgc/gws/config.json` demonstrates the config override is honored
+- CLI: On Windows, `git-workspace init` writes `C:\Users\<user>\.config\gws\config.json` demonstrates the Windows layout matches Unix
 - CLI: `XDG_DATA_HOME=/tmp/xdgd git-workspace worktree add <repo> demo` creates `/tmp/xdgd/gws/projects/<repo>/demo` demonstrates the data override is honored
 - Test: `go test ./internal/config/` passes after delegation demonstrates no regression
 
 #### 1.0 Tasks
 
-- [ ] 1.1 Create `internal/xdg/xdg.go` with `ConfigDir() (string, error)` delegating to `os.UserConfigDir()` and joining `gws` — this already honors `XDG_CONFIG_HOME` on Unix and returns `%AppData%` on Windows
+- [ ] 1.1 Create `internal/xdg/xdg.go` with `ConfigDir() (string, error)`: return `$XDG_CONFIG_HOME/gws` when the variable is set and absolute, else `os.UserHomeDir()/.config/gws`. Do **not** use `os.UserConfigDir()` — it returns `%AppData%` on Windows and would break cross-platform parity
 - [ ] 1.2 Add `ConfigFile() (string, error)` returning `ConfigDir()/config.json`
-- [ ] 1.3 Add `ProjectsDir() (string, error)`: honor `XDG_DATA_HOME` when set and absolute; else `~/.local/share/gws/projects` on Unix; else `%LocalAppData%\gws\projects` on Windows. Use `runtime.GOOS` for the platform branch
+- [ ] 1.3 Add `ProjectsDir() (string, error)`: return `$XDG_DATA_HOME/gws/projects` when set and absolute, else `os.UserHomeDir()/.local/share/gws/projects`. No `runtime.GOOS` branch — the layout is identical on every platform, with `os.UserHomeDir()` supplying `%USERPROFILE%` on Windows
 - [ ] 1.4 Treat a relative value in `XDG_CONFIG_HOME` or `XDG_DATA_HOME` as unset, per the XDG specification, using `filepath.IsAbs`
 - [ ] 1.5 Add `LegacyConfigDir()` returning `~/.gws`, used only by the migration path in task 2.0
-- [ ] 1.6 Create `internal/xdg/xdg_test.go` with table-driven cases: env set and absolute, env set but relative, env unset, and the Windows branch guarded by `runtime.GOOS`. Use `t.Setenv` and `t.TempDir()` so the real home directory is never read
+- [ ] 1.6 Create `internal/xdg/xdg_test.go` with table-driven cases: env set and absolute, env set but relative, env unset. Add a parity case asserting the resolved path relative to home is identical regardless of platform. Use `t.Setenv` and `t.TempDir()` so the real home directory is never read
 - [ ] 1.7 Rewrite `config.GetConfigPath()` and `config.GetConfigDir()` to delegate to `xdg.ConfigFile()` and `xdg.ConfigDir()`, removing the hardcoded `.gws` join
 - [ ] 1.8 Run `go build ./... && go test ./internal/...` and confirm the delegation compiles and existing config tests pass
 
@@ -131,9 +132,10 @@ Document the new layout, the XDG overrides, the Windows equivalents, and what to
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Update `docs/site/configuration.md` with the XDG config path, `XDG_CONFIG_HOME` / `XDG_DATA_HOME` overrides, Windows `%AppData%` / `%LocalAppData%` fallbacks, and a resolution-order table
+- [ ] 5.1 Update `docs/site/configuration.md` with the XDG config path, the `XDG_CONFIG_HOME` / `XDG_DATA_HOME` overrides, and a resolution-order table. State that the layout is identical on all platforms and that Windows resolves `<home>` to `%USERPROFILE%`, citing git's own `$HOME/.config/git/config` behavior as the precedent
 - [ ] 5.2 Add an "Upgrading from earlier versions" section explaining that the config migrates automatically, that existing worktrees will report as unaligned until `gws worktree align` is run, and that this is expected
 - [ ] 5.3 Update `docs/site/commands-core.md` wherever it references `<repo>.wt/`
 - [ ] 5.4 Define **project** once, plainly — a git repo plus any worktrees associated with it — in configuration.md or the docs index
 - [ ] 5.5 Update `README.md` layout and description sections for the new paths
-- [ ] 5.6 Add a note about Windows path length when `%LocalAppData%` plus a deep branch name approaches `MAX_PATH`
+- [ ] 5.6 Add a note about Windows path length when `C:\Users\<user>\.local\share\gws\projects\` plus a deep branch name approaches the 260-character `MAX_PATH` limit, and how to enable long-path support
+- [ ] 5.7 Document that `XDG_CONFIG_HOME` / `XDG_DATA_HOME` are honored on Windows, for users who prefer the native `%AppData%` location

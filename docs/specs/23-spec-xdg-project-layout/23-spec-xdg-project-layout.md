@@ -27,7 +27,7 @@ the aligned location is**.
 - Redefine "aligned" against the new projects root, so existing `.wt/` worktrees report as unaligned and `gws worktree align` migrates them
 - Preserve the existing passive discovery and aligned/unaligned reporting behavior unchanged
 - Preserve the existing `-dup-NN` collision handling unchanged
-- Keep the change safe on Windows, where XDG variables are not native
+- Produce an identical directory layout on Linux, macOS, and Windows, mimicking XDG on Windows rather than diverging to `%AppData%`
 - Never relocate a working tree without the user explicitly asking
 
 ## User Stories
@@ -35,27 +35,34 @@ the aligned location is**.
 - **As a gws user with many worktrees**, I want them collected under one standard directory so that my projects directory contains projects, not a `*.wt` sibling for every repo I have ever branched.
 - **As a user who cares about a tidy home directory**, I want gws to follow the XDG Base Directory Specification like the rest of my tooling, so its files live where I expect and my backup and dotfile rules apply to them automatically.
 - **As an existing user**, I want to upgrade without losing my configuration or having my working trees moved out from under me — the config should follow me automatically, and my worktrees should move only when I run `align`.
-- **As a Windows user**, I want the same tidiness benefit using the conventions my platform actually uses, rather than a Unix path grafted onto `%USERPROFILE%`.
+- **As a Windows user**, I want gws to live in the same relative place it does on my Linux and macOS machines, so that one set of documentation applies to all of them and my config is where git already keeps its own.
+- **As a developer who works across platforms**, I want cross-platform parity to be a guarantee rather than a best effort, since moving between a work laptop and a WSL environment should not mean learning a second layout.
 
 ## Demoable Units of Work
 
 ### Unit 1: XDG Path Resolution
 
-**Purpose:** Establish one authoritative place that answers "where does gws keep its config?" and "where does gws keep its worktrees?", correct on both Unix and Windows, so no other code hardcodes a path.
+**Purpose:** Establish one authoritative place that answers "where does gws keep its config?" and "where does gws keep its worktrees?", producing **the same layout on every platform**, so no other code hardcodes a path and no user has to learn a second convention.
 
 **Functional Requirements:**
 
 - A new `internal/xdg` package shall expose `ConfigDir()`, `ConfigFile()`, and `ProjectsDir()`
-- `ConfigDir()` shall resolve to `$XDG_CONFIG_HOME/gws` when `XDG_CONFIG_HOME` is set and absolute, otherwise the platform default (`~/.config/gws` on Unix, `%AppData%\gws` on Windows), obtained via `os.UserConfigDir()`
-- `ProjectsDir()` shall resolve to `$XDG_DATA_HOME/gws/projects` when `XDG_DATA_HOME` is set and absolute, otherwise `~/.local/share/gws/projects` on Unix and `%LocalAppData%\gws\projects` on Windows
+- `ConfigDir()` shall resolve to `$XDG_CONFIG_HOME/gws` when `XDG_CONFIG_HOME` is set and absolute, otherwise `<home>/.config/gws`
+- `ProjectsDir()` shall resolve to `$XDG_DATA_HOME/gws/projects` when `XDG_DATA_HOME` is set and absolute, otherwise `<home>/.local/share/gws/projects`
+- **This resolution shall be identical on Linux, macOS, and Windows.** On Windows, `<home>` is `%USERPROFILE%`, producing `C:\Users\<user>\.config\gws` and `C:\Users\<user>\.local\share\gws\projects`
+- The `XDG_CONFIG_HOME` and `XDG_DATA_HOME` environment variables shall be honored on Windows exactly as on Unix, so a developer who has already adopted the convention gets consistent behavior everywhere
+- Home resolution shall use `os.UserHomeDir()`, which returns `%USERPROFILE%` on Windows and `$HOME` elsewhere
+- `os.UserConfigDir()` shall **not** be used, because it returns `%AppData%` on Windows and would break the cross-platform uniformity this unit exists to provide
 - Per the XDG specification, a relative value in either environment variable shall be treated as unset and the default used
-- Resolution shall be pure and injectable so tests can drive it with a temporary `HOME` and explicit environment variables, without touching the real user directories
+- Resolution shall be pure and injectable so tests can drive it with a temporary home and explicit environment variables, without touching the real user directories
 - `config.GetConfigPath()` and `config.GetConfigDir()` shall delegate to the new package rather than building `~/.gws` themselves
 
 **Proof Artifacts:**
 
-- Test: `internal/xdg/xdg_test.go` covering set/unset/relative `XDG_CONFIG_HOME` and `XDG_DATA_HOME`, plus platform defaults, demonstrates resolution is correct
+- Test: `internal/xdg/xdg_test.go` covering set/unset/relative `XDG_CONFIG_HOME` and `XDG_DATA_HOME` demonstrates resolution is correct
+- Test: A case asserting the resolved *relative* layout is byte-identical across platforms demonstrates cross-platform uniformity
 - CLI: `XDG_DATA_HOME=/tmp/xdgtest git-workspace worktree add <repo> demo` creates the worktree under `/tmp/xdgtest/gws/projects/` demonstrates the override is honored
+- CLI: On Windows, `git-workspace init` writes `C:\Users\<user>\.config\gws\config.json` demonstrates the Windows layout matches the Unix one
 - Test: `go test ./internal/config/` passes with the delegated path functions demonstrates no regression
 
 ### Unit 2: Config Relocation and Migration
@@ -171,6 +178,30 @@ because the projects root is no longer derived from where the repo happens to si
 This is a small but load-bearing change — every call site in `refresh.go`, `worktree_add.go`,
 and `worktree_align.go` must be updated together.
 
+### Windows: mimic XDG rather than diverge
+
+Cross-platform parity is a core requirement, so the layout is identical everywhere:
+`<home>/.config/gws` and `<home>/.local/share/gws/projects`, with `<home>` being
+`%USERPROFILE%` on Windows. Windows has no XDG specification, but it does not need one here —
+what matters is that a user moving between machines finds gws in the same relative place.
+
+The decisive precedent is **git itself**. Per `git-config(1)`, git reads
+`$XDG_CONFIG_HOME/git/config`, and "when the XDG_CONFIG_HOME environment variable is not set
+or empty, `$HOME/.config/` is used as `$XDG_CONFIG_HOME`." Git for Windows sets `$HOME` to
+`%USERPROFILE%`, so `C:\Users\<user>\.config\git\config` is already a real, supported,
+widely-populated path on Windows machines. A git-adjacent tool that puts its config beside
+git's own is following the convention of the ecosystem it lives in, not inventing one.
+
+The cost is that this diverges from Windows-native convention, where application config
+belongs in `%AppData%`. That is a deliberate trade: `%AppData%` would give Windows users a
+different layout from their colleagues, different documentation, and a path that no XDG-aware
+tooling or dotfile manager knows about. The `XDG_CONFIG_HOME` and `XDG_DATA_HOME` variables
+are honored on Windows too, so anyone who wants the native location can still point there
+explicitly.
+
+A useful side effect: `C:\Users\<user>\.local\share\gws\projects\<repo>\<branch>` is
+shorter than the `%LocalAppData%` equivalent, which eases the `MAX_PATH` pressure noted below.
+
 ## Repository Standards
 
 - Go source files follow standard `gofmt` formatting
@@ -183,9 +214,10 @@ and `worktree_align.go` must be updated together.
 
 ## Technical Considerations
 
-- **Windows has no XDG.** `os.UserConfigDir()` already returns `%AppData%` on Windows and honors `XDG_CONFIG_HOME` on Unix, so it is the right primitive for config. There is no `os.UserDataDir`, so `ProjectsDir()` must be written by hand: honor `XDG_DATA_HOME` if set, else `~/.local/share` on Unix, else `%LocalAppData%` on Windows. Spec 21 just added Windows support, so this must not regress it.
+- **Do not use `os.UserConfigDir()`.** It returns `%AppData%` on Windows, which would break the cross-platform uniformity this spec requires. Both `ConfigDir()` and `ProjectsDir()` must be written by hand: honor the `XDG_*` variable if set and absolute, else join `.config` / `.local/share` onto `os.UserHomeDir()`. `os.UserHomeDir()` correctly returns `%USERPROFILE%` on Windows.
+- **Spec 21 just added Windows support**, so none of this may regress it. The PowerShell template and install docs assume a working config path; both should be exercised on Windows before this ships.
 - **Cross-filesystem moves.** `git worktree move` is ultimately a rename and will fail with `EXDEV` if `~/.local/share` is on a different mount than the repo — plausible on setups with a separate `/home` or a small root partition. `MoveWorktree` in `internal/git/worktree.go` already has partial-move recovery; it needs an explicit cross-device branch that fails clearly rather than half-moving.
-- **Windows path length.** `%LocalAppData%\gws\projects\<repo>\<branch>` plus a deep branch name can approach `MAX_PATH` on systems without long-path support. Worth a documented note; the previous sibling-directory layout was shorter.
+- **Windows path length.** `C:\Users\<user>\.local\share\gws\projects\<repo>\<branch>` plus a deep branch name can approach the 260-character `MAX_PATH` limit on systems without long-path support. The `%USERPROFILE%`-rooted layout is shorter than the `%LocalAppData%` alternative, but still longer than the old sibling-directory layout. Worth a documented note, and a candidate for a clear error rather than an obscure git failure.
 - **`ConfigVersion` bump.** The on-disk schema does not change shape, but `Worktree.Path` values become stale relative to the new alignment rules. Bump `ConfigVersion` from `1.1.0` so the change is legible in the file itself.
 - **Repo-name keying.** The projects root is keyed by `repo.Name`, which is a directory basename and is not guaranteed unique across a workspace. Two tracked repos both named `api` would share `projects/api/`. Per round 1 this is not being designed for now; see Open Questions.
 - **Symlinked home directories.** `ListWorktrees` already calls `filepath.EvalSymlinks`; the alignment check against the projects root needs the same treatment, since `~/.local/share` is a symlink on some setups.
@@ -202,10 +234,11 @@ and `worktree_align.go` must be updated together.
 ## Success Metrics
 
 1. **Home directory is quieter**: After `gws worktree align`, no `*.wt` directories remain in the user's project tree.
-2. **XDG compliance**: Config resolves under `$XDG_CONFIG_HOME`, worktrees under `$XDG_DATA_HOME`, with both overrides honored and correct Windows fallbacks.
-3. **Silent upgrade**: An existing user upgrades, runs any command, and their config is migrated with a single notice and no lost data.
-4. **No behavior regressions**: Discovery, tracking, and aligned/unaligned reporting behave exactly as before; the full test suite passes.
-5. **No surprise moves**: No working tree is relocated except by an explicit `gws worktree align`.
+2. **XDG compliance**: Config resolves under `$XDG_CONFIG_HOME`, worktrees under `$XDG_DATA_HOME`, with both overrides honored.
+3. **Cross-platform parity**: The relative layout is identical on Linux, macOS, and Windows; a user moving between machines finds gws in the same place, and the documentation has one set of paths rather than two.
+4. **Silent upgrade**: An existing user upgrades, runs any command, and their config is migrated with a single notice and no lost data.
+5. **No behavior regressions**: Discovery, tracking, and aligned/unaligned reporting behave exactly as before; the full test suite passes.
+6. **No surprise moves**: No working tree is relocated except by an explicit `gws worktree align`.
 
 ## Open Questions
 
