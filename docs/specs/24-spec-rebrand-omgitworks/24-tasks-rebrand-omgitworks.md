@@ -42,6 +42,7 @@ Reproduce the measured inventory in the spec, confirm the counts against the cur
 - [ ] 1.3 Confirm each inventory row's file path and line number against the current tree at `HEAD`
 - [ ] 1.4 Classify every row as irreversible, breaking, or cosmetic, and confirm the classification is stated in the spec
 - [ ] 1.5 Flag every row that affects an already-installed user, since those drive the compatibility guarantee
+- [ ] 1.6 Record the package-manager availability matrix alongside the touchpoint inventory, with the check date, since availability is a selection criterion that can decay
 
 ### [ ] 2.0 Complete the Naming Decision Table
 
@@ -50,15 +51,18 @@ Resolve or explicitly defer each of the five names, so no future execution has t
 #### 2.0 Proof Artifact(s)
 
 - Documentation: A decision table covering brand, repository, module path, binary, and command demonstrates completeness
-- Documentation: The command-name question is either resolved or explicitly recorded as blocking demonstrates the decision is honest about what is unresolved
+- Documentation: `omgw` recorded as the command name with its availability evidence demonstrates the question is resolved rather than deferred
+- CLI: `command -v omgw` returns nothing on a clean system demonstrates no PATH collision
 
 #### 2.0 Tasks
 
 - [ ] 2.1 Confirm the recommendation for brand, repository, module path, and binary name, or record a different decision
-- [ ] 2.2 Resolve open question 1 — what the user actually types. Evaluate keeping `gws` indefinitely, adopting `omg` or `omgw`, or shipping both
-- [ ] 2.3 Verify short-name availability for whichever candidate is chosen: npm, crates.io, homebrew-core, and any conflict with an existing command on a default PATH
-- [ ] 2.4 Record explicitly that the command name and binary name are decoupled by `shell-init`, and that this is what makes the binary rename invisible to users
-- [ ] 2.5 Note in the decision table which entries are firm and which remain provisional
+- [x] 2.2 ~~Resolve open question 1 — what the user actually types.~~ **Resolved 2026-09-04: `omgw`**, with `gws` retained by `shell-init` during the compatibility window
+- [x] 2.3 ~~Verify short-name availability.~~ **Done 2026-09-04:** `omgw` is available on homebrew-core, winget, scoop (Main and Extras), chocolatey, AUR, npm, crates.io, and PyPI
+- [ ] 2.4 Verify `omgw` does not collide with a command already on a default PATH on Linux, macOS, or Windows, which the registry checks do not cover
+- [ ] 2.5 Record the mnemonic in the decision record — "OMG it works" and "om git works(pace)" — since it is the reason the long form is worth keeping as the brand
+- [ ] 2.6 Record explicitly that the command name and binary name are decoupled by `shell-init`, and that this is what makes the binary rename invisible to users
+- [ ] 2.7 Note in the decision table which entries are firm and which remain provisional
 
 ### [ ] 3.0 Finalize the Staged Migration Plan
 
@@ -94,11 +98,13 @@ Produce the gate that execution has to pass, so the decision is made deliberatel
 - [ ] 4.1 Confirm `daileyo/omgitworks` is available as a repository name
 - [ ] 4.2 Record a decision on pursuing the dormant `OMGItworks` GitHub username, and on whether it is needed at all given the repo lives under `daileyo`
 - [ ] 4.3 Record a decision on registering `omgitworks.dev`, given `.com` is parked and `.co.uk` is held by an unrelated business
-- [ ] 4.4 Record a decision on defensive registration of `omgitworks` on npm, PyPI, and crates.io, weighed against the squatting risk noted in Security Considerations
-- [ ] 4.5 Do a trademark sanity check against the UK business and record the finding, including whether the class of goods differs sufficiently
-- [ ] 4.6 Record the dependency that specs 22 and 23 land first, so the rename does not collide with in-flight work
-- [ ] 4.7 Write the abandonment criteria — what would make keeping `git-workspace` the better call
-- [ ] 4.8 Decide whether the rename ships in a major version bump or a minor release
+- [ ] 4.4 Record a decision on defensive registration of **both** `omgitworks` and `omgw` on npm, PyPI, and crates.io, weighed against the squatting risk noted in Security Considerations
+- [ ] 4.5 Re-check package-manager availability for both names immediately before execution, since the 2026-09-04 results decay
+- [ ] 4.6 Decide whether to claim the winget and scoop manifests as part of the rebrand, given neither is currently a shipping channel
+- [ ] 4.7 Do a trademark sanity check against the UK business and record the finding, including whether the class of goods differs sufficiently
+- [ ] 4.8 Record the dependency that specs 22 and 23 land first, so the rename does not collide with in-flight work
+- [ ] 4.9 Write the abandonment criteria — what would make keeping `git-workspace` the better call
+- [ ] 4.10 Decide whether the rename ships in a major version bump or a minor release
 
 ### [ ] 5.0 Verify No Execution Occurred
 
@@ -107,12 +113,12 @@ Confirm the defining constraint held.
 #### 5.0 Proof Artifact(s)
 
 - CLI: `git diff --stat` for this spec's commits touches only `docs/specs/24-spec-rebrand-omgitworks/` demonstrates nothing was renamed
-- CLI: `grep -rn 'omgitworks' --include='*.go' --include='*.yml' --include='Makefile' --include='go.mod' .` returns nothing demonstrates no source touchpoint was altered
+- CLI: `grep -rnE 'omgitworks|omgw' --include='*.go' --include='*.yml' --include='Makefile' --include='go.mod' .` returns nothing demonstrates no source touchpoint was altered
 - CLI: `make build && ./build/git-workspace --version` still reports the current binary demonstrates the tool is unchanged
 
 #### 5.0 Tasks
 
 - [ ] 5.1 Run `git diff --stat` across this spec's commits and confirm only the spec directory is touched
-- [ ] 5.2 Grep the source tree for `omgitworks` outside `docs/specs/` and confirm no hits
+- [ ] 5.2 Grep the source tree for `omgitworks` and `omgw` outside `docs/specs/` and confirm no hits
 - [ ] 5.3 Build and run the binary, confirming name and version are unchanged
 - [ ] 5.4 Confirm the spec states plainly that no changes were made under it

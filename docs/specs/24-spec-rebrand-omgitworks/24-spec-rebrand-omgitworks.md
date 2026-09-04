@@ -19,6 +19,7 @@ makes execution mechanical.
 ## Goals
 
 - Record a durable decision record for the name change, with the supporting research and its date
+- Establish availability across the package managers the tool ships through, or may ship through — homebrew, winget, scoop, chocolatey, AUR — as a first-class selection criterion
 - Inventory every touchpoint where `git-workspace`, `gws`, or `daileyo/gws` is embedded, with counts and file locations
 - Define what the binary, the command, the module path, and the repository are each called after the change
 - Stage the migration so each phase is independently revertible and no phase leaves users stranded
@@ -53,6 +54,36 @@ makes execution mechanical.
 | `omgitworks.sh` | Available | NXDOMAIN |
 | `omgitworks.co.uk` | **Taken** | OMG IT Works, a Cornwall-based IT recycling and data-destruction business |
 
+**Package-manager availability, checked 2026-09-04**
+
+Availability across distribution channels is a primary selection criterion, not an
+afterthought: a name that cannot be claimed on winget or homebrew is a name that costs the
+project an install path.
+
+| Channel | `omgitworks` | `omgw` | `gws` (incumbent) |
+| --- | --- | --- | --- |
+| homebrew-core | Available | Available | **Taken** — `streakycobra/gws` |
+| winget (`microsoft/winget-pkgs`) | Available — no `omg*` publisher among 281 in the `o/` namespace | Available | Not checked; moot |
+| scoop (Main + Extras buckets) | Available | Available | — |
+| chocolatey | Available | Available | — |
+| AUR | Available | Available | **Taken** — `gws`, "Colorful KISS helper for git workspaces" |
+| npm | Available | Available | **Taken** |
+| crates.io | Available | Available | — |
+| PyPI | Available | Available | — |
+
+Both candidate names are clear on every channel checked. The incumbent short name is taken on
+three of them by the same unrelated project.
+
+**Mnemonic and etymology**
+
+The name is a double reading, and both readings are intended:
+
+- **"OMG, it works"** — the reaction the tool is named for
+- **"om git works(pace)"** — literally *git workspace*, which is what it is
+
+The long form is what makes the name memorable and searchable; the short form is what gets
+typed. This is the reason the brand and the command are decided separately below.
+
 **Incumbent: `git-workspace` / `gws`**
 
 | Collision | Detail |
@@ -61,6 +92,7 @@ makes execution mechanical.
 | `mariocasciaro/git-workspace` | "CLI util to keep multiple projects in sync with different remote git repos" |
 | `c0fec0de/git-ws` | "Git Workspace - Multi Repository Management Tool", also published to PyPI as `git-ws` |
 | homebrew-core `gws` | "Manage workspaces composed of git repositories" — `streakycobra/gws`, v0.2.0 |
+| AUR `gws` | "Colorful KISS helper for git workspaces" — StreakyCobra again, packaged for Arch |
 | GitKraken Workspaces | Commercial product using the same term for the same concept |
 
 ### Assessment
@@ -79,8 +111,14 @@ brand confusion with a developer CLI is unlikely, though it does mean the obviou
 `.co.uk` are unavailable and `omgitworks.dev` is the natural home.
 
 The genuine cost is ergonomic: `omgitworks` is ten characters, versus three for `gws`. Nobody
-will type it. This makes the short-name decision more consequential than the project-name
-decision, and it is the main open question below.
+will type it — and nobody has to. `shell-init` already decouples the typed command from the
+binary name, so the long form can carry the brand while a short form carries the typing.
+
+**`omgw` is the chosen command name.** It is four characters, available on every package
+manager and registry checked, and derives transparently from the brand. The pairing gives the
+project a distinctive, searchable name and a short thing to type, which is the combination the
+incumbent `git-workspace`/`gws` pair fails at from the other direction: `gws` is short but
+taken, and `git-workspace` is descriptive but generic.
 
 ## Demoable Units of Work
 
@@ -134,6 +172,7 @@ decision, and it is the main open question below.
   - **Command name** — what the user actually types, i.e. the shell function from `shell-init`
 - The document shall state explicitly that the command name and the binary name need not match, since `shell-init` already generates a `gws` function that wraps a `git-workspace` binary — this decoupling already exists and is the mechanism that makes a rename survivable
 - The document shall record the recommendation and its rationale for each
+- The command name shall be `omgw`, and the document shall state how long `gws` continues to be emitted alongside it
 
 **Recommendation:**
 
@@ -143,7 +182,7 @@ decision, and it is the main open question below.
 | Repository | `daileyo/gws` | `daileyo/omgitworks` | GitHub redirects the old path indefinitely |
 | Module path | `github.com/daileyo/gws` | `github.com/daileyo/omgitworks` | Follows the repo; a `retract`-free major-version-free rename is possible since v2 tags are already in use |
 | Binary | `git-workspace` | `omgitworks` | Matches the brand; users rarely type it directly |
-| Command | `gws` | **Open question** | See below |
+| Command | `gws` | `omgw` | Four characters; available on every channel checked; derives from the brand. `gws` continues to be emitted by `shell-init` for compatibility |
 
 **Proof Artifacts:**
 
@@ -188,7 +227,8 @@ decision, and it is the main open question below.
 
 **Preconditions:**
 
-- The short-command-name question is resolved (see Open Questions)
+- ~~The short-command-name question is resolved~~ — **done**, `omgw`; remaining check is that it collides with no command already on a default PATH
+- Package-manager availability for `omgitworks` and `omgw` is re-verified immediately before execution, since the 2026-09-04 results decay
 - `omgitworks.dev` is registered, or a decision is made to forgo a domain
 - The GitHub repo name `daileyo/omgitworks` is confirmed available
 - A decision is recorded on whether to pursue the dormant `OMGItworks` GitHub username
@@ -251,13 +291,14 @@ window where an upgrading user has neither the old command nor the new one.
 
 1. **Decision is documented**: the name choice, its evidence, and its date are recorded and reproducible.
 2. **Scope is measured**: the touchpoint inventory is derived from commands run against the repo, not estimated.
-3. **The plan is revertible**: every stage has a stated revert procedure, and the point of no return is identified.
-4. **Existing users are accounted for**: the compatibility guarantee is explicit about what keeps working and for how long.
-5. **Nothing was renamed**: `git diff` for this spec touches only `docs/specs/24-spec-rebrand-omgitworks/`.
+3. **Distribution is unblocked**: both the brand and command names are confirmed available on every package manager the project ships through or may ship through.
+4. **The plan is revertible**: every stage has a stated revert procedure, and the point of no return is identified.
+5. **Existing users are accounted for**: the compatibility guarantee is explicit about what keeps working and for how long.
+6. **Nothing was renamed**: `git diff` for this spec touches only `docs/specs/24-spec-rebrand-omgitworks/`.
 
 ## Open Questions
 
-1. **What does the user actually type?** This is the most consequential open question. `omgitworks` is ten characters. Options: keep `gws` as the command indefinitely and treat `omgitworks` purely as a brand; adopt a short form such as `omg` (taken on npm, free on homebrew-core) or `omgw` (free everywhere checked); or ship both.
+1. ~~What does the user actually type?~~ **Resolved 2026-09-04: `omgw`.** Four characters, available on every package manager and registry checked, transparently derived from the brand. `gws` continues to be emitted by `shell-init` during the compatibility window; question 5 covers for how long.
 2. Should the dormant `OMGItworks` GitHub username be pursued via GitHub's name-release process, or is a repo under `daileyo` sufficient?
 3. Is `omgitworks.dev` worth registering, given `.com` is parked and `.co.uk` belongs to an unrelated business?
 4. Should the brew tap `daileyo/homebrew-gws` be renamed, or left as-is to avoid churn in what users type?
