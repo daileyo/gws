@@ -45,7 +45,7 @@ Add `cmd/git-workspace/cd.go` defining a `cd` subcommand that resolves the works
 - [x] 1.7 Add `cd` to the Navigation section of the usage template in `main.go` so it is discoverable in `gws --help`
 - [x] 1.8 Create `cd_test.go` covering: path on stdout, informational line on stderr, `-q` suppressing stderr, uninitialized-workspace guidance, missing-directory error, and both branches of the TTY hint via the overridable indirection
 
-### [ ] 2.0 Shell Integration Routing
+### [x] 2.0 Shell Integration Routing
 
 Add a `cd` case to the `gws` function dispatch in all three shell templates so the parent shell actually changes directory, and extend the template tests to cover it.
 
@@ -58,13 +58,13 @@ Add a `cd` case to the `gws` function dispatch in all three shell templates so t
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Add a `cd)` case to `zshInitTemplate`'s dispatch: capture `_dest="$({BIN} cd -q 2>/dev/tty </dev/tty)"` and `[[ -n "$_dest" ]] && cd "$_dest"`, placed before the `-*` catch-all
-- [ ] 2.2 In the same zsh case, pass through to the binary when `$2` is non-empty, so `gws cd foo` surfaces the `NoArgs` error instead of silently navigating to the root
-- [ ] 2.3 Add the equivalent `cd)` case to `bashInitTemplate` using the local `dest` variable and the same redirection convention
-- [ ] 2.4 Add the equivalent `'^cd$'` branch to `powershellInitTemplate`: invoke `& {BIN} cd -q`, and `Set-Location` on a non-empty result, matching how the existing navigation branches filter output
-- [ ] 2.5 Confirm `print-workspace` remains in each template's passthrough subcommand list, unchanged
-- [ ] 2.6 Add `TestShellTemplatesContainCdNavigation` to `shellinit_test.go`, table-driven over all three templates, asserting the `cd` dispatch and the `{BIN} cd` invocation are present
-- [ ] 2.7 Run `go test ./cmd/git-workspace/` and confirm no regressions in existing template tests
+- [x] 2.1 Add a `cd)` case to `zshInitTemplate`'s dispatch: capture `_dest="$({BIN} cd -q 2>/dev/tty </dev/tty)"` and `[[ -n "$_dest" ]] && cd "$_dest"`, placed before the `-*` catch-all
+- [x] 2.2 In the same zsh case, pass through to the binary when `$2` is non-empty, so `gws cd foo` surfaces the `NoArgs` error instead of silently navigating to the root
+- [x] 2.3 Add the equivalent `cd)` case to `bashInitTemplate` using the local `dest` variable and the same redirection convention
+- [x] 2.4 Add the equivalent `'^cd$'` branch to `powershellInitTemplate`: invoke `& {BIN} cd -q`, and `Set-Location` on a non-empty result, matching how the existing navigation branches filter output
+- [x] 2.5 Confirm `print-workspace` remains in each template's passthrough subcommand list, unchanged
+- [x] 2.6 Add `TestShellTemplatesContainCdNavigation` to `shellinit_test.go`, table-driven over all three templates, asserting the `cd` dispatch and the `{BIN} cd` invocation are present
+- [x] 2.7 Run `go test ./cmd/git-workspace/` and confirm no regressions in existing template tests
 
 ### [ ] 3.0 Documentation Replacement
 
