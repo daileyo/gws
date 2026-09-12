@@ -228,10 +228,10 @@ func handleWorktreeSelection(repo config.Repository, worktrees []config.Worktree
 	return fmt.Errorf("too many invalid selection attempts")
 }
 
-// isTerminal checks if the given reader is connected to a terminal (TTY)
-func isTerminal(r io.Reader) bool {
-	f, ok := r.(*os.File)
-	if !ok {
+// isCharDevice reports whether f is connected to a character device (TTY).
+// Shared by the stdin checks below and the stdout check in cd.go.
+func isCharDevice(f *os.File) bool {
+	if f == nil {
 		return false
 	}
 	fi, err := f.Stat()
@@ -239,6 +239,15 @@ func isTerminal(r io.Reader) bool {
 		return false
 	}
 	return fi.Mode()&os.ModeCharDevice != 0
+}
+
+// isTerminal checks if the given reader is connected to a terminal (TTY)
+func isTerminal(r io.Reader) bool {
+	f, ok := r.(*os.File)
+	if !ok {
+		return false
+	}
+	return isCharDevice(f)
 }
 
 // handleMultipleMatches handles the case when multiple repos match the query.
