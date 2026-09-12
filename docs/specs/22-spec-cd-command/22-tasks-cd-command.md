@@ -66,7 +66,7 @@ Add a `cd` case to the `gws` function dispatch in all three shell templates so t
 - [x] 2.6 Add `TestShellTemplatesContainCdNavigation` to `shellinit_test.go`, table-driven over all three templates, asserting the `cd` dispatch and the `{BIN} cd` invocation are present
 - [x] 2.7 Run `go test ./cmd/git-workspace/` and confirm no regressions in existing template tests
 
-### [ ] 3.0 Documentation Replacement
+### [x] 3.0 Documentation Replacement
 
 Retire the hand-written `cdgws`/`gcd` helper everywhere it appears and document `gws cd` in its place.
 
@@ -79,11 +79,11 @@ Retire the hand-written `cdgws`/`gcd` helper everywhere it appears and document 
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Remove the `function cdgws()` / `alias gcd=cdgws` lines from `rootCmd.Long` in `main.go` and reference `gws cd` in the shell-integration example instead
-- [ ] 3.2 Add `gws cd` to the command list in `README.md` and delete the helper-function snippet from its shell-integration section
-- [ ] 3.3 Add a `gws cd` section to `docs/site/commands-core.md` alongside the other navigation commands, documenting `-q` and the shell-integration requirement
-- [ ] 3.4 Update `docs/site/shell-integration.md`: document `gws cd` in both the bash/zsh and PowerShell sections and remove the helper snippet
-- [ ] 3.5 Update `docs/site/getting-started.md` to use `gws cd` wherever it demonstrates reaching the workspace root
-- [ ] 3.6 Add a short note to the docs stating that `print-workspace` remains the primitive for scripts, while `gws cd` is the interactive command
-- [ ] 3.7 Check `Makefile`'s shell-integration help output (around the `eval` lines) for helper references and update if present
+- [x] 3.1 Remove the `function cdgws()` / `alias gcd=cdgws` lines from `rootCmd.Long` in `main.go` and reference `gws cd` in the shell-integration example instead
+- [x] 3.2 Add `gws cd` to the command list in `README.md` and delete the helper-function snippet from its shell-integration section
+- [x] 3.3 Add a `gws cd` section to `docs/site/commands-core.md` alongside the other navigation commands, documenting `-q` and the shell-integration requirement
+- [x] 3.4 Update `docs/site/shell-integration.md`: document `gws cd` in both the bash/zsh and PowerShell sections and remove the helper snippet
+- [x] 3.5 Update `docs/site/getting-started.md` to use `gws cd` wherever it demonstrates reaching the workspace root
+- [x] 3.6 Add a short note to the docs stating that `print-workspace` remains the primitive for scripts, while `gws cd` is the interactive command
+- [x] 3.7 Check `Makefile`'s shell-integration help output (around the `eval` lines) for helper references and update if present
 - [ ] 3.8 Add an upgrade note to `docs/site/shell-integration.md`: the `gws` function is generated once at shell startup, so an upgraded binary is not enough — `shell-init` must be re-evaluated before newly added commands route. Note that `make build` writes only to `./build/` and that every local build reports `version dev`, so the commit line is what distinguishes binaries

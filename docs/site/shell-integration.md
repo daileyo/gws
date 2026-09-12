@@ -34,6 +34,9 @@ Once set up, use `gws` to jump to any tracked repository by name:
 # Navigate to a repository by name — changes your directory
 gws my-repo
 
+# Navigate to the workspace root
+gws cd
+
 # Use subcommands directly through gws
 gws list
 gws list --tag personal -S
@@ -297,9 +300,38 @@ function gws {
 
 ## Workspace Navigation
 
-Print the workspace root path (useful for scripting):
+Jump to the workspace root with `gws cd`:
 
 ```bash
-gws print-workspace
-# Output: /home/user/projects
+# Changes your directory to the workspace root
+gws cd
+
+# Print only the path
+gws cd -q
 ```
+
+`gws cd` works in bash, zsh, and PowerShell. It takes no arguments — use `gws <repo>` to
+navigate to a repository.
+
+### How it works
+
+A process cannot change its parent shell's working directory, so `gws cd` is a two-part
+mechanism, the same one repository navigation uses:
+
+1. `git-workspace cd -q` prints the workspace root to stdout
+2. The `gws` shell function captures that output and runs `cd` (or `Set-Location`) on it
+
+Running the binary directly — `git-workspace cd` rather than `gws cd` — therefore only prints
+the path. The command detects this and tells you shell integration is missing rather than
+appearing to do nothing.
+
+### Scripting
+
+`print-workspace` remains the primitive for scripts, since it only ever writes the path to
+stdout:
+
+```bash
+cd "$(gws print-workspace)"
+```
+
+Use `gws cd` interactively; use `gws print-workspace` in scripts.
