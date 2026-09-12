@@ -23,7 +23,7 @@
 
 ## Tasks
 
-### [ ] 1.0 `cd` Subcommand
+### [x] 1.0 `cd` Subcommand
 
 Add `cmd/git-workspace/cd.go` defining a `cd` subcommand that resolves the workspace root from config and prints it to stdout, with the informational line on stderr, `-q` to suppress it, and a shell-integration hint when run directly from a terminal.
 
@@ -36,14 +36,14 @@ Add `cmd/git-workspace/cd.go` defining a `cd` subcommand that resolves the works
 
 #### 1.0 Tasks
 
-- [ ] 1.1 Create `cmd/git-workspace/cd.go` with a `cdCmd` cobra command: `Use: "cd"`, `Args: cobra.NoArgs`, short/long help describing workspace-root navigation and noting that shell integration is required
-- [ ] 1.2 Register `cdCmd` on `rootCmd` in an `init()` and add a `-q`/`--quiet` bool flag matching `parent.go`'s pattern
-- [ ] 1.3 Implement `runCd(quiet bool, stdout, stderr io.Writer) error`: load config, and on a missing config emit the same two-line `workspace not initialized` + `gws init` guidance the root command uses rather than the raw config error
-- [ ] 1.4 Stat `cfg.Workspace`; if it does not exist or is not a directory, return a clear error naming the recorded path and suggesting `gws init` — do not print a dead path
-- [ ] 1.5 Print the workspace path to stdout with `fmt.Fprintln`; when `!quiet`, print `workspace → <path>` to stderr first
-- [ ] 1.6 Extract the character-device predicate from `isTerminal` (`navigate.go:232`) into a `*os.File`-typed helper, leaving the existing stdin call sites (`navigate.go:189,248`, `worktree_navigate.go:117`) behaviorally unchanged; then, when `!quiet` and stdout is a character device, print a hint to stderr that `gws cd` requires shell integration, naming `git-workspace shell-init <shell>`
-- [ ] 1.7 Add `cd` to the Navigation section of the usage template in `main.go` so it is discoverable in `gws --help`
-- [ ] 1.8 Create `cd_test.go` covering: path on stdout, informational line on stderr, `-q` suppressing stderr, uninitialized-workspace guidance, missing-directory error, and both branches of the TTY hint via the overridable indirection
+- [x] 1.1 Create `cmd/git-workspace/cd.go` with a `cdCmd` cobra command: `Use: "cd"`, `Args: cobra.NoArgs`, short/long help describing workspace-root navigation and noting that shell integration is required
+- [x] 1.2 Register `cdCmd` on `rootCmd` in an `init()` and add a `-q`/`--quiet` bool flag matching `parent.go`'s pattern
+- [x] 1.3 Implement `runCd(quiet bool, stdout, stderr io.Writer) error`: load config, and on a missing config emit the same two-line `workspace not initialized` + `gws init` guidance the root command uses rather than the raw config error
+- [x] 1.4 Stat `cfg.Workspace`; if it does not exist or is not a directory, return a clear error naming the recorded path and suggesting `gws init` — do not print a dead path
+- [x] 1.5 Print the workspace path to stdout with `fmt.Fprintln`; when `!quiet`, print `workspace → <path>` to stderr first
+- [x] 1.6 Extract the character-device predicate from `isTerminal` (`navigate.go:232`) into a `*os.File`-typed helper, leaving the existing stdin call sites (`navigate.go:189,248`, `worktree_navigate.go:117`) behaviorally unchanged; then, when `!quiet` and stdout is a character device, print a hint to stderr that `gws cd` requires shell integration, naming `git-workspace shell-init <shell>`
+- [x] 1.7 Add `cd` to the Navigation section of the usage template in `main.go` so it is discoverable in `gws --help`
+- [x] 1.8 Create `cd_test.go` covering: path on stdout, informational line on stderr, `-q` suppressing stderr, uninitialized-workspace guidance, missing-directory error, and both branches of the TTY hint via the overridable indirection
 
 ### [ ] 2.0 Shell Integration Routing
 

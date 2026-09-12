@@ -169,6 +169,7 @@ Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "he
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 
 Navigation:
+  gws cd                                            # Navigate to the workspace root
   gws <repo-name>                                   # Navigate to repository by name
   gws "api-*"                                       # Wildcard match with interactive selection
   gws <repo> -wt <branch>                           # Navigate to repo's worktree
