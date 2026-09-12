@@ -54,6 +54,7 @@ Commands:
   gws refresh                            # Refresh repository metadata
 
 Navigation:
+  gws cd                                 # Navigate to the workspace root
   gws my-repo                            # Navigate to repository by name
   gws "api-*"                            # Wildcard match with interactive selection
 
@@ -63,9 +64,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
   export PATH="$HOME/.local/bin:$PATH"
   eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
 
-  # Navigate to workspace root
-  function cdgws() { cd "$(gws print-workspace)"; }
-  alias gcd=cdgws`,
+This provides 'gws cd' for the workspace root — no helper function needed.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Handle deprecated flags first (--list, --init, --add, --refresh, --user, etc.)
 		handled, err := handleDeprecatedFlags(cmd, args)

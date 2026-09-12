@@ -182,7 +182,19 @@ work-api          gitlab     private     work              /home/user/projects/w
 client-site       bitbucket  unknown     client, archived  /home/user/projects/client-site
 ```
 
-### 4. Check Version
+### 4. Navigate Your Workspace
+
+With [shell integration](shell-integration.md) set up, `gws` changes directory for you:
+
+```bash
+# Jump to a repository by name
+gws my-project
+
+# Jump back to the workspace root
+gws cd
+```
+
+### 5. Check Version
 
 ```bash
 gws --version

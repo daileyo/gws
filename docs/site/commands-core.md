@@ -384,13 +384,49 @@ The conditional lines (Removed, Found, Updated, Repositories with user configura
 
 ---
 
+## Navigate to Workspace Root
+
+```
+gws cd [flags]
+```
+
+Navigate to the workspace root directory.
+
+This requires [shell integration](shell-integration.md): the binary prints the path and the
+`gws` shell function performs the directory change. Without it, `gws cd` only prints the path
+and says so.
+
+### Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--quiet` | `-q` | `false` | Suppress verbose output, print only the path |
+
+**Examples:**
+
+```bash
+# Navigate to the workspace root
+gws cd
+
+# Print only the path
+gws cd -q
+```
+
+`gws cd` takes no arguments — use `gws <repo>` to navigate to a repository.
+
+---
+
 ## Print Workspace
 
 ```
 gws print-workspace
 ```
 
-Print the workspace root path to stdout. Useful for scripting:
+Print the workspace root path to stdout.
+
+`print-workspace` is the scripting primitive; `gws cd` is the interactive command. Because
+`print-workspace` only ever writes the path to stdout, it stays the right choice inside
+scripts and command substitution:
 
 ```bash
 cd "$(gws print-workspace)"
