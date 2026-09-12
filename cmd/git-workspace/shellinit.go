@@ -55,6 +55,14 @@ function gws() {
           ;;
       esac
       ;;
+    cd)
+      if [[ -n "$2" ]]; then
+        {BIN} "$@"
+        return
+      fi
+      _dest="$({BIN} cd -q 2>/dev/tty </dev/tty)"
+      [[ -n "$_dest" ]] && cd "$_dest"
+      ;;
     -p|--parent|parent)
       _dest="$({BIN} parent "$2" -q 2>/dev/tty </dev/tty)"
       [[ -n "$_dest" ]] && cd "$_dest"
@@ -117,6 +125,14 @@ function gws() {
           [[ -n "$dest" ]] && cd "$dest"
           ;;
       esac
+      ;;
+    cd)
+      if [[ -n "$2" ]]; then
+        {BIN} "$@"
+        return
+      fi
+      dest="$({BIN} cd -q 2>/dev/tty </dev/tty)"
+      [[ -n "$dest" ]] && cd "$dest"
       ;;
     -p|--parent|parent)
       dest="$({BIN} parent "$2" -q 2>/dev/tty </dev/tty)"
@@ -182,6 +198,15 @@ function gws {
                     return
                 }
             }
+        }
+        '^cd$' {
+            if ($rest.Count -gt 0) {
+                & {BIN} @args
+                return
+            }
+            $dest = & {BIN} cd -q 2>&1 | Where-Object { $_ -is [string] }
+            if ($dest) { Set-Location $dest }
+            return
         }
         '^(-p|--parent|parent)$' {
             $second = if ($rest.Count -gt 0) { $rest[0] } else { $null }
