@@ -87,11 +87,13 @@ the existing shell-integration mechanism, and retires the hand-written helper fr
 - `docs/site/shell-integration.md` shall describe `gws cd` in the bash/zsh and PowerShell sections and remove the helper snippet
 - `docs/site/getting-started.md` shall use `gws cd` wherever it currently demonstrates reaching the workspace root
 - Documentation shall state plainly that `gws cd` requires shell integration, and that `print-workspace` remains the right primitive for scripts
+- Documentation shall state that the `gws` function is generated once at shell startup, so upgrading the binary does not update an already-loaded function — `shell-init` must be re-evaluated (or a new shell started) before newly added commands are routed
 
 **Proof Artifacts:**
 
 - Documentation: `grep -rn 'cdgws\|alias gcd' README.md docs/ cmd/` returns no results demonstrates the helper is fully retired
 - Documentation: `gws cd` appears in commands-core.md and shell-integration.md demonstrates the replacement is documented
+- Documentation: shell-integration.md explains that an upgraded binary needs `shell-init` re-evaluated demonstrates the stale-function failure mode is documented
 
 ## Non-Goals (Out of Scope)
 
@@ -157,3 +159,4 @@ branches.
 1. Should `gws cd` gain `--config` and `--projects` flags once spec 23 relocates those directories to XDG paths? (Deferred to spec 23 by decision in round 1.)
 2. Should the workspace root also be offered as a completion candidate somewhere, or is `gws cd` discoverable enough on its own?
 3. If `config.Workspace` points at a missing directory, should `gws cd` fail outright or fall back to the nearest existing ancestor?
+4. Should the `gws` function detect that it is older than the binary it calls and warn, or reload itself? Deferred — this is a general shell-function concern that predates this spec (it applies equally to spec 20's worktree navigation and spec 21's PowerShell support), and it carries its own design trade-offs around startup cost. This spec documents the failure mode; a separate spec should decide the mechanism.
