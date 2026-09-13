@@ -74,6 +74,7 @@ Retire the hand-written `cdgws`/`gcd` helper everywhere it appears and document 
 
 - Documentation: `grep -rn 'cdgws\|alias gcd' README.md docs/ cmd/ Makefile` returns nothing demonstrates the helper is fully retired
 - Documentation: `gws cd` documented in commands-core.md, shell-integration.md, and README demonstrates the replacement is in place
+- Documentation: an upgrade note in shell-integration.md explains the stale-function failure mode demonstrates it is documented
 - CLI: `./build/git-workspace --help` lists `cd` under Navigation demonstrates in-tool discoverability
 
 #### 3.0 Tasks
@@ -85,3 +86,4 @@ Retire the hand-written `cdgws`/`gcd` helper everywhere it appears and document 
 - [ ] 3.5 Update `docs/site/getting-started.md` to use `gws cd` wherever it demonstrates reaching the workspace root
 - [ ] 3.6 Add a short note to the docs stating that `print-workspace` remains the primitive for scripts, while `gws cd` is the interactive command
 - [ ] 3.7 Check `Makefile`'s shell-integration help output (around the `eval` lines) for helper references and update if present
+- [ ] 3.8 Add an upgrade note to `docs/site/shell-integration.md`: the `gws` function is generated once at shell startup, so an upgraded binary is not enough — `shell-init` must be re-evaluated before newly added commands route. Note that `make build` writes only to `./build/` and that every local build reports `version dev`, so the commit line is what distinguishes binaries
