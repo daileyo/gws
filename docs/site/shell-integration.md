@@ -22,7 +22,46 @@ Invoke-Expression (& git-workspace shell-init powershell | Out-String)
 
 This works with both PowerShell 5.1 (Windows PowerShell) and PowerShell 7+ (pwsh).
 
-The `shell-init` command outputs the `gws` function and tab completion setup directly from the binary, so your shell integration is always in sync with the installed version. No manual updates needed when you upgrade.
+The `shell-init` command outputs the `gws` function and tab completion setup directly from the
+binary, so you never hand-maintain the function — each new shell picks up whatever the
+installed binary provides.
+
+### Upgrading
+
+**The `gws` function is a snapshot taken when your shell starts.** Your rc file evaluates
+`shell-init` once, at startup. Upgrading the binary afterwards does not update the function
+that is already loaded in your running shells, so commands added by the new version are not
+routed until you re-evaluate it:
+
+```bash
+eval "$(git-workspace shell-init zsh)"   # same shell, no restart needed
+```
+
+Or simply open a new shell.
+
+Until you do, a newly added command falls through to repository navigation and reports
+something like `No repositories found matching 'cd'` — confusing, because the real problem is
+a stale function rather than a missing repository.
+
+Two related traps when testing a local build:
+
+- `make build` writes only to `./build/`. It does **not** install. Use `make install` (or
+  `make use-dev`) to update the binary that `gws` actually calls.
+- Every local build reports `version dev`, so `--version` alone cannot tell an old build from
+  a new one. Compare the `commit:` line instead:
+
+  ```
+  $ git-workspace --version
+  git-workspace version dev
+    commit: 907d3ae        <- this is what identifies the build
+    built:  2026-08-11T05:20:05Z
+  ```
+
+To try a build without touching your installed setup, point `PATH` at it in a throwaway shell:
+
+```bash
+zsh -c 'export PATH="$PWD/build:$PATH"; eval "$(git-workspace shell-init zsh)"; gws cd; pwd'
+```
 
 ---
 
