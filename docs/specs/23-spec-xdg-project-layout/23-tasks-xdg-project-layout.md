@@ -50,7 +50,7 @@ Create `internal/xdg` as the single source of truth for where gws keeps its file
 - [x] 1.7 Rewrite `config.GetConfigPath()` and `config.GetConfigDir()` to delegate to `xdg.ConfigFile()` and `xdg.ConfigDir()`, removing the hardcoded `.gws` join
 - [x] 1.8 Run `go build ./... && go test ./internal/...` and confirm the delegation compiles and existing config tests pass
 
-### [ ] 2.0 Config Relocation and Automatic Migration
+### [x] 2.0 Config Relocation and Automatic Migration
 
 Move the config to its XDG home, migrating an existing `~/.gws/config.json` on first load, safely and exactly once.
 
@@ -64,16 +64,16 @@ Move the config to its XDG home, migrating an existing `~/.gws/config.json` on f
 
 #### 2.0 Tasks
 
-- [ ] 2.1 Add `migrateLegacyConfig() (migrated bool, err error)` to `internal/config`: return early if the XDG config already exists or the legacy file does not
-- [ ] 2.2 Before moving, `os.Lstat` the legacy path and refuse to migrate if it is a symlink, so migration cannot be redirected outside the intended directory
-- [ ] 2.3 Create the XDG config directory with `0755`, then move the file, preserving the `0600` permission; fall back to copy-then-remove if the rename crosses a filesystem
-- [ ] 2.4 After a successful move, remove `~/.gws` only if it is empty; if other files remain, leave it and name them in the notice
-- [ ] 2.5 Print a single-line notice to stderr naming the source and destination paths
-- [ ] 2.6 Call the migration from `config.Load()` before the read, guarded by a `sync.Once` so it runs at most once per process
-- [ ] 2.7 On migration failure, log a warning to stderr and fall back to reading the legacy path, so a user is never told their initialized workspace is uninitialized
-- [ ] 2.8 Verify the `workspace not initialized` error still fires only when neither location has a config
-- [ ] 2.9 Bump `ConfigVersion` from `1.1.0` to `1.2.0` to mark the layout change
-- [ ] 2.10 Add `config_test.go` cases: migrate-on-load, no-op when XDG config exists, `0600` preserved, non-empty legacy dir retained, symlinked legacy config refused, and fallback-on-failure
+- [x] 2.1 Add `migrateLegacyConfig() (migrated bool, err error)` to `internal/config`: return early if the XDG config already exists or the legacy file does not
+- [x] 2.2 Before moving, `os.Lstat` the legacy path and refuse to migrate if it is a symlink, so migration cannot be redirected outside the intended directory
+- [x] 2.3 Create the XDG config directory with `0755`, then move the file, preserving the `0600` permission; fall back to copy-then-remove if the rename crosses a filesystem
+- [x] 2.4 After a successful move, remove `~/.gws` only if it is empty; if other files remain, leave it and name them in the notice
+- [x] 2.5 Print a single-line notice to stderr naming the source and destination paths
+- [x] 2.6 Call the migration from `config.Load()` before the read, guarded by a `sync.Once` so it runs at most once per process
+- [x] 2.7 On migration failure, log a warning to stderr and fall back to reading the legacy path, so a user is never told their initialized workspace is uninitialized
+- [x] 2.8 Verify the `workspace not initialized` error still fires only when neither location has a config
+- [x] 2.9 Bump `ConfigVersion` from `1.1.0` to `1.2.0` to mark the layout change
+- [x] 2.10 Add `config_test.go` cases: migrate-on-load, no-op when XDG config exists, `0600` preserved, non-empty legacy dir retained, symlinked legacy config refused, and fallback-on-failure
 
 ### [ ] 3.0 Worktree Root Relocation
 
