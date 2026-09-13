@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
+
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 // Version of the config format for future migrations
@@ -87,20 +88,12 @@ type Repository struct {
 
 // GetConfigPath returns the path to the gws config file
 func GetConfigPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
-	}
-	return filepath.Join(home, ".gws", "config.json"), nil
+	return xdg.ConfigFile()
 }
 
 // GetConfigDir returns the directory containing the config file
 func GetConfigDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
-	}
-	return filepath.Join(home, ".gws"), nil
+	return xdg.ConfigDir()
 }
 
 // Load reads the configuration from ~/.gws/config.json
