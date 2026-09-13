@@ -9,7 +9,7 @@ import (
 )
 
 // Version of the config format for future migrations
-const ConfigVersion = "1.1.0"
+const ConfigVersion = "1.2.0"
 
 // Config represents the gws workspace configuration
 type Config struct {
@@ -96,8 +96,11 @@ func GetConfigDir() (string, error) {
 	return xdg.ConfigDir()
 }
 
-// Load reads the configuration from ~/.gws/config.json
+// Load reads the configuration from the XDG config location, migrating a
+// pre-XDG ~/.gws/config.json on first use.
 func Load() (*Config, error) {
+	ensureMigrated()
+
 	configPath, err := GetConfigPath()
 	if err != nil {
 		return nil, err
@@ -105,10 +108,15 @@ func Load() (*Config, error) {
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("workspace not initialized: run 'gws init <directory>' first")
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+		// Migration is best-effort, so the config may still be at the legacy
+		// path. Reading it there keeps a working workspace working.
+		data, err = readLegacyConfig()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var cfg Config
@@ -159,20 +167,49 @@ func New(workspacePath string) *Config {
 	}
 }
 
-// Exists checks if a configuration file exists
+// Exists checks if a configuration file exists, in either the current location
+// or the pre-XDG one, so a workspace pending migration is not reported missing.
 func Exists() (bool, error) {
 	configPath, err := GetConfigPath()
 	if err != nil {
 		return false, err
 	}
 
-	_, err = os.Stat(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
+	if _, err := os.Stat(configPath); err == nil {
+		return true, nil
+	} else if !os.IsNotExist(err) {
 		return false, err
 	}
 
-	return true, nil
+	legacyPath, err := xdg.LegacyConfigFile()
+	if err != nil {
+		return false, err
+	}
+
+	if _, err := os.Stat(legacyPath); err == nil {
+		return true, nil
+	} else if !os.IsNotExist(err) {
+		return false, err
+	}
+
+	return false, nil
+}
+
+// readLegacyConfig reads the pre-XDG config, translating its absence into the
+// standard "not initialized" guidance.
+func readLegacyConfig() ([]byte, error) {
+	legacyPath, err := xdg.LegacyConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := os.ReadFile(legacyPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("workspace not initialized: run 'gws init <directory>' first")
+		}
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	return data, nil
 }
