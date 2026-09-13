@@ -9,10 +9,28 @@ import (
 	"github.com/daileyo/gws/internal/config"
 )
 
+// isolateGitHooks stops a developer's global git hooks from running against the
+// throwaway repositories these tests create.
+//
+// Fixtures commit with scaffolding messages like "init". A global
+// core.hooksPath — a conventional-commit validator, say — applies to every repo
+// on the machine, including fixtures in a temp dir, and rejects those messages.
+// Fixture setup then fails before a single assertion runs.
+//
+// GIT_CONFIG_* is used rather than a repo-local setting because it propagates
+// to every git subprocess the tests spawn, wherever that repo lives.
+func isolateGitHooks() {
+	os.Setenv("GIT_CONFIG_COUNT", "1")
+	os.Setenv("GIT_CONFIG_KEY_0", "core.hooksPath")
+	os.Setenv("GIT_CONFIG_VALUE_0", "")
+}
+
 // TestMain guards against tests corrupting the real user config.
-// It snapshots ~/.gws/config.json before all tests and fails if
+// It snapshots the config file before all tests and fails if
 // the content has changed after the suite finishes.
 func TestMain(m *testing.M) {
+	isolateGitHooks()
+
 	configPath, err := config.GetConfigPath()
 	if err != nil {
 		// If we can't resolve the path, just run tests without the guard.
