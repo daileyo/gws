@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.21.0](https://github.com/daileyo/gws/compare/v2.20.0...v2.21.0) (2026-09-13)
+
+
+### Features
+
+* **cmd:** add cd command for workspace root ([480c049](https://github.com/daileyo/gws/commit/480c049ca3c8c72d04ac70b19f0ce4bad5423426))
+* **shell:** route cd through the gws function ([309719e](https://github.com/daileyo/gws/commit/309719e5829664354ffe2b9521ebe56f28e0ae1e))
+
 ## [2.20.0](https://github.com/daileyo/gws/compare/v2.19.2...v2.20.0) (2026-08-16)
 
 
