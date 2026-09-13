@@ -134,8 +134,13 @@ func TestGetConfigDir(t *testing.T) {
 		t.Error("Config dir should be absolute")
 	}
 
-	if filepath.Base(dir) != ".gws" {
-		t.Errorf("Expected config dirname '.gws', got '%s'", filepath.Base(dir))
+	if filepath.Base(dir) != "gws" {
+		t.Errorf("Expected config dirname 'gws', got '%s'", filepath.Base(dir))
+	}
+
+	// The config now lives under the XDG config home rather than ~/.gws.
+	if parent := filepath.Base(filepath.Dir(dir)); parent != ".config" {
+		t.Errorf("Expected config dir under '.config', got parent '%s'", parent)
 	}
 }
 

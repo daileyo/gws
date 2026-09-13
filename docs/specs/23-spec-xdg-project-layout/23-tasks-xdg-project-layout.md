@@ -27,7 +27,7 @@
 
 ## Tasks
 
-### [ ] 1.0 XDG Path Resolution Package
+### [x] 1.0 XDG Path Resolution Package
 
 Create `internal/xdg` as the single source of truth for where gws keeps its files, correct on both Unix and Windows, and repoint `internal/config` at it.
 
@@ -41,14 +41,14 @@ Create `internal/xdg` as the single source of truth for where gws keeps its file
 
 #### 1.0 Tasks
 
-- [ ] 1.1 Create `internal/xdg/xdg.go` with `ConfigDir() (string, error)`: return `$XDG_CONFIG_HOME/gws` when the variable is set and absolute, else `os.UserHomeDir()/.config/gws`. Do **not** use `os.UserConfigDir()` — it returns `%AppData%` on Windows and would break cross-platform parity
-- [ ] 1.2 Add `ConfigFile() (string, error)` returning `ConfigDir()/config.json`
-- [ ] 1.3 Add `ProjectsDir() (string, error)`: return `$XDG_DATA_HOME/gws/projects` when set and absolute, else `os.UserHomeDir()/.local/share/gws/projects`. No `runtime.GOOS` branch — the layout is identical on every platform, with `os.UserHomeDir()` supplying `%USERPROFILE%` on Windows
-- [ ] 1.4 Treat a relative value in `XDG_CONFIG_HOME` or `XDG_DATA_HOME` as unset, per the XDG specification, using `filepath.IsAbs`
-- [ ] 1.5 Add `LegacyConfigDir()` returning `~/.gws`, used only by the migration path in task 2.0
-- [ ] 1.6 Create `internal/xdg/xdg_test.go` with table-driven cases: env set and absolute, env set but relative, env unset. Add a parity case asserting the resolved path relative to home is identical regardless of platform. Use `t.Setenv` and `t.TempDir()` so the real home directory is never read
-- [ ] 1.7 Rewrite `config.GetConfigPath()` and `config.GetConfigDir()` to delegate to `xdg.ConfigFile()` and `xdg.ConfigDir()`, removing the hardcoded `.gws` join
-- [ ] 1.8 Run `go build ./... && go test ./internal/...` and confirm the delegation compiles and existing config tests pass
+- [x] 1.1 Create `internal/xdg/xdg.go` with `ConfigDir() (string, error)`: return `$XDG_CONFIG_HOME/gws` when the variable is set and absolute, else `os.UserHomeDir()/.config/gws`. Do **not** use `os.UserConfigDir()` — it returns `%AppData%` on Windows and would break cross-platform parity
+- [x] 1.2 Add `ConfigFile() (string, error)` returning `ConfigDir()/config.json`
+- [x] 1.3 Add `ProjectsDir() (string, error)`: return `$XDG_DATA_HOME/gws/projects` when set and absolute, else `os.UserHomeDir()/.local/share/gws/projects`. No `runtime.GOOS` branch — the layout is identical on every platform, with `os.UserHomeDir()` supplying `%USERPROFILE%` on Windows
+- [x] 1.4 Treat a relative value in `XDG_CONFIG_HOME` or `XDG_DATA_HOME` as unset, per the XDG specification, using `filepath.IsAbs`
+- [x] 1.5 Add `LegacyConfigDir()` returning `~/.gws`, used only by the migration path in task 2.0
+- [x] 1.6 Create `internal/xdg/xdg_test.go` with table-driven cases: env set and absolute, env set but relative, env unset. Add a parity case asserting the resolved path relative to home is identical regardless of platform. Use `t.Setenv` and `t.TempDir()` so the real home directory is never read
+- [x] 1.7 Rewrite `config.GetConfigPath()` and `config.GetConfigDir()` to delegate to `xdg.ConfigFile()` and `xdg.ConfigDir()`, removing the hardcoded `.gws` join
+- [x] 1.8 Run `go build ./... && go test ./internal/...` and confirm the delegation compiles and existing config tests pass
 
 ### [ ] 2.0 Config Relocation and Automatic Migration
 
