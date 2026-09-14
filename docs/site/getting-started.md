@@ -141,7 +141,7 @@ This command will:
 - Recursively scan the directory for git repositories
 - Extract repository metadata (name, path, remote URL)
 - Detect repository type and user configuration
-- Save the configuration to `~/.gws/config.json`
+- Save the configuration to `~/.config/gws/config.json`
 
 ### 2. List Your Repositories
 

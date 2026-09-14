@@ -184,7 +184,7 @@ gws worktree add my-repo feat  # Creates worktree (no cd)
 ```bash
 # Print worktree path without changing directory
 git-workspace worktree feat-auth -q
-# Output: /home/user/projects/my-repo.wt/feat-auth
+# Output: /home/user/.local/share/gws/projects/my-repo/feat-auth
 ```
 
 See [Core Commands](commands-core.md#worktree-management) for full worktree command reference.

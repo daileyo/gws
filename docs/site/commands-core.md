@@ -285,7 +285,7 @@ Initialize a workspace by scanning a directory for git repositories. Defaults to
 - Recursively scans the directory for git repositories
 - Extracts repository metadata (name, path, remote URL)
 - Detects repository type and git user configuration
-- Saves the configuration to `~/.gws/config.json`
+- Saves the configuration to `~/.config/gws/config.json` (see [Configuration](configuration.md#file-locations))
 
 **Examples:**
 
@@ -436,15 +436,23 @@ cd "$(gws print-workspace)"
 
 ## Worktree Management
 
-git-workspace provides first-class support for [git worktrees](https://git-scm.com/docs/git-worktree). Worktrees follow a standard directory convention: the main repo lives at `<repo>/` and all its worktrees live under a sibling directory `<repo>.wt/`.
+git-workspace provides first-class support for [git worktrees](https://git-scm.com/docs/git-worktree). A **project** is a repository plus its worktrees: the repository stays wherever you keep it, and its worktrees are collected under the XDG projects root.
 
 ```
 ~/projects/
-  my-repo/              # Main repository
-  my-repo.wt/           # Worktree directory
-    feat-auth/           # Worktree for feat-auth branch
-    fix-login/           # Worktree for fix-login branch
+  my-repo/                              # Main repository — stays put
+
+~/.local/share/gws/projects/
+  my-repo/                              # This repo's worktrees
+    feat-auth/                          # Worktree for feat-auth branch
+    fix-login/                          # Worktree for fix-login branch
 ```
+
+The root is `$XDG_DATA_HOME/gws/projects`, defaulting to `~/.local/share/gws/projects`. Keeping
+worktrees out of your project directory is the point: no `.wt` sibling appears next to every
+repo you branch. See [Configuration](configuration.md#file-locations) for the full layout and
+[Upgrading](configuration.md#upgrading-from-earlier-versions) if you have worktrees in the old
+`<repo>.wt/` location.
 
 ### List Worktrees
 
@@ -467,12 +475,12 @@ gws worktree list my-repo
 ```
 REPO          BRANCH        PATH                                        STATUS
 ------------  ------------  ------------------------------------------  ----------
-my-repo       feat-auth     /home/user/projects/my-repo.wt/feat-auth    aligned
-my-repo       fix-login     /home/user/projects/my-repo.wt/fix-login    aligned
+my-repo       feat-auth     /home/user/.local/share/gws/projects/my-repo/feat-auth    aligned
+my-repo       fix-login     /home/user/.local/share/gws/projects/my-repo/fix-login    aligned
 other-repo    experiment    /tmp/other-experiment                        (unaligned)
 ```
 
-Worktrees inside the `<repo>.wt/` directory are marked `aligned`. Worktrees elsewhere are marked `(unaligned)`.
+Worktrees inside the projects root are marked `aligned`. Worktrees elsewhere — including any still in a legacy `<repo>.wt/` directory — are marked `(unaligned)`.
 
 ### Add Worktree
 
@@ -480,7 +488,7 @@ Worktrees inside the `<repo>.wt/` directory are marked `aligned`. Worktrees else
 gws worktree add <repo> <branch>
 ```
 
-Create a new worktree following the `.wt/` convention. The worktree is created at `<repo-path>.wt/<branch>`.
+Create a new worktree. It is created at `<projects-root>/<repo>/<branch>`, defaulting to `~/.local/share/gws/projects/<repo>/<branch>`.
 
 ```bash
 # Create a worktree for a new branch
@@ -490,7 +498,7 @@ gws worktree add my-repo feat-new-feature
 gws worktree add my-repo hotfix/urgent-fix
 ```
 
-The `.wt/` directory is created automatically if it doesn't exist. If the branch already exists in the repo, it is checked out into the worktree. If the branch doesn't exist, a new branch is created.
+The directory is created automatically if it doesn't exist. If the branch already exists in the repo, it is checked out into the worktree. If the branch doesn't exist, a new branch is created.
 
 ### Align Worktrees
 
@@ -498,7 +506,7 @@ The `.wt/` directory is created automatically if it doesn't exist. If the branch
 gws worktree align [repo] [--dry-run]
 ```
 
-Move all unaligned worktrees into the standard `<repo>.wt/` directory structure using `git worktree move` (requires Git 2.17+).
+Move all unaligned worktrees into the projects root using `git worktree move` (requires Git 2.17+). This is also how you migrate worktrees from the legacy `<repo>.wt/` layout.
 
 ```bash
 # Preview what would be moved
@@ -518,7 +526,7 @@ Dry run — no changes will be made:
 
 Would move [my-repo] experiment
   from: /tmp/my-experiment
-  to:   /home/user/projects/my-repo.wt/experiment
+  to:   /home/user/.local/share/gws/projects/my-repo/experiment
 
 Total: 1 worktree to align
 ```
@@ -550,9 +558,9 @@ When multiple worktrees match, an interactive selection list is displayed:
 ```
 Multiple worktrees match 'feat-*':
 
-  1) my-repo / feat-auth  /home/user/projects/my-repo.wt/feat-auth
-  2) my-repo / feat-new   /home/user/projects/my-repo.wt/feat-new
-  3) other-repo / feat-x  /home/user/projects/other-repo.wt/feat-x
+  1) my-repo / feat-auth  /home/user/.local/share/gws/projects/my-repo/feat-auth
+  2) my-repo / feat-new   /home/user/.local/share/gws/projects/my-repo/feat-new
+  3) other-repo / feat-x  /home/user/.local/share/gws/projects/other-repo/feat-x
 
 Select worktree [1-3]:
 ```

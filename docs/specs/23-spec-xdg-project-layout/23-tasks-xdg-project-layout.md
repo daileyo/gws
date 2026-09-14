@@ -120,7 +120,7 @@ Make `gws worktree align` the single explicit gesture that relocates existing `.
 - [x] 4.7 Add a one-time note to `align` output when it relocates worktrees out of a legacy `.wt/` directory, so the change of location is visible the first time
 - [x] 4.8 Add `worktree_align_test.go` cases: a simulated `.wt/` layout migrating to the projects root, emptied-directory cleanup, and the cross-device error
 
-### [ ] 5.0 Documentation
+### [x] 5.0 Documentation
 
 Document the new layout, the XDG overrides, the Windows equivalents, and what to expect on upgrade.
 
@@ -132,10 +132,10 @@ Document the new layout, the XDG overrides, the Windows equivalents, and what to
 
 #### 5.0 Tasks
 
-- [ ] 5.1 Update `docs/site/configuration.md` with the XDG config path, the `XDG_CONFIG_HOME` / `XDG_DATA_HOME` overrides, and a resolution-order table. State that the layout is identical on all platforms and that Windows resolves `<home>` to `%USERPROFILE%`, citing git's own `$HOME/.config/git/config` behavior as the precedent
-- [ ] 5.2 Add an "Upgrading from earlier versions" section explaining that the config migrates automatically, that existing worktrees will report as unaligned until `gws worktree align` is run, and that this is expected
-- [ ] 5.3 Update `docs/site/commands-core.md` wherever it references `<repo>.wt/`
-- [ ] 5.4 Define **project** once, plainly — a git repo plus any worktrees associated with it — in configuration.md or the docs index
-- [ ] 5.5 Update `README.md` layout and description sections for the new paths
-- [ ] 5.6 Add a note about Windows path length when `C:\Users\<user>\.local\share\gws\projects\` plus a deep branch name approaches the 260-character `MAX_PATH` limit, and how to enable long-path support
-- [ ] 5.7 Document that `XDG_CONFIG_HOME` / `XDG_DATA_HOME` are honored on Windows, for users who prefer the native `%AppData%` location
+- [x] 5.1 Update `docs/site/configuration.md` with the XDG config path, the `XDG_CONFIG_HOME` / `XDG_DATA_HOME` overrides, and a resolution-order table. State that the layout is identical on all platforms and that Windows resolves `<home>` to `%USERPROFILE%`, citing git's own `$HOME/.config/git/config` behavior as the precedent
+- [x] 5.2 Add an "Upgrading from earlier versions" section explaining that the config migrates automatically, that existing worktrees will report as unaligned until `gws worktree align` is run, and that this is expected
+- [x] 5.3 Update `docs/site/commands-core.md` wherever it references `<repo>.wt/`
+- [x] 5.4 Define **project** once, plainly — a git repo plus any worktrees associated with it — in configuration.md or the docs index
+- [x] 5.5 Update `README.md` layout and description sections for the new paths
+- [x] 5.6 Add a note about Windows path length when `C:\Users\<user>\.local\share\gws\projects\` plus a deep branch name approaches the 260-character `MAX_PATH` limit, and how to enable long-path support
+- [x] 5.7 Document that `XDG_CONFIG_HOME` / `XDG_DATA_HOME` are honored on Windows, for users who prefer the native `%AppData%` location
