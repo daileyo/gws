@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.22.0](https://github.com/daileyo/gws/compare/v2.21.0...v2.22.0) (2026-09-14)
+
+
+### Features
+
+* **config:** migrate config to the XDG location ([b74a68b](https://github.com/daileyo/gws/commit/b74a68b618fb6738c0eb8f48385a62808097f301))
+* **config:** resolve paths via XDG base directories ([f632a13](https://github.com/daileyo/gws/commit/f632a13b386f6a76922082e3c42acfd2c6ae6785))
+* **worktree:** migrate legacy .wt layouts via align ([8b0a443](https://github.com/daileyo/gws/commit/8b0a443ca568a0a0ab0da1e7190c532dd8c8a923))
+* **worktree:** relocate worktrees to the projects root ([428212d](https://github.com/daileyo/gws/commit/428212de70d7703c129ae2bc521a86889f214601))
+
+
+### Bug Fixes
+
+* **config:** drop dead branch in migration guard ([860c4d8](https://github.com/daileyo/gws/commit/860c4d88c167a57fe5d330497d84ae259585be41))
+* **test:** clear XDG vars when isolating tests ([d832fec](https://github.com/daileyo/gws/commit/d832fec841f3820ab3d091129f9b1c8bd061fb5e))
+
 ## [2.21.0](https://github.com/daileyo/gws/compare/v2.20.0...v2.21.0) (2026-09-13)
 
 
