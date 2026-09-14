@@ -27,6 +27,7 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 - **Workspace Navigation**: Jump to the workspace root with `gws cd`
 - **Parent Navigation**: Navigate to a repository's parent directory with `gws parent` or `gws -p`
 - **Worktree Management**: Discover, navigate, create, and organize git worktrees with `gws worktree`
+- **XDG Layout**: Config in `~/.config/gws/`, worktrees in `~/.local/share/gws/projects/` — the same paths on Linux, macOS, and Windows
 - **Remote URL Display**: View formatted or raw remote URLs with `--show-remote` / `--show-remote-raw`
 - **External Repo Symlinks**: Automatically creates workspace symlinks for repositories outside the workspace root
 - **Workspace Management**: Track and organize repositories in a centralized configuration
@@ -113,7 +114,9 @@ python -m mkdocs build
 │   ├── config/           # Configuration management
 │   ├── discovery/        # Repository discovery
 │   ├── filter/           # Repository filtering logic
-│   └── git/              # Git status integration
+│   ├── git/              # Git status integration
+│   ├── user/             # Git user profile management
+│   └── xdg/              # XDG base directory resolution
 ├── docs/
 │   ├── site/             # MkDocs documentation source
 │   ├── specs/            # Specification documents
