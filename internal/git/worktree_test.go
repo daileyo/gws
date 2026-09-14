@@ -1,10 +1,13 @@
 package git
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -497,5 +500,26 @@ func TestMoveWorktree(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected to find 'move-me' worktree after move")
+	}
+}
+
+func TestIsCrossDeviceErr(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"wrapped EXDEV", fmt.Errorf("rename failed: %w", syscall.EXDEV), true},
+		{"git message", errors.New("fatal: failed to move: Invalid cross-device link"), true},
+		{"lowercase variant", errors.New("cross-device link error"), true},
+		{"unrelated failure", errors.New("fatal: 'foo' is not a working tree"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isCrossDeviceErr(tt.err); got != tt.want {
+				t.Errorf("isCrossDeviceErr(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
 	}
 }

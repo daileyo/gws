@@ -287,3 +287,144 @@ func TestRunWorktreeAlign_FilterByRepo(t *testing.T) {
 		t.Errorf("worktree should be moved when filtered to correct repo: %v", err)
 	}
 }
+
+// TestRunWorktreeAlign_MigratesLegacyWtLayout is the load-bearing test for the
+// relocation: a worktree in the pre-XDG <repo>.wt/ directory must be treated as
+// unaligned and moved into the projects root. No migration-specific code exists
+// for this — it falls out of IsAligned being rekeyed — so this test is what
+// proves the mechanism rather than the intent.
+func TestRunWorktreeAlign_MigratesLegacyWtLayout(t *testing.T) {
+	repoDir := setupLegacyWtRepo(t, "legacy-repo", "feat-legacy")
+
+	legacyDir := repoDir + ".wt"
+	legacyWt := filepath.Join(legacyDir, "feat-legacy")
+	if _, err := os.Stat(legacyWt); err != nil {
+		t.Fatalf("fixture should start in the legacy location: %v", err)
+	}
+
+	if err := runWorktreeAlign("", false); err != nil {
+		t.Fatalf("align returned error: %v", err)
+	}
+
+	dest := projectsPath(t, "legacy-repo", "feat-legacy")
+	if _, err := os.Stat(dest); err != nil {
+		t.Errorf("worktree should have moved to %s: %v", dest, err)
+	}
+	if _, err := os.Stat(legacyWt); !os.IsNotExist(err) {
+		t.Errorf("worktree should no longer be at %s", legacyWt)
+	}
+
+	// The husk is the noise this spec exists to remove.
+	if _, err := os.Stat(legacyDir); !os.IsNotExist(err) {
+		t.Errorf("emptied %s should have been removed", legacyDir)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+	if len(cfg.Repositories[0].Worktrees) != 1 {
+		t.Fatalf("expected 1 worktree, got %d", len(cfg.Repositories[0].Worktrees))
+	}
+	wt := cfg.Repositories[0].Worktrees[0]
+	if !wt.Aligned {
+		t.Error("worktree should be aligned after the move")
+	}
+	if wt.Path != dest {
+		t.Errorf("config path = %q, want %q", wt.Path, dest)
+	}
+}
+
+// TestRunWorktreeAlign_LegacyDirWithOtherContentKept checks the cleanup is
+// conservative: anything else in the legacy directory keeps it alive.
+func TestRunWorktreeAlign_LegacyDirWithOtherContentKept(t *testing.T) {
+	repoDir := setupLegacyWtRepo(t, "legacy-repo", "feat-legacy")
+
+	legacyDir := repoDir + ".wt"
+	keep := filepath.Join(legacyDir, "notes.txt")
+	if err := os.WriteFile(keep, []byte("mine"), 0600); err != nil {
+		t.Fatalf("failed to write extra file: %v", err)
+	}
+
+	if err := runWorktreeAlign("", false); err != nil {
+		t.Fatalf("align returned error: %v", err)
+	}
+
+	if _, err := os.Stat(keep); err != nil {
+		t.Errorf("a user file in the legacy dir must survive: %v", err)
+	}
+}
+
+func TestIsLegacyWtPath(t *testing.T) {
+	tests := []struct {
+		path string
+		want bool
+	}{
+		{filepath.FromSlash("/ws/my-repo.wt/feat"), true},
+		{filepath.FromSlash("/ws/my-repo.wt/feature/auth"), true},
+		{filepath.FromSlash("/ws/my-repo/feat"), false},
+		{filepath.FromSlash("/ws/my-repo-wt/feat"), false},
+		{filepath.FromSlash("/home/u/.local/share/gws/projects/my-repo/feat"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			if got := isLegacyWtPath(tt.path); got != tt.want {
+				t.Errorf("isLegacyWtPath(%q) = %v, want %v", tt.path, got, tt.want)
+			}
+		})
+	}
+}
+
+// setupLegacyWtRepo builds a repo whose worktree sits in the pre-XDG
+// <repo>.wt/<branch> location, as an upgrading user's machine would.
+func setupLegacyWtRepo(t *testing.T, repoName, branch string) string {
+	t.Helper()
+
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	workspaceDir := t.TempDir()
+	resolved, err := filepath.EvalSymlinks(workspaceDir)
+	if err != nil {
+		t.Fatalf("EvalSymlinks failed: %v", err)
+	}
+	workspaceDir = resolved
+
+	repoDir := filepath.Join(workspaceDir, repoName)
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		t.Fatalf("failed to create repo dir: %v", err)
+	}
+
+	cmds := [][]string{
+		{"git", "init"},
+		{"git", "config", "user.email", "test@test.com"},
+		{"git", "config", "user.name", "Test"},
+		{"git", "commit", "--allow-empty", "-m", "init"},
+	}
+	for _, args := range cmds {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = repoDir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("%v failed: %s\n%s", args, err, out)
+		}
+	}
+
+	legacyWt := filepath.Join(repoDir+".wt", branch)
+	if err := os.MkdirAll(filepath.Dir(legacyWt), 0755); err != nil {
+		t.Fatalf("failed to create legacy .wt dir: %v", err)
+	}
+	cmd := exec.Command("git", "worktree", "add", "-b", branch, legacyWt)
+	cmd.Dir = repoDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add failed: %s\n%s", err, out)
+	}
+
+	saveConfigWithRepos(t, workspaceDir, []config.Repository{
+		{Name: repoName, Path: repoDir, Worktrees: []config.Worktree{
+			{Path: legacyWt, Branch: branch, Aligned: false},
+		}},
+	})
+
+	return repoDir
+}

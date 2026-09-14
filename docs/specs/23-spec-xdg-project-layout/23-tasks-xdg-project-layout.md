@@ -97,7 +97,7 @@ Repoint worktree creation and the alignment predicate at `ProjectsDir()/<repo-na
 - [x] 3.7 Update help text and examples in `worktree.go` (lines 29-30), `worktree_add.go` (lines 17-20), `worktree_align.go` (lines 20-21), and `worktree_list.go` (line 22) to describe the projects root instead of `<repo>.wt/`
 - [x] 3.8 Run `go test ./...` and fix any test fixtures that construct `.wt` paths directly
 
-### [ ] 4.0 Legacy `.wt` Migration via `align`
+### [x] 4.0 Legacy `.wt` Migration via `align`
 
 Make `gws worktree align` the single explicit gesture that relocates existing `.wt/` worktrees and cleans up the emptied directories.
 
@@ -111,14 +111,14 @@ Make `gws worktree align` the single explicit gesture that relocates existing `.
 
 #### 4.0 Tasks
 
-- [ ] 4.1 Confirm no special-casing is needed for `.wt/` sources — the redefined `IsAligned` should make them fall out as unaligned automatically. Add a test asserting this rather than writing migration-specific code
-- [ ] 4.2 Add a cross-device branch to `MoveWorktree` in `internal/git/worktree.go`: detect the `EXDEV`/rename failure and return an actionable error naming source, destination, and the likely cause, rather than surfacing raw git output
-- [ ] 4.3 After each successful move, if the source's parent `<repo>.wt/` directory is now empty, remove it
-- [ ] 4.4 Verify `--dry-run` output shows the new destinations and does not create or remove anything
-- [ ] 4.5 Confirm locked worktrees are still skipped with the existing message
-- [ ] 4.6 Confirm `Worktree.Path` and `Worktree.Aligned` are updated in config after each move, as today
-- [ ] 4.7 Add a one-time note to `align` output when it relocates worktrees out of a legacy `.wt/` directory, so the change of location is visible the first time
-- [ ] 4.8 Add `worktree_align_test.go` cases: a simulated `.wt/` layout migrating to the projects root, emptied-directory cleanup, and the cross-device error
+- [x] 4.1 Confirm no special-casing is needed for `.wt/` sources — the redefined `IsAligned` should make them fall out as unaligned automatically. Add a test asserting this rather than writing migration-specific code
+- [x] 4.2 Add a cross-device branch to `MoveWorktree` in `internal/git/worktree.go`: detect the `EXDEV`/rename failure and return an actionable error naming source, destination, and the likely cause, rather than surfacing raw git output
+- [x] 4.3 After each successful move, if the source's parent `<repo>.wt/` directory is now empty, remove it
+- [x] 4.4 Verify `--dry-run` output shows the new destinations and does not create or remove anything
+- [x] 4.5 Confirm locked worktrees are still skipped with the existing message
+- [x] 4.6 Confirm `Worktree.Path` and `Worktree.Aligned` are updated in config after each move, as today
+- [x] 4.7 Add a one-time note to `align` output when it relocates worktrees out of a legacy `.wt/` directory, so the change of location is visible the first time
+- [x] 4.8 Add `worktree_align_test.go` cases: a simulated `.wt/` layout migrating to the projects root, emptied-directory cleanup, and the cross-device error
 
 ### [ ] 5.0 Documentation
 

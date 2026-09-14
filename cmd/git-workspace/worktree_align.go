@@ -149,6 +149,14 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 		fmt.Println()
 	}
 
+	// The destination changed in this version, so say where things are going
+	// before listing the moves rather than after.
+	if hasLegacyPlan(plans) {
+		if root, err := xdg.ProjectsDir(); err == nil {
+			fmt.Printf("Worktrees now live in the projects root: %s\n\n", root)
+		}
+	}
+
 	for _, p := range plans {
 		suffix := ""
 		if p.Renamed {
@@ -165,6 +173,7 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 	// Execute moves
 	var errors []string
 	moved := 0
+
 	for _, p := range plans {
 		// Create the repo's projects directory if needed
 		wtDir, err := xdg.RepoProjectsDir(p.RepoName)
@@ -189,6 +198,12 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 			continue
 		}
 		moved++
+
+		// Tidying the home directory is the point of the move, so clean up the
+		// legacy directory once its last worktree has left.
+		if removed := removeEmptyLegacyDir(p.From); removed != "" {
+			fmt.Printf("Removed empty %s\n", removed)
+		}
 	}
 
 	// Re-discover worktrees for affected repos and save
@@ -229,4 +244,52 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 	}
 
 	return nil
+}
+
+// legacyWtSuffix is the pre-XDG convention: worktrees lived in a sibling
+// directory named <repo>.wt next to the repository itself.
+const legacyWtSuffix = ".wt"
+
+// isLegacyWtPath reports whether a worktree still sits in a <repo>.wt directory.
+func isLegacyWtPath(worktreePath string) bool {
+	for dir := filepath.Dir(worktreePath); ; dir = filepath.Dir(dir) {
+		if strings.HasSuffix(dir, legacyWtSuffix) {
+			return true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return false
+		}
+	}
+}
+
+// removeEmptyLegacyDir removes the <repo>.wt directory a worktree was moved out
+// of, once nothing is left in it, and returns the path removed. Directories that
+// still hold anything are left alone — the goal is to remove the husk, never to
+// discard something the user still has there.
+func removeEmptyLegacyDir(movedFrom string) string {
+	dir := filepath.Dir(movedFrom)
+	if !strings.HasSuffix(dir, legacyWtSuffix) {
+		return ""
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) > 0 {
+		return ""
+	}
+	if err := os.Remove(dir); err != nil {
+		return ""
+	}
+	return dir
+}
+
+// hasLegacyPlan reports whether any planned move starts in a pre-XDG .wt
+// directory, meaning the user is seeing the new location for the first time.
+func hasLegacyPlan(plans []alignPlan) bool {
+	for _, p := range plans {
+		if isLegacyWtPath(p.From) {
+			return true
+		}
+	}
+	return false
 }
