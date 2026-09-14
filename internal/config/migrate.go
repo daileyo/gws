@@ -24,12 +24,9 @@ var migrationNotice io.Writer = os.Stderr
 // never be told it is uninitialized because a file could not be moved.
 func ensureMigrated() {
 	migrateOnce.Do(func() {
-		migrated, err := migrateLegacyConfig()
-		switch {
-		case err != nil:
+		// A successful migration reports itself; only the failure needs handling here.
+		if _, err := migrateLegacyConfig(); err != nil {
 			fmt.Fprintf(migrationNotice, "warning: could not migrate config to its new location: %v\n", err)
-		case migrated:
-			// migrateLegacyConfig already printed the notice.
 		}
 	})
 }
