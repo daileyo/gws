@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 func TestNew(t *testing.T) {
@@ -102,6 +104,9 @@ func TestSaveAndLoad(t *testing.T) {
 }
 
 func TestGetConfigPath(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv(xdg.EnvConfigHome, "")
+
 	path, err := GetConfigPath()
 	if err != nil {
 		t.Fatalf("Failed to get config path: %v", err)
@@ -121,6 +126,11 @@ func TestGetConfigPath(t *testing.T) {
 }
 
 func TestGetConfigDir(t *testing.T) {
+	// Pin the environment: XDG_CONFIG_HOME takes precedence over HOME, so this
+	// assertion is only meaningful with it cleared.
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv(xdg.EnvConfigHome, "")
+
 	dir, err := GetConfigDir()
 	if err != nil {
 		t.Fatalf("Failed to get config dir: %v", err)

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 // setupWorktreeTestRepo creates a workspace with a git repo that has an initial commit.
@@ -14,6 +15,8 @@ func setupWorktreeTestRepo(t *testing.T, repoName string) (workspaceDir string, 
 	t.Helper()
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 
 	workspaceDir = t.TempDir()
 	resolved, err := filepath.EvalSymlinks(workspaceDir)
