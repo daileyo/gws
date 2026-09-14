@@ -1,10 +1,12 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/daileyo/gws/internal/xdg"
 )
@@ -156,9 +158,33 @@ func MoveWorktree(repoPath, currentPath, newPath string) error {
 		return nil
 	}
 
+	// A cross-device move is now plausible: the projects root lives under
+	// $XDG_DATA_HOME while the repo may sit on a different mount. git worktree
+	// move is ultimately a rename, so it cannot cross filesystems. Say so,
+	// rather than surfacing git's raw error.
+	if isCrossDeviceErr(err) {
+		return fmt.Errorf(
+			"cannot move worktree across filesystems:\n  from: %s\n  to:   %s\n"+
+				"The projects root is on a different mount than the repository. "+
+				"Set XDG_DATA_HOME to a location on the same filesystem, or move the worktree manually",
+			currentPath, newPath)
+	}
+
 	// For any other failure, attempt repair to keep git state consistent
 	_, _ = gitCommand(repoPath, "worktree", "repair")
 	return err
+}
+
+// isCrossDeviceErr reports whether err looks like a rename across filesystems.
+// git surfaces this as text rather than a typed error, so both the wrapped
+// syscall error and git's message are checked.
+func isCrossDeviceErr(err error) bool {
+	if errors.Is(err, syscall.EXDEV) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "invalid cross-device link") ||
+		strings.Contains(msg, "cross-device")
 }
 
 // RepairWorktrees runs "git worktree repair" to fix broken internal links
