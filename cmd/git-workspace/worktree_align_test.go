@@ -60,7 +60,7 @@ func setupAlignTestRepo(t *testing.T) (repoDir string) {
 		}
 	}
 
-	// Create an unaligned worktree outside the .wt dir
+	// Create an unaligned worktree outside the projects root
 	unalignedDir := filepath.Join(t.TempDir(), "unaligned-wt")
 	resolvedUnaligned, _ := filepath.EvalSymlinks(filepath.Dir(unalignedDir))
 	unalignedDir = filepath.Join(resolvedUnaligned, "unaligned-wt")
@@ -89,7 +89,7 @@ func setupAlignTestRepo(t *testing.T) (repoDir string) {
 }
 
 func TestRunWorktreeAlign_MovesUnaligned(t *testing.T) {
-	repoDir := setupAlignTestRepo(t)
+	setupAlignTestRepo(t)
 
 	output := captureStdoutStr(func() {
 		if err := runWorktreeAlign("", false); err != nil {
@@ -97,8 +97,8 @@ func TestRunWorktreeAlign_MovesUnaligned(t *testing.T) {
 		}
 	})
 
-	// Verify the worktree was moved to .wt/
-	expectedPath := filepath.Join(repoDir+".wt", "feature-unaligned")
+	// Verify the worktree was moved into the projects root
+	expectedPath := projectsPath(t, "my-repo", "feature-unaligned")
 	if _, err := os.Stat(expectedPath); err != nil {
 		t.Errorf("worktree should exist at %s after align: %v", expectedPath, err)
 	}
@@ -138,7 +138,7 @@ func TestRunWorktreeAlign_SkipsAligned(t *testing.T) {
 			Name: "my-repo",
 			Path: filepath.Join(resolved, "my-repo"),
 			Worktrees: []config.Worktree{
-				{Path: filepath.Join(resolved, "my-repo.wt", "feat"), Branch: "feat", Aligned: true},
+				{Path: projectsPath(t, "my-repo", "feat"), Branch: "feat", Aligned: true},
 			},
 		},
 	}
@@ -158,7 +158,7 @@ func TestRunWorktreeAlign_SkipsAligned(t *testing.T) {
 }
 
 func TestRunWorktreeAlign_DryRun(t *testing.T) {
-	repoDir := setupAlignTestRepo(t)
+	setupAlignTestRepo(t)
 
 	// Get the unaligned worktree path before dry-run
 	cfg, _ := config.Load()
@@ -183,9 +183,9 @@ func TestRunWorktreeAlign_DryRun(t *testing.T) {
 		t.Errorf("worktree should still exist at original path after dry-run: %v", err)
 	}
 
-	expectedDest := filepath.Join(repoDir+".wt", "feature-unaligned")
+	expectedDest := projectsPath(t, "my-repo", "feature-unaligned")
 	if _, err := os.Stat(expectedDest); err == nil {
-		t.Error("worktree should NOT exist at .wt/ path after dry-run")
+		t.Error("worktree should NOT exist in the projects root after dry-run")
 	}
 }
 
@@ -215,8 +215,8 @@ func TestRunWorktreeAlign_DuplicateNames(t *testing.T) {
 		}
 	}
 
-	// Create .wt dir with an existing aligned worktree named "feat"
-	wtDir := repoDir + ".wt"
+	// Create the projects dir with an existing aligned worktree named "feat"
+	wtDir := projectsPath(t, "my-repo")
 	alignedPath := filepath.Join(wtDir, "feat")
 	cmd := exec.Command("git", "worktree", "add", "-b", "feat", alignedPath)
 	cmd.Dir = repoDir
@@ -255,14 +255,14 @@ func TestRunWorktreeAlign_DuplicateNames(t *testing.T) {
 		}
 	})
 
-	// The unaligned worktree "feat-v2" should be moved to .wt/feat-v2 (no conflict since branch name is different)
+	// The unaligned worktree "feat-v2" should move into the projects root (no conflict: different branch name)
 	if !strings.Contains(output, "Aligned 1 worktree") {
 		t.Errorf("should align 1 worktree, got:\n%s", output)
 	}
 }
 
 func TestRunWorktreeAlign_FilterByRepo(t *testing.T) {
-	repoDir := setupAlignTestRepo(t)
+	setupAlignTestRepo(t)
 
 	// Try aligning a different repo — should find nothing to align
 	output := captureStdoutStr(func() {
@@ -282,7 +282,7 @@ func TestRunWorktreeAlign_FilterByRepo(t *testing.T) {
 		}
 	})
 
-	expectedPath := filepath.Join(repoDir+".wt", "feature-unaligned")
+	expectedPath := projectsPath(t, "my-repo", "feature-unaligned")
 	if _, err := os.Stat(expectedPath); err != nil {
 		t.Errorf("worktree should be moved when filtered to correct repo: %v", err)
 	}

@@ -10,14 +10,20 @@ import (
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
 	"github.com/daileyo/gws/internal/git"
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 var worktreeAddCmd = &cobra.Command{
 	Use:   "add <repo> <branch>",
-	Short: "Create a new worktree following the .wt/ convention",
-	Long: `Create a new git worktree at <repo-path>.wt/<branch> for the given branch.
+	Short: "Create a new worktree in the projects root",
+	Long: `Create a new git worktree for the given branch.
 
-The .wt/ directory is created automatically if it does not exist.
+Worktrees live under the XDG projects root, one directory per repository:
+
+  $XDG_DATA_HOME/gws/projects/<repo>/<branch>
+  (default: ~/.local/share/gws/projects/<repo>/<branch>)
+
+The directory is created automatically if it does not exist.
 
 Examples:
   gws worktree add my-repo feature-auth
@@ -61,13 +67,17 @@ func runWorktreeAdd(repoName, branch string) error {
 		}
 	}
 
-	// Compute destination path
-	wtDir := repo.Path + ".wt"
+	// Compute destination path under the XDG projects root
+	wtDir, err := xdg.RepoProjectsDir(repo.Name)
+	if err != nil {
+		return err
+	}
 	destPath := filepath.Join(wtDir, branch)
 
-	// Create .wt/ directory if needed
-	if err := os.MkdirAll(wtDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .wt directory: %w", err)
+	// Create the repo's projects directory if needed. A branch name containing
+	// slashes nests, so create the destination's parent rather than wtDir.
+	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		return fmt.Errorf("failed to create projects directory: %w", err)
 	}
 
 	// Create the worktree
@@ -83,7 +93,7 @@ func runWorktreeAdd(repoName, branch string) error {
 			wts[j] = config.Worktree{
 				Path:    e.Path,
 				Branch:  e.Branch,
-				Aligned: git.IsAligned(e.Path, repo.Path),
+				Aligned: git.IsAligned(e.Path, repo.Name),
 			}
 		}
 		repo.Worktrees = wts

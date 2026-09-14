@@ -127,7 +127,7 @@ func discoverWorktrees(repos []config.Repository) int {
 			wts = append(wts, config.Worktree{
 				Path:    e.Path,
 				Branch:  e.Branch,
-				Aligned: git.IsAligned(e.Path, repos[i].Path),
+				Aligned: git.IsAligned(e.Path, repos[i].Name),
 			})
 		}
 		if len(wts) == 0 {

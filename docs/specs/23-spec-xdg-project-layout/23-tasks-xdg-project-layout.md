@@ -75,7 +75,7 @@ Move the config to its XDG home, migrating an existing `~/.gws/config.json` on f
 - [x] 2.9 Bump `ConfigVersion` from `1.1.0` to `1.2.0` to mark the layout change
 - [x] 2.10 Add `config_test.go` cases: migrate-on-load, no-op when XDG config exists, `0600` preserved, non-empty legacy dir retained, symlinked legacy config refused, and fallback-on-failure
 
-### [ ] 3.0 Worktree Root Relocation
+### [x] 3.0 Worktree Root Relocation
 
 Repoint worktree creation and the alignment predicate at `ProjectsDir()/<repo-name>/`, updating every call site together.
 
@@ -88,14 +88,14 @@ Repoint worktree creation and the alignment predicate at `ProjectsDir()/<repo-na
 
 #### 3.0 Tasks
 
-- [ ] 3.1 Change `git.IsAligned` to take the repo name and test containment within `ProjectsDir()/<repo-name>/`, resolving symlinks on both sides as `ListWorktrees` already does
-- [ ] 3.2 Update `TestIsAligned` in `internal/git/worktree_test.go` for the new signature and semantics, including a case asserting a `.wt/` path is now *not* aligned
-- [ ] 3.3 In `worktree_add.go`, replace `wtDir := repo.Path + ".wt"` (line 65) with the projects-root destination and `os.MkdirAll` the repo-scoped parent
-- [ ] 3.4 Update the `IsAligned` call in `worktree_add.go` (line ~86) for the new signature
-- [ ] 3.5 In `worktree_align.go`, replace both `wtDir` derivations (lines 77 and 166) with the projects-root destination, leaving the `-dup-NN` logic at lines 110-119 untouched
-- [ ] 3.6 Update the `IsAligned` calls in `worktree_align.go` (line ~208) and `refresh.go` (line 130)
-- [ ] 3.7 Update help text and examples in `worktree.go` (lines 29-30), `worktree_add.go` (lines 17-20), `worktree_align.go` (lines 20-21), and `worktree_list.go` (line 22) to describe the projects root instead of `<repo>.wt/`
-- [ ] 3.8 Run `go test ./...` and fix any test fixtures that construct `.wt` paths directly
+- [x] 3.1 Change `git.IsAligned` to take the repo name and test containment within `ProjectsDir()/<repo-name>/`, resolving symlinks on both sides as `ListWorktrees` already does
+- [x] 3.2 Update `TestIsAligned` in `internal/git/worktree_test.go` for the new signature and semantics, including a case asserting a `.wt/` path is now *not* aligned
+- [x] 3.3 In `worktree_add.go`, replace `wtDir := repo.Path + ".wt"` (line 65) with the projects-root destination and `os.MkdirAll` the repo-scoped parent
+- [x] 3.4 Update the `IsAligned` call in `worktree_add.go` (line ~86) for the new signature
+- [x] 3.5 In `worktree_align.go`, replace both `wtDir` derivations (lines 77 and 166) with the projects-root destination, leaving the `-dup-NN` logic at lines 110-119 untouched
+- [x] 3.6 Update the `IsAligned` calls in `worktree_align.go` (line ~208) and `refresh.go` (line 130)
+- [x] 3.7 Update help text and examples in `worktree.go` (lines 29-30), `worktree_add.go` (lines 17-20), `worktree_align.go` (lines 20-21), and `worktree_list.go` (line 22) to describe the projects root instead of `<repo>.wt/`
+- [x] 3.8 Run `go test ./...` and fix any test fixtures that construct `.wt` paths directly
 
 ### [ ] 4.0 Legacy `.wt` Migration via `align`
 

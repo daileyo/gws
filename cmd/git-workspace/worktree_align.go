@@ -11,14 +11,15 @@ import (
 	"github.com/daileyo/gws/internal/config"
 	"github.com/daileyo/gws/internal/filter"
 	"github.com/daileyo/gws/internal/git"
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 var flagDryRun bool
 
 var worktreeAlignCmd = &cobra.Command{
 	Use:   "align [repo]",
-	Short: "Move unaligned worktrees into the <repo>.wt/ convention",
-	Long: `Move all unaligned worktrees into the standard <repo>.wt/ directory structure
+	Short: "Move unaligned worktrees into the projects root",
+	Long: `Move all unaligned worktrees into the XDG projects root
 using git worktree move (requires Git 2.17+).
 
 When a repo name argument is provided, only that repo's worktrees are aligned.
@@ -74,8 +75,11 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 		_ = git.RepairWorktrees(repo.Path)
 		_ = git.PruneWorktrees(repo.Path)
 
-		wtDir := repo.Path + ".wt"
-		// Track names used in this repo's .wt dir to detect conflicts
+		wtDir, err := xdg.RepoProjectsDir(repo.Name)
+		if err != nil {
+			return err
+		}
+		// Track names used in this repo's projects dir to detect conflicts
 		usedNames := make(map[string]bool)
 
 		// Pre-populate with existing aligned worktrees
@@ -162,10 +166,14 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 	var errors []string
 	moved := 0
 	for _, p := range plans {
-		// Create .wt directory if needed
-		wtDir := p.RepoPath + ".wt"
+		// Create the repo's projects directory if needed
+		wtDir, err := xdg.RepoProjectsDir(p.RepoName)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("  %s/%s: %v", p.RepoName, p.Branch, err))
+			continue
+		}
 		if err := os.MkdirAll(wtDir, 0755); err != nil {
-			errors = append(errors, fmt.Sprintf("  %s/%s: failed to create .wt dir: %v", p.RepoName, p.Branch, err))
+			errors = append(errors, fmt.Sprintf("  %s/%s: failed to create projects dir: %v", p.RepoName, p.Branch, err))
 			continue
 		}
 
@@ -205,7 +213,7 @@ func runWorktreeAlign(repoFilter string, dryRun bool) error {
 			wts[j] = config.Worktree{
 				Path:    e.Path,
 				Branch:  e.Branch,
-				Aligned: git.IsAligned(e.Path, repo.Path),
+				Aligned: git.IsAligned(e.Path, repo.Name),
 			}
 		}
 		repo.Worktrees = wts

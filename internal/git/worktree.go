@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 // WorktreeEntry represents a single git worktree discovered via git worktree list.
@@ -211,9 +213,32 @@ func IsWorktreeLocked(repoPath, worktreePath string) (bool, string) {
 	return false, ""
 }
 
-// IsAligned checks whether a worktree path is inside the <repoPath>.wt/ directory.
-func IsAligned(worktreePath, repoPath string) bool {
-	wtDir := filepath.Clean(repoPath) + ".wt"
-	cleanWt := filepath.Clean(worktreePath)
-	return cleanWt == wtDir || strings.HasPrefix(cleanWt, wtDir+string(filepath.Separator))
+// IsAligned reports whether a worktree lives under the repository's directory
+// in the XDG projects root.
+//
+// This is keyed by repository name rather than repository path: the projects
+// root is a fixed location, no longer derived from wherever the repo happens to
+// sit on disk. A worktree in a legacy <repo>.wt/ directory is therefore no
+// longer aligned, which is what makes `gws worktree align` pick it up for
+// migration without any special-casing.
+func IsAligned(worktreePath, repoName string) bool {
+	projectsDir, err := xdg.RepoProjectsDir(repoName)
+	if err != nil {
+		return false
+	}
+
+	root := resolvePath(projectsDir)
+	wt := resolvePath(worktreePath)
+
+	return wt == root || strings.HasPrefix(wt, root+string(filepath.Separator))
+}
+
+// resolvePath resolves symlinks where it can, falling back to a lexical clean
+// for paths that do not exist yet. Both are needed: ~/.local/share is a symlink
+// on some setups, while the projects root may not have been created yet.
+func resolvePath(p string) string {
+	if resolved, err := filepath.EvalSymlinks(p); err == nil {
+		return resolved
+	}
+	return filepath.Clean(p)
 }

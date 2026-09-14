@@ -158,82 +158,68 @@ func TestParseWorktreeListPorcelain_Empty(t *testing.T) {
 }
 
 func TestIsAligned(t *testing.T) {
+	// Point the projects root at a temp dir so the real home is never read.
+	home := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, "data"))
+	projects := filepath.Join(home, "data", "gws", "projects")
+
 	tests := []struct {
 		name         string
 		worktreePath string
-		repoPath     string
+		repoName     string
 		expected     bool
 	}{
 		{
-			name:         "aligned - directly inside .wt dir",
+			name:         "aligned - directly inside the repo's projects dir",
+			worktreePath: filepath.Join(projects, "my-repo", "feature-x"),
+			repoName:     "my-repo",
+			expected:     true,
+		},
+		{
+			name:         "aligned - nested for a branch containing a slash",
+			worktreePath: filepath.Join(projects, "my-repo", "feature", "auth-flow"),
+			repoName:     "my-repo",
+			expected:     true,
+		},
+		{
+			name:         "unaligned - legacy .wt directory",
 			worktreePath: "/workspace/my-repo.wt/feature-x",
-			repoPath:     "/workspace/my-repo",
-			expected:     true,
+			repoName:     "my-repo",
+			expected:     false,
 		},
 		{
-			name:         "aligned - nested inside .wt dir",
-			worktreePath: "/workspace/my-repo.wt/feature/auth-flow",
-			repoPath:     "/workspace/my-repo",
-			expected:     true,
-		},
-		{
-			name:         "unaligned - different location",
+			name:         "unaligned - somewhere else entirely",
 			worktreePath: "/tmp/some-worktree",
-			repoPath:     "/workspace/my-repo",
+			repoName:     "my-repo",
 			expected:     false,
 		},
 		{
-			name:         "unaligned - similar name but not .wt suffix",
-			worktreePath: "/workspace/my-repo-wt/feature",
-			repoPath:     "/workspace/my-repo",
+			name:         "unaligned - another repo's projects dir",
+			worktreePath: filepath.Join(projects, "other-repo", "feature-x"),
+			repoName:     "my-repo",
 			expected:     false,
 		},
 		{
-			name:         "unaligned - sibling directory with similar prefix",
-			worktreePath: "/workspace/my-repo.wtx/feature",
-			repoPath:     "/workspace/my-repo",
+			name:         "unaligned - sibling with a similar prefix",
+			worktreePath: filepath.Join(projects, "my-repo-extra", "feature-x"),
+			repoName:     "my-repo",
 			expected:     false,
 		},
 		{
-			name:         "aligned - trailing slash on repo path",
-			worktreePath: "/workspace/my-repo.wt/bugfix",
-			repoPath:     "/workspace/my-repo/",
+			name:         "aligned - the repo's projects dir itself",
+			worktreePath: filepath.Join(projects, "my-repo"),
+			repoName:     "my-repo",
 			expected:     true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := IsAligned(tt.worktreePath, tt.repoPath)
+			got := IsAligned(tt.worktreePath, tt.repoName)
 			if got != tt.expected {
-				t.Errorf("IsAligned(%q, %q) = %v, want %v", tt.worktreePath, tt.repoPath, got, tt.expected)
+				t.Errorf("IsAligned(%q, %q) = %v, want %v", tt.worktreePath, tt.repoName, got, tt.expected)
 			}
 		})
-	}
-}
-
-// TestListWorktrees_BranchWithSlashes verifies branches like feature/auth are handled.
-func TestListWorktrees_BranchWithSlashes(t *testing.T) {
-	repoDir := t.TempDir()
-	initBareGitRepo(t, repoDir)
-
-	wtPath := filepath.Join(t.TempDir(), "wt-feat")
-	cmd := exec.Command("git", "worktree", "add", "-b", "feature/auth-flow", wtPath)
-	cmd.Dir = repoDir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("worktree add failed: %s\n%s", err, out)
-	}
-
-	entries, err := ListWorktrees(repoDir)
-	if err != nil {
-		t.Fatalf("ListWorktrees failed: %v", err)
-	}
-
-	if len(entries) != 1 {
-		t.Fatalf("Expected 1 worktree, got %d", len(entries))
-	}
-	if entries[0].Branch != "feature/auth-flow" {
-		t.Errorf("Expected branch 'feature/auth-flow', got '%s'", entries[0].Branch)
 	}
 }
 

@@ -19,7 +19,7 @@ var worktreeListCmd = &cobra.Command{
 single repository.
 
 Each entry shows the repository name, branch, path, and whether the worktree
-is aligned (inside <repo>.wt/) or unaligned.
+is aligned (inside the projects root) or unaligned.
 
 Examples:
   gws worktree list                 # List all worktrees

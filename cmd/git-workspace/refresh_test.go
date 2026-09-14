@@ -191,10 +191,10 @@ func TestRunRefresh_DiscoverWorktrees(t *testing.T) {
 	repoWithoutWT := filepath.Join(workspaceDir, "repo-without-wt")
 	createInitTestRepo(t, repoWithoutWT)
 
-	// Add a worktree to the first repo.
-	wtDir := repoWithWT + ".wt"
+	// Add a worktree to the first repo, in the XDG projects root.
+	wtDir := projectsPath(t, "repo-with-wt")
 	if err := os.MkdirAll(wtDir, 0755); err != nil {
-		t.Fatalf("failed to create .wt dir: %v", err)
+		t.Fatalf("failed to create projects dir: %v", err)
 	}
 	wtPath := filepath.Join(wtDir, "feature-x")
 	cmd := exec.Command("git", "worktree", "add", "-b", "feature-x", wtPath)
@@ -240,7 +240,7 @@ func TestRunRefresh_DiscoverWorktrees(t *testing.T) {
 		t.Errorf("expected worktree branch 'feature-x', got '%s'", withWT.Worktrees[0].Branch)
 	}
 	if !withWT.Worktrees[0].Aligned {
-		t.Error("expected worktree to be aligned (inside .wt/ dir)")
+		t.Error("expected worktree to be aligned (inside the projects root)")
 	}
 
 	if withoutWT == nil {

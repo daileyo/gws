@@ -53,7 +53,7 @@ func setupWorktreeTestRepo(t *testing.T, repoName string) (workspaceDir string, 
 }
 
 func TestRunWorktreeAdd_Success(t *testing.T) {
-	_, repoDir := setupWorktreeTestRepo(t, "my-repo")
+	setupWorktreeTestRepo(t, "my-repo")
 
 	err := runWorktreeAdd("my-repo", "feature-x")
 	if err != nil {
@@ -61,7 +61,7 @@ func TestRunWorktreeAdd_Success(t *testing.T) {
 	}
 
 	// Verify worktree directory was created
-	wtPath := repoDir + ".wt/feature-x"
+	wtPath := projectsPath(t, "my-repo", "feature-x")
 	if _, err := os.Stat(wtPath); err != nil {
 		t.Errorf("worktree directory should exist at %s: %v", wtPath, err)
 	}
@@ -80,17 +80,17 @@ func TestRunWorktreeAdd_Success(t *testing.T) {
 		t.Errorf("expected branch 'feature-x', got '%s'", repo.Worktrees[0].Branch)
 	}
 	if !repo.Worktrees[0].Aligned {
-		t.Error("worktree should be aligned (inside .wt/ dir)")
+		t.Error("worktree should be aligned (inside the projects root)")
 	}
 }
 
 func TestRunWorktreeAdd_CreatesWtDir(t *testing.T) {
-	_, repoDir := setupWorktreeTestRepo(t, "my-repo")
+	setupWorktreeTestRepo(t, "my-repo")
 
-	// .wt dir should not exist yet
-	wtDir := repoDir + ".wt"
+	// The repo's projects dir should not exist yet
+	wtDir := projectsPath(t, "my-repo")
 	if _, err := os.Stat(wtDir); err == nil {
-		t.Fatal(".wt dir should not exist before add")
+		t.Fatal("projects dir should not exist before add")
 	}
 
 	err := runWorktreeAdd("my-repo", "new-branch")
@@ -98,9 +98,9 @@ func TestRunWorktreeAdd_CreatesWtDir(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// .wt dir should now exist
+	// The repo's projects dir should now exist
 	if _, err := os.Stat(wtDir); err != nil {
-		t.Errorf(".wt dir should exist after add: %v", err)
+		t.Errorf("projects dir should exist after add: %v", err)
 	}
 }
 
@@ -135,7 +135,7 @@ func TestRunWorktreeAdd_DuplicateBranch(t *testing.T) {
 }
 
 func TestRunWorktreeAdd_BranchWithSlash(t *testing.T) {
-	_, repoDir := setupWorktreeTestRepo(t, "my-repo")
+	setupWorktreeTestRepo(t, "my-repo")
 
 	err := runWorktreeAdd("my-repo", "feature/auth-flow")
 	if err != nil {
@@ -143,7 +143,7 @@ func TestRunWorktreeAdd_BranchWithSlash(t *testing.T) {
 	}
 
 	// Verify nested directory was created
-	wtPath := filepath.Join(repoDir+".wt", "feature", "auth-flow")
+	wtPath := projectsPath(t, "my-repo", "feature", "auth-flow")
 	if _, err := os.Stat(wtPath); err != nil {
 		t.Errorf("worktree directory should exist at %s: %v", wtPath, err)
 	}
