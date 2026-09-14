@@ -10,6 +10,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 // createInitTestRepo creates a minimal valid git repository for init tests.
@@ -48,11 +49,16 @@ func createInitTestRepo(t *testing.T, path string) {
 }
 
 // withTempHome redirects HOME to a temp directory so config.Save/Load/Exists
-// operate on an isolated file instead of the real ~/.gws/config.json.
+// operate on an isolated file instead of the real one.
+//
+// The XDG variables are cleared as well: they take precedence over HOME, so
+// setting HOME alone does not isolate a machine that has them set.
 func withTempHome(t *testing.T) {
 	t.Helper()
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 }
 
 // withTempWorkdir changes the process working directory to dir for the duration

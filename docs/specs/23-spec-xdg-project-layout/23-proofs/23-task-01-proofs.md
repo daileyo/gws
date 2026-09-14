@@ -75,3 +75,47 @@ delegate, so nothing else in the tree hardcodes a path.
 
 `TestGetConfigDir` asserted the directory was named `.gws`; it now asserts `gws` under
 `.config`, which is the behavior change this task exists to make.
+
+---
+
+## Post-merge finding: HOME-only test isolation is no longer sufficient
+
+CI failed on `Build and Test (1.22.x)` with:
+
+```
+--- FAIL: TestRunCd_UninitializedWorkspace
+--- FAIL: TestRunInit_HappyPath
+FAIL: real config was created by tests: /home/runner/.config/gws/config.json
+```
+
+**Cause.** Test helpers isolate by pointing `HOME` at a temp directory, which was sufficient
+while the config path was `$HOME/.gws`. It no longer is: `XDG_CONFIG_HOME` now takes
+precedence over `HOME`. GitHub runners set `XDG_CONFIG_HOME`, so the override was ignored and
+tests wrote to the runner's real config. The package's existing config guard caught it — which
+is why this surfaced as a clean failure rather than silent corruption.
+
+It did not reproduce locally because `XDG_CONFIG_HOME` is unset on this machine. Reproduced by
+setting it:
+
+```
+$ XDG_CONFIG_HOME=/tmp/ci-sim go test ./cmd/git-workspace/ -run TestRunInit_HappyPath
+FAIL: real config was created by tests: /tmp/ci-sim/gws/config.json
+```
+
+**Fix, two layers.** `isolateXDGDirs()` in the package `TestMain` clears both variables so
+`HOME` is authoritative for every test in the package; and each helper that overrides `HOME`
+clears them too, so the pattern stays correct if copied elsewhere. `TestGetConfigDir` and
+`TestGetConfigPath` were also asserting a `.config` parent, which only holds when
+`XDG_CONFIG_HOME` is unset — they now pin the environment rather than depending on it.
+
+**Verified under both conditions:**
+
+```
+$ go test -count=1 ./...                                        # 8/8 ok
+$ XDG_CONFIG_HOME=... XDG_DATA_HOME=... go test -race ./...      # 8/8 ok, nothing leaked
+```
+
+**Worth noting for spec 24 and beyond:** any change that makes an environment variable take
+precedence over `HOME` silently weakens every `HOME`-based test isolation in the tree. The
+config guard in `TestMain` is what turned this into a visible failure instead of a developer
+discovering their own config had been overwritten.

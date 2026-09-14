@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 // captureStdoutStr captures stdout output from a function and returns it as a string.
@@ -33,6 +34,8 @@ func setupAlignTestRepo(t *testing.T) (repoDir string) {
 	t.Helper()
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 
 	workspaceDir := t.TempDir()
 	resolved, err := filepath.EvalSymlinks(workspaceDir)
@@ -128,6 +131,8 @@ func TestRunWorktreeAlign_MovesUnaligned(t *testing.T) {
 func TestRunWorktreeAlign_SkipsAligned(t *testing.T) {
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 
 	workspaceDir := t.TempDir()
 	resolved, _ := filepath.EvalSymlinks(workspaceDir)
@@ -192,6 +197,8 @@ func TestRunWorktreeAlign_DryRun(t *testing.T) {
 func TestRunWorktreeAlign_DuplicateNames(t *testing.T) {
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 
 	workspaceDir := t.TempDir()
 	resolved, _ := filepath.EvalSymlinks(workspaceDir)
@@ -383,6 +390,8 @@ func setupLegacyWtRepo(t *testing.T, repoName, branch string) string {
 
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 
 	workspaceDir := t.TempDir()
 	resolved, err := filepath.EvalSymlinks(workspaceDir)

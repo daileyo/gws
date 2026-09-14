@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 // setupWorkspace creates a temporary home + an initialized workspace config,
@@ -15,6 +16,8 @@ func setupWorkspace(t *testing.T) string {
 	t.Helper()
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 
 	workspaceDir := t.TempDir()
 	resolvedWorkspace, err := filepath.EvalSymlinks(workspaceDir)
@@ -186,6 +189,8 @@ func TestRunAdd_NoWorkspace(t *testing.T) {
 	// Redirect HOME to an empty temp dir — no config file exists
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 
 	err := runAdd(".", false)
 	if err == nil {

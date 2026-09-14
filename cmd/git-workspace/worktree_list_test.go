@@ -6,12 +6,15 @@ import (
 	"testing"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 func saveConfigForWorktreeTests(t *testing.T, repos []config.Repository) {
 	t.Helper()
 	tmpHome := t.TempDir()
 	t.Setenv("HOME", tmpHome)
+	t.Setenv(xdg.EnvConfigHome, "")
+	t.Setenv(xdg.EnvDataHome, "")
 
 	cfg := config.New("/workspace")
 	cfg.Repositories = repos

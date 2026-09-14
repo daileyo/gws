@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/gws/internal/xdg"
 )
 
 // isolateGitHooks stops a developer's global git hooks from running against the
@@ -25,11 +26,26 @@ func isolateGitHooks() {
 	os.Setenv("GIT_CONFIG_VALUE_0", "")
 }
 
+// isolateXDGDirs clears the XDG variables for the whole package.
+//
+// Tests isolate themselves by pointing HOME at a temp directory, but XDG_CONFIG_HOME
+// and XDG_DATA_HOME take precedence over HOME when resolving paths. On a machine
+// where either is set — CI runners set XDG_CONFIG_HOME — that isolation silently
+// stops working and tests write to the developer's real config.
+//
+// Clearing them here makes HOME authoritative, so every existing helper that
+// overrides HOME isolates fully again.
+func isolateXDGDirs() {
+	os.Unsetenv(xdg.EnvConfigHome)
+	os.Unsetenv(xdg.EnvDataHome)
+}
+
 // TestMain guards against tests corrupting the real user config.
 // It snapshots the config file before all tests and fails if
 // the content has changed after the suite finishes.
 func TestMain(m *testing.M) {
 	isolateGitHooks()
+	isolateXDGDirs()
 
 	configPath, err := config.GetConfigPath()
 	if err != nil {
