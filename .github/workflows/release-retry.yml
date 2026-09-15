@@ -1,0 +1,50 @@
+name: Release Retry
+
+# Re-runs GoReleaser for a tag that already exists, for when a release fails
+# partway through. Deliberately separate from the Release Please workflow:
+# putting a dispatch trigger on that one also re-runs release-please, which
+# opens a spurious release PR.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to re-release, e.g. v3.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    name: GoReleaser
+    runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: '1.24.x'
+          cache: true
+
+      - name: Verify the tree is sound before publishing
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
