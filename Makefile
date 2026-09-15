@@ -1,4 +1,4 @@
-# Makefile for gws - Git Workspace CLI
+# Makefile for omgitworks - git workspace CLI
 
 # Binary name
 BINARY_NAME=omgitworks
