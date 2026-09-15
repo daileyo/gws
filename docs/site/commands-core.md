@@ -4,7 +4,7 @@
 
 ### Automatic Classification
 
-When repositories are discovered with `gws init`, they are automatically classified based on their remote URL:
+When repositories are discovered with `omgw init`, they are automatically classified based on their remote URL:
 
 | Repository Type | Detected From |
 |----------------|---------------|
@@ -50,7 +50,7 @@ Repository visibility is inferred from the remote URL protocol:
 ## List Repositories
 
 ```
-gws list [flags]
+omgw list [flags]
 ```
 
 List all tracked repositories with optional filtering and display options.
@@ -59,16 +59,16 @@ By default, only repository names are shown in a compact multi-column layout. Us
 
 ### Flag Convention
 
-`gws list` uses a **dual-purpose flag convention**:
+`omgw list` uses a **dual-purpose flag convention**:
 
 - **Lowercase flags** (`-t`, `-y`, `-s`, etc.) = **filter only** — narrow results without adding a column
 - **Uppercase flags** (`-T`, `-Y`, `-S`, etc.) = **show column** — display the column, optionally filtering when a value is provided
 
 For example:
 
-- `gws list -t work` — filter by tag "work", no tag column shown
-- `gws list -T work` — filter by tag "work" AND show the tags column
-- `gws list -T` — show the tags column with no filter applied
+- `omgw list -t work` — filter by tag "work", no tag column shown
+- `omgw list -T work` — filter by tag "work" AND show the tags column
+- `omgw list -T` — show the tags column with no filter applied
 
 ### Filter Flags (Lowercase)
 
@@ -118,7 +118,7 @@ These flags show a column in the output. When provided with a value, they simult
 **Default listing (compact multi-column names):**
 
 ```bash
-gws list
+omgw list
 ```
 
 ```
@@ -135,7 +135,7 @@ Repositories with git worktrees show an orange `(wt)` indicator next to their na
 **Verbose listing (stored data columns):**
 
 ```bash
-gws list -v
+omgw list -v
 ```
 
 ```
@@ -151,13 +151,13 @@ client-site       bitbucket  unknown     client, archived  /home/user/projects/c
 **Show specific columns:**
 
 ```bash
-gws list -YTSP
+omgw list -YTSP
 ```
 
 **Compact status (icons in name column):**
 
 ```bash
-gws list -s
+omgw list -s
 ```
 
 ```
@@ -173,9 +173,9 @@ client-site          ↓1      ✓
 Use `-s` with a value to filter by status:
 
 ```bash
-gws list -s dirty         # Show only dirty repos
-gws list -s clean         # Show only clean repos
-gws list -s ahead         # Show only repos ahead of remote
+omgw list -s dirty         # Show only dirty repos
+omgw list -s clean         # Show only clean repos
+omgw list -s ahead         # Show only repos ahead of remote
 ```
 
 When both `-s` and `-S` are specified, `-S` wins and the full STATUS column is shown.
@@ -183,7 +183,7 @@ When both `-s` and `-S` are specified, `-S` wins and the full STATUS column is s
 **Full git status column:**
 
 ```bash
-gws list -S
+omgw list -S
 ```
 
 ```
@@ -213,28 +213,28 @@ A `⚠` indicator in the NAME column means the repository's git user configurati
 
 ```bash
 # Filter by repository type (exact match)
-gws list -y github
+omgw list -y github
 
 # Filter by visibility
-gws list -i private
+omgw list -i private
 
 # Filter by single tag (exact match)
-gws list -t personal
+omgw list -t personal
 
 # Filter by repository name (partial match, case-insensitive)
-gws list -n project
+omgw list -n project
 
 # Filter by remote URL pattern
-gws list -r github.com
+omgw list -r github.com
 
 # Filter by status pattern
-gws list -s dirty
+omgw list -s dirty
 
 # Combine multiple filters
-gws list -y gitlab -t work -n api
+omgw list -y gitlab -t work -n api
 
 # Filter and show column simultaneously
-gws list -T work -S
+omgw list -T work -S
 ```
 
 **JSON output:**
@@ -242,7 +242,7 @@ gws list -T work -S
 By default, JSON output only includes the `name` field:
 
 ```bash
-gws list -o json
+omgw list -o json
 ```
 
 ```json
@@ -256,7 +256,7 @@ gws list -o json
 Add show-column flags to include additional fields:
 
 ```bash
-gws list -o json -YTP
+omgw list -o json -YTP
 ```
 
 ```json
@@ -275,7 +275,7 @@ gws list -o json -YTP
 ## Initialize Workspace
 
 ```
-gws init [directory]
+omgw init [directory]
 ```
 
 Initialize a workspace by scanning a directory for git repositories. Defaults to the current directory if no path is given.
@@ -291,13 +291,13 @@ Initialize a workspace by scanning a directory for git repositories. Defaults to
 
 ```bash
 # Initialize in current directory
-gws init
+omgw init
 
 # Initialize in a specific directory
-gws init ~/projects
+omgw init ~/projects
 
 # Initialize with absolute path
-gws init /path/to/your/workspace
+omgw init /path/to/your/workspace
 ```
 
 ---
@@ -305,7 +305,7 @@ gws init /path/to/your/workspace
 ## Add Repository
 
 ```
-gws add [path] [flags]
+omgw add [path] [flags]
 ```
 
 Add a single git repository to the workspace. Defaults to the current directory if no path is given.
@@ -325,16 +325,16 @@ When adding a repository that lives **outside the workspace root**, a symlink is
 
 ```bash
 # Add current directory as a repository
-gws add
+omgw add
 
 # Add a specific repository
-gws add ~/projects/my-repo
+omgw add ~/projects/my-repo
 
 # Recursively add all repos in current directory
-gws add -r
+omgw add -r
 
 # Recursively add all repos under a path
-gws add ~/projects -r
+omgw add ~/projects -r
 ```
 
 ---
@@ -342,7 +342,7 @@ gws add ~/projects -r
 ## Refresh Workspace
 
 ```
-gws refresh
+omgw refresh
 ```
 
 Re-scan the workspace and update repository metadata.
@@ -387,13 +387,13 @@ The conditional lines (Removed, Found, Updated, Repositories with user configura
 ## Navigate to Workspace Root
 
 ```
-gws cd [flags]
+omgw cd [flags]
 ```
 
 Navigate to the workspace root directory.
 
 This requires [shell integration](shell-integration.md): the binary prints the path and the
-`gws` shell function performs the directory change. Without it, `gws cd` only prints the path
+`omgw` shell function performs the directory change. Without it, `omgw cd` only prints the path
 and says so.
 
 ### Flags
@@ -406,37 +406,37 @@ and says so.
 
 ```bash
 # Navigate to the workspace root
-gws cd
+omgw cd
 
 # Print only the path
-gws cd -q
+omgw cd -q
 ```
 
-`gws cd` takes no arguments — use `gws <repo>` to navigate to a repository.
+`omgw cd` takes no arguments — use `omgw <repo>` to navigate to a repository.
 
 ---
 
 ## Print Workspace
 
 ```
-gws print-workspace
+omgw print-workspace
 ```
 
 Print the workspace root path to stdout.
 
-`print-workspace` is the scripting primitive; `gws cd` is the interactive command. Because
+`print-workspace` is the scripting primitive; `omgw cd` is the interactive command. Because
 `print-workspace` only ever writes the path to stdout, it stays the right choice inside
 scripts and command substitution:
 
 ```bash
-cd "$(gws print-workspace)"
+cd "$(omgw print-workspace)"
 ```
 
 ---
 
 ## Worktree Management
 
-git-workspace provides first-class support for [git worktrees](https://git-scm.com/docs/git-worktree). A **project** is a repository plus its worktrees: the repository stays wherever you keep it, and its worktrees are collected under the XDG projects root.
+omgitworks provides first-class support for [git worktrees](https://git-scm.com/docs/git-worktree). A **project** is a repository plus its worktrees: the repository stays wherever you keep it, and its worktrees are collected under the XDG projects root.
 
 ```
 ~/projects/
@@ -457,17 +457,17 @@ repo you branch. See [Configuration](configuration.md#file-locations) for the fu
 ### List Worktrees
 
 ```
-gws worktree list [repo]
+omgw worktree list [repo]
 ```
 
 List all git worktrees across tracked repositories. Optionally filter to a single repo.
 
 ```bash
 # List all worktrees across all repos
-gws worktree list
+omgw worktree list
 
 # List worktrees for a specific repo
-gws worktree list my-repo
+omgw worktree list my-repo
 ```
 
 **Example output:**
@@ -485,17 +485,17 @@ Worktrees inside the projects root are marked `aligned`. Worktrees elsewhere —
 ### Add Worktree
 
 ```
-gws worktree add <repo> <branch>
+omgw worktree add <repo> <branch>
 ```
 
 Create a new worktree. It is created at `<projects-root>/<repo>/<branch>`, defaulting to `~/.local/share/gws/projects/<repo>/<branch>`.
 
 ```bash
 # Create a worktree for a new branch
-gws worktree add my-repo feat-new-feature
+omgw worktree add my-repo feat-new-feature
 
 # Branch names with slashes are preserved
-gws worktree add my-repo hotfix/urgent-fix
+omgw worktree add my-repo hotfix/urgent-fix
 ```
 
 The directory is created automatically if it doesn't exist. If the branch already exists in the repo, it is checked out into the worktree. If the branch doesn't exist, a new branch is created.
@@ -503,20 +503,20 @@ The directory is created automatically if it doesn't exist. If the branch alread
 ### Align Worktrees
 
 ```
-gws worktree align [repo] [--dry-run]
+omgw worktree align [repo] [--dry-run]
 ```
 
 Move all unaligned worktrees into the projects root using `git worktree move` (requires Git 2.17+). This is also how you migrate worktrees from the legacy `<repo>.wt/` layout.
 
 ```bash
 # Preview what would be moved
-gws worktree align --dry-run
+omgw worktree align --dry-run
 
 # Align all repos
-gws worktree align
+omgw worktree align
 
 # Align only a specific repo
-gws worktree align my-repo
+omgw worktree align my-repo
 ```
 
 **Example dry-run output:**
@@ -544,13 +544,13 @@ Navigate directly to a worktree by branch name across all repos:
 
 ```bash
 # Navigate to a worktree by branch name (searches all repos)
-gws worktree feat-auth
+omgw worktree feat-auth
 
 # Canonical form (same behavior)
-gws worktree navigate feat-auth
+omgw worktree navigate feat-auth
 
 # Wildcard matching
-gws worktree "feat-*"
+omgw worktree "feat-*"
 ```
 
 When multiple worktrees match, an interactive selection list is displayed:
@@ -571,10 +571,10 @@ You can also navigate to a specific repo's worktree using the `-wt` shorthand:
 
 ```bash
 # Navigate to a specific worktree within a repo
-gws my-repo -wt feat-auth
+omgw my-repo -wt feat-auth
 
 # List all worktrees for a repo with interactive selection
-gws my-repo -wt
+omgw my-repo -wt
 ```
 
 See [Shell Integration](shell-integration.md) for details on how `-wt` navigation works.
@@ -584,7 +584,7 @@ See [Shell Integration](shell-integration.md) for details on how `-wt` navigatio
 ## Parent Navigation
 
 ```
-gws parent <repo> [flags]
+omgw parent <repo> [flags]
 ```
 
 Print the parent directory path of a repository. Useful for navigating to the directory that contains a repository.
@@ -599,10 +599,10 @@ Print the parent directory path of a repository. Useful for navigating to the di
 
 ```bash
 # Print parent directory path
-gws parent my-repo
+omgw parent my-repo
 
 # Navigate to parent directory
-cd "$(gws parent my-repo)"
+cd "$(omgw parent my-repo)"
 ```
 
-See [Shell Integration](shell-integration.md) for shorthand navigation forms (`gws -p my-repo`, `gws my-repo -p`).
+See [Shell Integration](shell-integration.md) for shorthand navigation forms (`omgw -p my-repo`, `omgw my-repo -p`).

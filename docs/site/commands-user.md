@@ -12,15 +12,15 @@ The `user` parent command supports short-flag aliases for common operations:
 
 | Short Flag | Equivalent |
 |------------|------------|
-| `-l` | `gws user list` |
-| `-a` | `gws user add` |
-| `-s` | `gws user show` |
-| `-d` | `gws user remove` |
+| `-l` | `omgw user list` |
+| `-a` | `omgw user add` |
+| `-s` | `omgw user show` |
+| `-d` | `omgw user remove` |
 
 When using `-a`, you can also pass `--email`, `--name`, `--signing-key`, and `--sign-commits` inline:
 
 ```bash
-gws user -a work --email work@company.com --name "Jane Doe"
+omgw user -a work --email work@company.com --name "Jane Doe"
 ```
 
 ---
@@ -28,7 +28,7 @@ gws user -a work --email work@company.com --name "Jane Doe"
 ## List Profiles
 
 ```
-gws user list
+omgw user list
 ```
 
 List all stored and auto-detected user profiles.
@@ -57,7 +57,7 @@ Auto-Detected Profiles:
 ## Add Profile
 
 ```
-gws user add <name> [flags]
+omgw user add <name> [flags]
 ```
 
 Create a new user profile.
@@ -75,13 +75,13 @@ Create a new user profile.
 
 ```bash
 # Add a basic profile
-gws user add personal --email jane@personal.dev
+omgw user add personal --email jane@personal.dev
 
 # Add with a different git name
-gws user add work --email jane.doe@company.com --name "Jane Doe"
+omgw user add work --email jane.doe@company.com --name "Jane Doe"
 
 # Add with signing enabled
-gws user add secure --email jane@secure.dev --signing-key ABC123DEF456 --sign-commits
+omgw user add secure --email jane@secure.dev --signing-key ABC123DEF456 --sign-commits
 ```
 
 ---
@@ -89,7 +89,7 @@ gws user add secure --email jane@secure.dev --signing-key ABC123DEF456 --sign-co
 ## Show Profile
 
 ```
-gws user show <name>
+omgw user show <name>
 ```
 
 Display detailed information about a profile, including how many repositories use it.
@@ -112,7 +112,7 @@ Profile: personal
 ## Remove Profile
 
 ```
-gws user remove <name>
+omgw user remove <name>
 ```
 
 Remove a stored user profile. If any repositories are currently using the profile, you will be prompted before removal.
@@ -122,7 +122,7 @@ Remove a stored user profile. If any repositories are currently using the profil
 ## Assign Profile
 
 ```
-gws user assign <repository> <profile> [flags]
+omgw user assign <repository> <profile> [flags]
 ```
 
 Assign a user profile to a repository. This sets `user.name` and `user.email` (and optionally signing configuration) in the repository's local `.git/config`.
@@ -138,10 +138,10 @@ Assign a user profile to a repository. This sets `user.name` and `user.email` (a
 
 ```bash
 # Assign the "work" profile to a repository
-gws user assign my-api work
+omgw user assign my-api work
 
 # Preview what would change
-gws user assign my-api work --dry-run
+omgw user assign my-api work --dry-run
 ```
 
 ---
@@ -149,7 +149,7 @@ gws user assign my-api work --dry-run
 ## Sync Profiles
 
 ```
-gws user sync
+omgw user sync
 ```
 
 Synchronize stored user information with the effective git configuration for all tracked repositories. This re-reads each repository's `.git/config` and updates the cached `user`, `email`, `signing_enabled`, and `user_source` fields in the workspace configuration.

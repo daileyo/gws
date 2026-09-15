@@ -1,6 +1,6 @@
 <p align="center"><img src="assets/images/omgitworks-logo-hero.png" alt="omgitworks logo" width="400"></p>
 
-# git-workspace
+# omgitworks
 
 [![CI](https://github.com/daileyo/omgitworks/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/omgitworks/actions/workflows/ci.yml)
 [![Snyk Security](https://snyk.io/test/github/daileyo/omgitworks/badge.svg)](https://snyk.io/test/github/daileyo/omgitworks)
@@ -18,12 +18,12 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 - **Dual-Purpose Filtering**: Lowercase flags filter results; uppercase flags show columns with optional filtering
 - **Git Status Integration**: View branch, clean/dirty state, and ahead/behind indicators with color output
 - **Smart Caching**: Fast status display with configurable cache and concurrent workers (`--workers`)
-- **Custom Tagging**: Organize repositories with `gws tag add` / `gws tag remove`
+- **Custom Tagging**: Organize repositories with `omgw tag add` / `omgw tag remove`
 - **Advanced Filtering**: Search and filter repositories by type, tags, name, path, status, user, or remote URL
-- **User Profile Management**: Manage git user profiles across repositories with `gws user`
-- **Repository Navigation**: Jump to any repository instantly with `gws <repo-name>`
-- **Parent Navigation**: Navigate to a repository's parent directory with `gws parent` or `gws -p`
-- **Worktree Management**: Discover, navigate, create, and organize git worktrees with `gws worktree`
+- **User Profile Management**: Manage git user profiles across repositories with `omgw user`
+- **Repository Navigation**: Jump to any repository instantly with `omgw <repo-name>`
+- **Parent Navigation**: Navigate to a repository's parent directory with `omgw parent` or `omgw -p`
+- **Worktree Management**: Discover, navigate, create, and organize git worktrees with `omgw worktree`
 - **Remote URL Display**: View formatted or raw remote URLs with `--show-remote` / `--show-remote-raw`
 - **External Repo Symlinks**: Automatically creates workspace symlinks for repositories outside the workspace root
 - **Workspace Management**: Track and organize repositories in a centralized configuration
@@ -32,11 +32,11 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 
 ## Documentation
 
-- [Getting Started](getting-started.md) — Install `git-workspace` and set up your workspace for the first time
+- [Getting Started](getting-started.md) — Install `omgitworks` and set up your workspace for the first time
 - **Commands:**
     - [Core Commands](commands-core.md) — Listing, initializing, adding, refreshing, and navigating repositories
     - [User Management](commands-user.md) — Managing git user profiles across repositories
     - [Tagging](commands-tagging.md) — Organizing repositories with custom tags
     - [Legacy Flags](commands-legacy.md) — Deprecated flag-to-subcommand migration reference
-- [Shell Integration](shell-integration.md) — Set up the `gws` shell function and workspace navigation
+- [Shell Integration](shell-integration.md) — Set up the `omgw` shell function and workspace navigation
 - [Configuration](configuration.md) — Config file location, structure, and field reference

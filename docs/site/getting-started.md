@@ -5,7 +5,7 @@
 ### Install via Homebrew
 
 ```bash
-brew install daileyo/gws/git-workspace
+brew install daileyo/gws/omgitworks
 ```
 
 ### Install on Windows (PowerShell)
@@ -19,8 +19,8 @@ Download the latest release and extract to `$HOME\.local\bin`:
 $VERSION = "2.19.1"
 
 # Download and extract
-$url = "https://github.com/daileyo/omgitworks/releases/download/v$VERSION/git-workspace_${VERSION}_windows_amd64.zip"
-$zip = "$env:TEMP\git-workspace.zip"
+$url = "https://github.com/daileyo/omgitworks/releases/download/v$VERSION/omgitworks_${VERSION}_windows_amd64.zip"
+$zip = "$env:TEMP\omgitworks.zip"
 Invoke-WebRequest -Uri $url -OutFile $zip
 New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
 Expand-Archive -Path $zip -DestinationPath "$HOME\.local\bin" -Force
@@ -34,24 +34,24 @@ Remove-Item $zip
 $VERSION = "2.19.1"
 
 # Download and extract
-curl.exe -Lo "$env:TEMP\git-workspace.zip" "https://github.com/daileyo/omgitworks/releases/download/v$VERSION/git-workspace_${VERSION}_windows_amd64.zip"
+curl.exe -Lo "$env:TEMP\omgitworks.zip" "https://github.com/daileyo/omgitworks/releases/download/v$VERSION/omgitworks_${VERSION}_windows_amd64.zip"
 New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
-Expand-Archive -Path "$env:TEMP\git-workspace.zip" -DestinationPath "$HOME\.local\bin" -Force
-Remove-Item "$env:TEMP\git-workspace.zip"
+Expand-Archive -Path "$env:TEMP\omgitworks.zip" -DestinationPath "$HOME\.local\bin" -Force
+Remove-Item "$env:TEMP\omgitworks.zip"
 ```
 
 **Verify checksum (optional):**
 
 ```powershell
 curl.exe -Lo "$env:TEMP\checksums.txt" "https://github.com/daileyo/omgitworks/releases/download/v$VERSION/checksums.txt"
-(Get-FileHash "$HOME\.local\bin\git-workspace.exe" -Algorithm SHA256).Hash
+(Get-FileHash "$HOME\.local\bin\omgitworks.exe" -Algorithm SHA256).Hash
 Get-Content "$env:TEMP\checksums.txt" | Select-String "windows_amd64"
 ```
 
 **Verify installation:**
 
 ```powershell
-& "$HOME\.local\bin\git-workspace.exe" --version
+& "$HOME\.local\bin\omgitworks.exe" --version
 ```
 
 ### Build from Source
@@ -60,9 +60,9 @@ Get-Content "$env:TEMP\checksums.txt" | Select-String "windows_amd64"
 
 ```bash
 git clone https://github.com/daileyo/omgitworks.git
-cd gws
+cd omgw
 make build
-# The binary will be in ./build/git-workspace
+# The binary will be in ./build/omgitworks
 # Optionally, install to your PATH
 make install
 ```
@@ -71,11 +71,11 @@ make install
 
 ```powershell
 git clone https://github.com/daileyo/omgitworks.git
-cd gws
+cd omgw
 
 # Build and install to ~/.local/bin in one step
 New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
-go build -o "$HOME\.local\bin\git-workspace.exe" ./cmd/git-workspace
+go build -o "$HOME\.local\bin\omgitworks.exe" ./cmd/omgitworks
 ```
 
 > **Note:** The Makefile requires a Unix shell (`bash`/`zsh`). On Windows, use `go build` directly as shown above.
@@ -88,7 +88,7 @@ Add these lines to your `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
-eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
+eval "$(omgitworks shell-init zsh)"   # or: shell-init bash
 ```
 
 ### Windows (PowerShell)
@@ -96,11 +96,11 @@ eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
 Add the following to your PowerShell `$PROFILE`. To find your profile path, run `echo $PROFILE` in PowerShell.
 
 ```powershell
-# Add git-workspace to PATH
+# Add omgitworks to PATH
 $env:Path = "$HOME\.local\bin;$env:Path"
 
-# Set up the gws function and tab completion
-Invoke-Expression (& git-workspace shell-init powershell | Out-String)
+# Set up the omgw function and tab completion
+Invoke-Expression (& omgitworks shell-init powershell | Out-String)
 ```
 
 **To add automatically via `Add-Content`:**
@@ -110,14 +110,14 @@ Invoke-Expression (& git-workspace shell-init powershell | Out-String)
 if (!(Test-Path -Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force | Out-Null }
 
 # Append shell integration
-Add-Content -Path $PROFILE -Value "`n# git-workspace shell integration"
+Add-Content -Path $PROFILE -Value "`n# omgitworks shell integration"
 Add-Content -Path $PROFILE -Value '$env:Path = "$HOME\.local\bin;$env:Path"'
-Add-Content -Path $PROFILE -Value 'Invoke-Expression (& git-workspace shell-init powershell | Out-String)'
+Add-Content -Path $PROFILE -Value 'Invoke-Expression (& omgitworks shell-init powershell | Out-String)'
 ```
 
 Restart your PowerShell session (or run `. $PROFILE`) to activate.
 
-This gives you the `gws` function with tab completion. See [Shell Integration](shell-integration.md) for full details.
+This gives you the `omgw` function with tab completion. See [Shell Integration](shell-integration.md) for full details.
 
 ## Quick Start
 
@@ -127,13 +127,13 @@ Scan a directory for git repositories:
 
 ```bash
 # Initialize in current directory
-gws init
+omgw init
 
 # Initialize in a specific directory
-gws init ~/projects
+omgw init ~/projects
 
 # Initialize with absolute path
-gws init /path/to/your/workspace
+omgw init /path/to/your/workspace
 ```
 
 This command will:
@@ -145,10 +145,10 @@ This command will:
 
 ### 2. List Your Repositories
 
-Once initialized, run `gws` with no arguments to see your repositories:
+Once initialized, run `omgw` with no arguments to see your repositories:
 
 ```bash
-gws
+omgw
 ```
 
 Output (compact multi-column names):
@@ -167,7 +167,7 @@ ml-models        cli-tools        test-harness
 Use verbose mode to see more information:
 
 ```bash
-gws list -v
+omgw list -v
 ```
 
 Output:
@@ -184,26 +184,26 @@ client-site       bitbucket  unknown     client, archived  /home/user/projects/c
 
 ### 4. Navigate Your Workspace
 
-With [shell integration](shell-integration.md) set up, `gws` changes directory for you:
+With [shell integration](shell-integration.md) set up, `omgw` changes directory for you:
 
 ```bash
 # Jump to a repository by name
-gws my-project
+omgw my-project
 
 # Jump back to the workspace root
-gws cd
+omgw cd
 ```
 
 ### 5. Check Version
 
 ```bash
-gws --version
+omgw --version
 ```
 
 Output:
 
 ```
-git-workspace version dev
+omgitworks version dev
   commit: abc1234
   built:  2025-12-25T21:00:00Z
 ```
