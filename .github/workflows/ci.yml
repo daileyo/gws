@@ -90,10 +90,10 @@ jobs:
           cache: true
 
       - name: Build binary
-        run: go build -v -o git-workspace${{ matrix.os == 'windows-latest' && '.exe' || '' }} ./cmd/git-workspace
+        run: go build -v -o omgitworks${{ matrix.os == 'windows-latest' && '.exe' || '' }} ./cmd/omgitworks
 
       - name: Verify binary runs
-        run: ./git-workspace${{ matrix.os == 'windows-latest' && '.exe' || '' }} --help
+        run: ./omgitworks${{ matrix.os == 'windows-latest' && '.exe' || '' }} --help
 
   security:
     name: Security Scan

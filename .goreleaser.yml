@@ -3,7 +3,7 @@
 
 version: 2
 
-project_name: git-workspace
+project_name: omgitworks
 
 before:
   hooks:
@@ -11,9 +11,9 @@ before:
     - go mod verify
 
 builds:
-  - id: git-workspace
-    main: ./cmd/git-workspace
-    binary: git-workspace
+  - id: omgitworks
+    main: ./cmd/omgitworks
+    binary: omgitworks
     env:
       - CGO_ENABLED=0
     goos:
@@ -35,9 +35,9 @@ builds:
       - -trimpath
 
 archives:
-  - id: git-workspace-archive
+  - id: omgitworks-archive
     builds:
-      - git-workspace
+      - omgitworks
     format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
@@ -52,7 +52,7 @@ archives:
       - LICENSE*
 
 brews:
-  - name: git-workspace
+  - name: omgitworks
     repository:
       owner: daileyo
       name: homebrew-gws
@@ -104,7 +104,7 @@ release:
   prerelease: auto
   mode: replace
   header: |
-    ## git-workspace {{ .Tag }}
+    ## omgitworks {{ .Tag }}
 
     Cross-platform CLI tool for discovering, organizing, and navigating git repositories.
   footer: |
@@ -119,26 +119,27 @@ release:
     **Linux/macOS:**
 
     ```bash
-    tar -xzf git-workspace_{{ .Version }}_<os>_<arch>.tar.gz
+    tar -xzf omgitworks_{{ .Version }}_<os>_<arch>.tar.gz
     mkdir -p ~/.local/bin
-    mv git-workspace ~/.local/bin/
-    eval "$(git-workspace shell-init zsh)"   # or: bash
+    mv omgitworks ~/.local/bin/
+    ln -sf ~/.local/bin/omgitworks ~/.local/bin/git-workspace   # compatibility shim
+    eval "$(omgitworks shell-init zsh)"   # or: bash
     ```
 
     **Windows (PowerShell):**
 
     ```powershell
-    Invoke-WebRequest -Uri "https://github.com/daileyo/omgitworks/releases/download/{{ .Tag }}/git-workspace_{{ .Version }}_windows_amd64.zip" -OutFile "$env:TEMP\git-workspace.zip"
+    Invoke-WebRequest -Uri "https://github.com/daileyo/omgitworks/releases/download/{{ .Tag }}/omgitworks_{{ .Version }}_windows_amd64.zip" -OutFile "$env:TEMP\omgitworks.zip"
     New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
-    Expand-Archive -Path "$env:TEMP\git-workspace.zip" -DestinationPath "$HOME\.local\bin" -Force
-    Remove-Item "$env:TEMP\git-workspace.zip"
+    Expand-Archive -Path "$env:TEMP\omgitworks.zip" -DestinationPath "$HOME\.local\bin" -Force
+    Remove-Item "$env:TEMP\omgitworks.zip"
     ```
 
     Add to your PowerShell `$PROFILE`:
 
     ```powershell
     $env:Path = "$HOME\.local\bin;$env:Path"
-    Invoke-Expression (& git-workspace shell-init powershell | Out-String)
+    Invoke-Expression (& omgitworks shell-init powershell | Out-String)
     ```
 
 announce:

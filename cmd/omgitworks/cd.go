@@ -82,8 +82,8 @@ func runCd(quiet bool, stdout, stderr io.Writer) error {
 	if !quiet && stdoutIsTerminalFunc() {
 		fmt.Fprintln(stderr, "")
 		fmt.Fprintln(stderr, "Note: changing directory requires shell integration; this printed the path only.")
-		fmt.Fprintln(stderr, "Add to your shell config:  eval \"$(git-workspace shell-init zsh)\"   # or: bash")
-		fmt.Fprintln(stderr, "PowerShell ($PROFILE):     Invoke-Expression (& git-workspace shell-init powershell | Out-String)")
+		fmt.Fprintln(stderr, "Add to your shell config:  eval \"$(omgitworks shell-init zsh)\"   # or: bash")
+		fmt.Fprintln(stderr, "PowerShell ($PROFILE):     Invoke-Expression (& omgitworks shell-init powershell | Out-String)")
 	}
 
 	return nil

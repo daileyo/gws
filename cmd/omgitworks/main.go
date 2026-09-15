@@ -33,11 +33,11 @@ var (
 var filterTags []string
 
 var rootCmd = &cobra.Command{
-	Use:              "git-workspace",
+	Use:              "omgitworks",
 	Short:            "Git Workspace - Discover, organize, and navigate git repositories",
 	Args:             cobra.ArbitraryArgs,
 	TraverseChildren: true,
-	Long: `git-workspace is a lightweight, cross-platform CLI tool for discovering, organizing,
+	Long: `omgitworks is a lightweight, cross-platform CLI tool for discovering, organizing,
 and navigating git repositories on your local system. It provides an intelligent
 repository index and navigation layer with powerful search and filtering capabilities.
 
@@ -62,7 +62,7 @@ Shell integration (add to ~/.bashrc or ~/.zshrc):
 
   # Recommended — sets up 'gws' and tab completion, always up to date:
   export PATH="$HOME/.local/bin:$PATH"
-  eval "$(git-workspace shell-init zsh)"   # or: shell-init bash
+  eval "$(omgitworks shell-init zsh)"   # or: shell-init bash
 
 This provides 'gws cd' for the workspace root — no helper function needed.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
