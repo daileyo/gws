@@ -133,25 +133,85 @@ taken, and `git-workspace` is descriptive but generic.
 - The inventory shall explicitly identify which touchpoints affect already-installed users
 - The inventory shall record the measurement commands so the counts can be reproduced as the codebase changes
 
-**Measured baseline as of 2026-09-03 (commit `bd8b210`, v2.20.0):**
+**Measured baseline.** Re-measured 2026-09-14 at `c4641a9` (v2.22.0). Commands are recorded
+so the counts can be re-derived rather than trusted.
 
-| Category | Location | Count / Detail |
+```bash
+# A. module/import references
+grep -rno 'daileyo/gws' --include='*.go' --include='*.yml' --include='*.json' \
+  --include='Makefile' . --exclude-dir=.git | wc -l
+
+# B. raw repo-wide name references
+grep -rno 'git-workspace' --include='*.go' --include='*.md' --include='*.yml' \
+  --include='Makefile' . --exclude-dir=.git | wc -l
+
+# C. live references (excluding historical records)
+grep -rno 'git-workspace' --include='*.go' --include='*.md' --include='*.yml' \
+  --include='Makefile' . --exclude-dir=.git --exclude=CHANGELOG.md --exclude-dir=specs | wc -l
+
+# D. command directory size
+ls cmd/git-workspace/*.go | wc -l
+```
+
+| Measure | 2026-09-03 | 2026-09-14 |
 | --- | --- | --- |
-| Go module path | `go.mod:1` | `github.com/daileyo/gws` |
-| Import statements | across `cmd/`, `internal/` | 89 occurrences of `daileyo/gws` in `.go`/`.yml`/`.json`/`Makefile` |
-| Command directory | `cmd/git-workspace/` | 36 Go files |
-| Binary name | `Makefile:4`, `.goreleaser.yml:16` | `BINARY_NAME=git-workspace` |
-| goreleaser project | `.goreleaser.yml:6` | `project_name: git-workspace` |
-| Brew formula | `.goreleaser.yml:55` | `name: git-workspace` in tap `daileyo/homebrew-gws` |
-| Brew tap repo | `.goreleaser.yml:56-58` | `daileyo/homebrew-gws` |
-| Shell templates | `shellinit.go` | `{BIN}` placeholder plus `_git-workspace` / `__start_git-workspace` completion function names |
-| Docs site | `mkdocs.yml`, `docs/site/*.md` | 8 markdown files; `site_name`, `site_url`, `repo_url`, `repo_name` |
-| Docs site URL | `mkdocs.yml:2` | `https://daileyo.github.io/gws` |
-| Logo assets | `gws-logo.png`, `docs/site/assets/images/` | logo, nav logo, favicon |
-| README | `README.md` | title, install instructions, examples |
-| CI | `.github/workflows/` | build and release workflows |
-| Release automation | `release-please-config.json`, `.release-please-manifest.json` | Go release type |
-| Total textual | repo-wide | 604 occurrences of `git-workspace` across `.go`/`.md`/`.yml`/`Makefile` |
+| A. `daileyo/gws` references | 89 | **105** |
+| B. raw `git-workspace` references | 604 | **745** |
+| C. **live** `git-workspace` references | not measured | **110** |
+| D. files in `cmd/git-workspace/` | 36 | **39** |
+
+**The raw number is misleading, and the first draft of this spec was wrong about why.**
+It claimed the 604 was "dominated by `CHANGELOG.md`". It is not — `CHANGELOG.md` contains
+**3** occurrences. The bulk lives in `docs/specs/` (**632** of 745): the historical spec
+documents, proofs, and task lists accumulated across specs 01-24.
+
+Those should not be rewritten. A spec describing what was built in March is a record of that
+moment, exactly like a changelog entry; rewriting it to say `omgitworks` would make it claim
+something untrue. The same reasoning applies to `CHANGELOG.md`.
+
+So the real rename surface is **110 live references**, not 745 — roughly one seventh of the
+raw count.
+
+**Live surface by file:**
+
+| File | Count | Class | Affects installed users? |
+| --- | --- | --- | --- |
+| `docs/site/shell-integration.md` | 43 | cosmetic | no |
+| `docs/site/getting-started.md` | 18 | cosmetic | no |
+| `.goreleaser.yml` | 16 | **irreversible** (published artifacts) | **yes** |
+| `cmd/git-workspace/shellinit.go` | 10 | **breaking** | **yes** |
+| `Makefile` | 4 | cosmetic | no |
+| `cmd/git-workspace/main.go` | 3 | cosmetic (help text) | no |
+| `README.md` | 3 | cosmetic | no |
+| `.github/workflows/ci.yml` | 3 | cosmetic | no |
+| `docs/site/index.md` | 2 | cosmetic | no |
+| `docs/site/configuration.md` | 2 | cosmetic | no |
+| `cmd/git-workspace/main_test.go` | 2 | cosmetic | no |
+| `cmd/git-workspace/cd.go` | 2 | cosmetic | no |
+| `mkdocs.yml` | 1 | cosmetic (site identity) | no |
+| `docs/site/commands-core.md` | 1 | cosmetic | no |
+
+Plus the structural touchpoints, which are counted separately because renaming them is not a
+text substitution:
+
+| Touchpoint | Location | Class | Affects installed users? |
+| --- | --- | --- | --- |
+| Go module path | `go.mod:1` | **breaking** (for importers) | no |
+| Import statements | 105 sites across `cmd/`, `internal/` | breaking (mechanical) | no |
+| Command directory | `cmd/git-workspace/` (39 files) | cosmetic (git mv) | no |
+| Binary name | `Makefile:4`, `.goreleaser.yml:16` | **breaking** | **yes** |
+| goreleaser project | `.goreleaser.yml:6` | **irreversible** | **yes** |
+| Brew formula | `.goreleaser.yml:55` | **irreversible** | **yes** |
+| Brew tap repo | `daileyo/homebrew-gws` | **irreversible** | **yes** |
+| Completion function names | `shellinit.go` (`_git-workspace`, `__start_git-workspace`) | **breaking** | **yes** |
+| Repository name | GitHub `daileyo/gws` | **irreversible** | no (redirects) |
+| Docs site URL | `mkdocs.yml:2` | **irreversible** | no |
+| Logo assets | `gws-logo.png`, `docs/site/assets/images/` | cosmetic | no |
+| Release automation | `release-please-config.json`, manifest | cosmetic | no |
+
+**Six touchpoints affect already-installed users.** Those, and only those, drive the
+compatibility guarantee: the binary name, the completion function names, the shell-init
+template, the goreleaser project and archive names, the brew formula, and the brew tap.
 
 **Proof Artifacts:**
 
@@ -176,13 +236,36 @@ taken, and `git-workspace` is descriptive but generic.
 
 **Recommendation:**
 
-| Name | Current | Proposed | Rationale |
-| --- | --- | --- | --- |
-| Brand | git-workspace | omgitworks | Distinctive; clear in all software channels |
-| Repository | `daileyo/gws` | `daileyo/omgitworks` | GitHub redirects the old path indefinitely |
-| Module path | `github.com/daileyo/gws` | `github.com/daileyo/omgitworks` | Follows the repo; a `retract`-free major-version-free rename is possible since v2 tags are already in use |
-| Binary | `git-workspace` | `omgitworks` | Matches the brand; users rarely type it directly |
-| Command | `gws` | `omgw` | Four characters; available on every channel checked; derives from the brand. `gws` continues to be emitted by `shell-init` for compatibility |
+| Name | Current | Proposed | Firm? | Rationale |
+| --- | --- | --- | --- | --- |
+| Brand | git-workspace | `omgitworks` | **firm** | Distinctive; clear in all software channels; the incumbent is taken three times over in this niche |
+| Command | `gws` | `omgw` | **firm** | Four characters; clear on every channel checked and on PATH; derives from the brand |
+| Binary | `git-workspace` | `omgitworks` | **firm** | Matches the brand; `shell-init` means users rarely type it |
+| Repository | `daileyo/gws` | `daileyo/omgitworks` | provisional | GitHub redirects the old path, but see the namespace-reuse risk below |
+| Module path | `github.com/daileyo/gws` | `github.com/daileyo/omgitworks` | provisional | Follows the repo; 105 import sites, mechanical but wide |
+| Brew tap | `daileyo/homebrew-gws` | undecided | **open** | Renaming changes what users type in `brew tap`; see open question 4 |
+
+**PATH collision check for `omgw` (task 2.4), 2026-09-14.** The registry checks in the
+decision record do not cover whether something already ships a binary by that name:
+
+| Check | Result |
+| --- | --- |
+| `command -v omgw` on a normal Linux PATH | not found |
+| Debian stable package contents, exact filename `omgw` | "Sorry, your search gave no results" |
+| homebrew-core formula and cask `omgw` | 404 / 404 |
+| Shell builtin or keyword collision | none |
+
+**Why brand and command are decided separately.** `shell-init` already generates a shell
+function whose name is independent of the binary it invokes: users type `gws`, the binary is
+`git-workspace`. That decoupling was built for convenience, and it is what makes this rename
+survivable — the binary can be renamed without a single user changing a single keystroke, and
+the long form can carry the brand while a short form carries the typing.
+
+**The mnemonic, which is the point of the long form.** `omgitworks` is a double reading and
+both are intended: *"OMG, it works"* — the reaction — and *"om git works(pace)"* — literally
+what the tool is. A four-character command alone would be forgettable and unsearchable; the
+long form is what makes the project findable, which is the entire motivation for leaving
+`git-workspace` behind.
 
 **Proof Artifacts:**
 
@@ -199,16 +282,65 @@ taken, and `git-workspace` is descriptive but generic.
 - The plan shall define the compatibility guarantee: which old names keep working and for how long
 - The plan shall identify the point of no return and the preconditions for crossing it
 
-**Proposed staging:**
+**Staging.** Ordered by irreversibility, lowest first. Each stage states how to undo it.
 
-1. **Documentation and brand surface** — README, docs site, logo, `mkdocs.yml`. Fully revertible; nothing installed changes. Establishes the name publicly before any technical commitment.
-2. **Binary and archive naming** — `Makefile`, `.goreleaser.yml` `project_name` and `binary`. Ships a differently-named binary; the brew formula must install both names, or the old one as a symlink, for at least one release cycle.
-3. **Shell integration compatibility** — `shell-init` continues to define `gws` regardless of the binary name, and additionally defines the new command name if one is chosen. This is the stage that protects existing users, and it must ship *before* stage 2 reaches anyone.
-4. **Repository rename** — GitHub redirects the old path indefinitely for both web and git operations, so this is safer than it appears, but it does break anything pinned to the old URL that does not follow redirects.
-5. **Go module path** — the genuinely breaking change for anyone importing the packages. Requires updating 89 import sites plus `go.mod`. Given this is a CLI rather than a library, the practical blast radius is small.
-6. **Brew formula rename** — last, because the formula is how users upgrade, and a rename mid-flight can strand someone between versions.
+**Stage 1 — Brand surface.** README, docs site content, logo assets, `mkdocs.yml` `site_name`.
+Establishes the name publicly before any technical commitment.
+*Revert:* `git revert`. Nothing installed changes; no published artifact moves.
 
-**Compatibility guarantee to define:** how long `shell-init` keeps emitting a `gws` function, and whether the old binary name ships as a symlink or is dropped at a stated version.
+**Stage 2 — Shell-integration compatibility.** Teach `shell-init` to emit **both** the `gws`
+and `omgw` functions, and to register completions for both names, while the binary is still
+called `git-workspace`. This must ship and reach users **before** stage 3.
+*Revert:* `git revert`; users keep `gws` either way.
+
+**Stage 3 — Binary and archive naming.** `Makefile` `BINARY_NAME`, `.goreleaser.yml`
+`project_name` and `binary`. Ship `git-workspace` as a symlink alongside `omgitworks` for the
+compatibility window, so an rc file containing `eval "$(git-workspace shell-init zsh)"` keeps
+working. Update the hardcoded completion function names in the same commit — see the lockstep
+note below.
+*Revert:* possible but noisy — a released archive cannot be unpublished cleanly, so reverting
+means a follow-up release restoring the old names.
+
+**Stage 4 — Repository rename.** `daileyo/gws` → `daileyo/omgitworks`.
+*Revert:* rename back; redirects follow. Safe **only** while nothing occupies the old path.
+
+**Stage 5 — Go module path.** `go.mod` plus 105 import sites. Mechanical but wide.
+*Revert:* `git revert`; the old path resumes working since GitHub redirects git operations.
+
+**Stage 6 — Brew formula and tap.** Last, because the formula is how users upgrade; renaming
+mid-flight can strand someone between versions.
+*Revert:* re-publish the formula under the old name; the old tap must not be deleted until
+this stage is proven.
+
+**Ordering check (task 3.2).** Stage 2 must precede stage 3, and it does. If the binary were
+renamed first, a user whose rc file calls `git-workspace shell-init` would get
+"command not found" on **every new shell** until they edited their rc by hand. The symlink in
+stage 3 is the second line of defense; shipping stage 2 first is the first.
+
+**Compatibility guarantee.** To be confirmed before execution, but the proposal is:
+
+| Guarantee | Duration |
+| --- | --- |
+| `shell-init` emits a `gws` function | indefinitely — it costs nothing and breaking it buys nothing |
+| `shell-init` accepts and emits `omgw` | from stage 2 onward |
+| `git-workspace` ships as a symlink to `omgitworks` | through the next major version, then removed with a release note |
+| Old brew tap remains installable | until one release cycle after stage 6 |
+
+**Point of no return.** Stage 4 (repository rename) combined with stage 6 (brew tap rename).
+Everything before is `git revert` plus a patch release. After stage 4, third parties may link
+to the new name; after stage 6, users' installed taps point at it.
+
+**Lockstep requirement (task 3.7).** `shellinit.go` hardcodes Cobra's generated completion
+function names, which derive from the binary name:
+
+```
+shellinit.go:92   compdef _git-workspace gws
+shellinit.go:163  complete -o default -F __start_git-workspace gws
+```
+
+Renaming the binary changes what `completion zsh` / `completion bash` generate. If these two
+lines are not updated in the same commit, **tab completion silently stops working** — no
+error, it just does nothing, which is the hardest kind of breakage to notice.
 
 **Proof Artifacts:**
 
@@ -225,15 +357,79 @@ taken, and `git-workspace` is descriptive but generic.
 - The document shall state what would constitute a reason to abandon the rename
 - The document shall record that no execution occurs under this spec
 
-**Preconditions:**
+**Preconditions.** Each is independently checkable. Status as of 2026-09-14.
 
-- ~~The short-command-name question is resolved~~ — **done**, `omgw`; remaining check is that it collides with no command already on a default PATH
-- Package-manager availability for `omgitworks` and `omgw` is re-verified immediately before execution, since the 2026-09-04 results decay
-- `omgitworks.dev` is registered, or a decision is made to forgo a domain
-- The GitHub repo name `daileyo/omgitworks` is confirmed available
-- A decision is recorded on whether to pursue the dormant `OMGItworks` GitHub username
-- Specs 22 and 23 have landed, so the rename does not collide with in-flight work
-- A trademark sanity check is done on the UK business, confirming no overlap in class of goods
+| # | Precondition | Status |
+| --- | --- | --- |
+| P1 | Short command name resolved | **met** — `omgw` (task 2.2) |
+| P2 | `omgw` free on PATH, not just in registries | **met** — task 2.4 |
+| P3 | `daileyo/omgitworks` available as a repo name | **met** — GitHub API returns 404 |
+| P4 | Specs 22 and 23 landed | **met** — both merged; 22 released in v2.21.0, 23 in v2.22.0 |
+| P5 | Availability re-verified immediately before execution | **met today, decays** — see below |
+| P6 | Trademark sanity check recorded | **met, with caveats** — see below |
+| P7 | Decision on the dormant `OMGItworks` GitHub username | **open — needs the maintainer** |
+| P8 | Decision on registering `omgitworks.dev` | **open — needs the maintainer** |
+| P9 | Decision on defensive registry registration | **open — needs the maintainer** |
+| P10 | Decision on renaming the brew tap | **open — needs the maintainer** |
+| P11 | Decision on placeholder repo at the old path | **open — needs the maintainer** |
+| P12 | Decision on major vs minor release | **open — needs the maintainer** |
+
+**P5 — availability re-check, 2026-09-14** (previous check 2026-09-04; both names still clear):
+
+| Channel | `omgitworks` | `omgw` |
+| --- | --- | --- |
+| npm / crates.io / PyPI | available | available |
+| homebrew-core | available | available |
+| chocolatey | available | available |
+| scoop (Main) | available | available |
+| winget | available | available |
+
+Domains: `omgitworks.dev` and `.io` remain unregistered (NXDOMAIN); `.com` is still parked on
+GoDaddy nameservers; `.co.uk` still belongs to the UK business.
+
+**P6 — trademark sanity check, and its limits.** A general web search surfaced **no registered
+mark** for "OMG IT Works". That is a sanity check, **not a clearance search**, and this spec
+should not be read as a legal opinion.
+
+What is known: the UK business at `omgitworks.co.uk` operates in IT recycling and secure data
+destruction. Under the Nice classification those sit in classes such as 40 (treatment of
+materials) and 37 (repair), whereas a developer CLI sits in 9 (software) and 42 (software
+development services). Different classes, different customers, no plausible confusion between
+a Cornwall recycling firm and a git workspace manager.
+
+What is not known: whether that business holds an unregistered mark with acquired goodwill,
+which in the UK can support a passing-off claim regardless of registration. For a free,
+open-source tool the practical risk is low. If this ever becomes commercial, a proper clearance
+search of the UK IPO register and USPTO is warranted first.
+
+**Abandonment criteria (task 4.9).** Reasons to keep `git-workspace` instead:
+
+1. Either name becomes unavailable on homebrew-core or winget before execution — the whole
+   point was an unclaimed distribution surface.
+2. The UK business is found to hold a registered mark covering software.
+3. The `omgw` command is found to collide with something already installed widely.
+4. The docs-site URL break (see Technical Considerations) is judged to cost more than the
+   ambiguity of the current name, and no custom domain is acquired.
+5. Project priorities shift such that nobody is available to shepherd a six-stage migration —
+   a half-finished rename is worse than either endpoint.
+
+**Recommendations on the open items**, for the maintainer to accept or reject:
+
+- **P7 (GitHub username):** skip it. The repo lives under `daileyo`; an org named `omgitworks`
+  buys nothing, and prying a dormant username out of GitHub support is slow and uncertain.
+- **P8 (domain):** **register `omgitworks.dev`.** This is no longer just branding — GitHub
+  Pages URLs do not survive a repo rename, so a custom domain is what keeps the docs site
+  reachable across stage 4. It is the highest-value item on this list.
+- **P9 (defensive registration):** claim both names on npm at minimum. Publishing the brand
+  publicly before claiming the obvious namespaces is what invites a squatter, and npm is where
+  that happens most.
+- **P10 (brew tap):** leave `daileyo/homebrew-gws` alone initially. Renaming it changes what
+  users type in `brew tap` for no functional gain; revisit once the rename has settled.
+- **P11 (placeholder repo):** **yes.** Creating an empty archived `daileyo/gws` after the
+  rename would *break* redirects, so the correct action is the opposite — leave the old path
+  empty and never reuse it. Recorded here because the intuition runs the wrong way.
+- **P12 (release):** ship as a major version. No user-facing command changes, but the binary
+  name and module path do, and a major version is the conventional signal for that.
 
 **Proof Artifacts:**
 
@@ -273,7 +469,9 @@ window where an upgrading user has neither the old command nor the new one.
 ## Technical Considerations
 
 - **Go module rename**: Go does not require a major-version bump for a module path change, but every importer breaks at once. Since this is a CLI and not a published library, the practical impact is limited to this repo's own 89 import sites.
-- **GitHub repository rename**: GitHub maintains redirects from the old repo path indefinitely, for web, API, and git remote operations. This makes stage 4 far less risky than it appears. Redirects do *not* apply if someone later creates a new repo at the old path.
+- **GitHub repository rename**: GitHub redirects web traffic and git operations (clone, fetch, push) from the old path, which makes stage 4 less risky than it appears. Two documented exceptions matter here:
+    - **GitHub Pages URLs are not redirected.** The docs site is published at `https://daileyo.github.io/gws` (`mkdocs.yml:2`). Renaming the repository moves it to `/omgitworks` and **the old URL breaks outright** — existing links, bookmarks, and search results die with it. A custom domain registered *before* stage 4 would insulate the site from this rename and any future one. This is the strongest practical argument for buying `omgitworks.dev`.
+    - **Redirects lapse if the old path is reoccupied.** If anything is later created at `daileyo/gws`, every redirect stops working. See the placeholder decision in Preconditions.
 - **pkg.go.dev**: The old module path remains indexed. A `retract` directive in `go.mod` is not appropriate for a rename; the old path simply stops receiving updates.
 - **Homebrew tap**: The tap repository `daileyo/homebrew-gws` would ideally be renamed too, which changes the tap name users type (`brew tap daileyo/gws`). GitHub redirects cover the git operation, but `brew tap` output would show the old name. Consider whether the tap rename is worth the churn.
 - **Completion function names**: `shellinit.go` templates hardcode `_git-workspace` and `__start_git-workspace`, which are derived from the binary name by Cobra. These change automatically with the binary rename but the templates reference them literally, so they must be updated in lockstep or completion silently breaks.
