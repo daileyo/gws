@@ -84,7 +84,7 @@ Turn the proposed six stages into a plan with per-stage revert procedures and a 
 - [x] 3.6 Decide whether to retain a placeholder repository at the old path to prevent namespace reuse
 - [x] 3.7 Note the lockstep requirement between the binary rename and the hardcoded `_git-workspace` / `__start_git-workspace` completion function names in `shellinit.go`
 
-### [~] 4.0 Preconditions and Go/No-Go Checklist — research complete, 5 decisions pending
+### [x] 4.0 Preconditions and Go/No-Go Checklist
 
 Produce the gate that execution has to pass, so the decision is made deliberately.
 
@@ -96,15 +96,15 @@ Produce the gate that execution has to pass, so the decision is made deliberatel
 #### 4.0 Tasks
 
 - [x] 4.1 Confirm `daileyo/omgitworks` is available as a repository name
-- [ ] 4.2 Record a decision on pursuing the dormant `OMGItworks` GitHub username, and on whether it is needed at all given the repo lives under `daileyo` — **recommendation recorded in the spec; awaiting maintainer decision**
-- [ ] 4.3 Record a decision on registering `omgitworks.dev`, given `.com` is parked and `.co.uk` is held by an unrelated business — **recommendation recorded in the spec; awaiting maintainer decision**
-- [ ] 4.4 Record a decision on defensive registration of **both** `omgitworks` and `omgw` on npm, PyPI, and crates.io, weighed against the squatting risk noted in Security Considerations — **recommendation recorded in the spec; awaiting maintainer decision**
+- [x] 4.2 Record a decision on pursuing the dormant `OMGItworks` GitHub username, and on whether it is needed at all given the repo lives under `daileyo` — **decided 2026-09-15: not pursued — repo lives under `daileyo`**
+- [x] 4.3 Record a decision on registering `omgitworks.dev`, given `.com` is parked and `.co.uk` is held by an unrelated business — **decided 2026-09-15: registered 2026-09-15, on Cloudflare nameservers**
+- [x] 4.4 Record a decision on defensive registration of **both** `omgitworks` and `omgw` on npm, PyPI, and crates.io, weighed against the squatting risk noted in Security Considerations — **decided 2026-09-15: declined — Go has no central registry, so npm/PyPI/crates are not distribution channels**
 - [x] 4.5 Re-check package-manager availability for both names immediately before execution, since the 2026-09-04 results decay
-- [ ] 4.6 Decide whether to claim the winget and scoop manifests as part of the rebrand, given neither is currently a shipping channel — **recommendation recorded in the spec; awaiting maintainer decision**
+- [x] 4.6 Decide whether to claim the winget and scoop manifests as part of the rebrand, given neither is currently a shipping channel — **decided 2026-09-15: deferred — a new tap and wider channel publishing become a follow-up spec**
 - [x] 4.7 Do a trademark sanity check against the UK business and record the finding, including whether the class of goods differs sufficiently
 - [x] 4.8 Record the dependency that specs 22 and 23 land first, so the rename does not collide with in-flight work
 - [x] 4.9 Write the abandonment criteria — what would make keeping `git-workspace` the better call
-- [ ] 4.10 Decide whether the rename ships in a major version bump or a minor release — **recommendation recorded in the spec; awaiting maintainer decision**
+- [x] 4.10 Decide whether the rename ships in a major version bump or a minor release — **decided 2026-09-15: major version**
 
 ### [x] 5.0 Verify No Execution Occurred
 

@@ -44,3 +44,51 @@ P11 asks whether to create a placeholder repo at `daileyo/gws` to prevent namesp
 intuitive answer is yes. It is wrong: creating **anything** at the old path is precisely what
 kills GitHub's redirects. The correct action is to leave it empty and never reuse it. Recorded
 explicitly because the intuition runs backwards.
+
+---
+
+## Update 2026-09-15: all twelve preconditions met
+
+The six items that needed the maintainer are decided.
+
+| # | Decision |
+| --- | --- |
+| P7 | Dormant GitHub username **not pursued** — `daileyo/omgitworks` does not need the org-level name |
+| P8 | `omgitworks.dev` **registered**, on Cloudflare nameservers |
+| P9 | Defensive npm/PyPI/crates registration **declined** |
+| P10 | Brew tap rename **deferred** to a follow-up project |
+| P11 | **No placeholder** at the old path |
+| P12 | **Major version** release |
+
+### P9 is the one with a real trade-off
+
+Go has no central package registry — modules resolve directly from the VCS path — so npm
+(JavaScript), PyPI (Python), and crates.io (Rust) are not distribution channels for this
+project. Registering placeholder packages there would be purely defensive.
+
+The accepted risk is that a squatter takes `omgitworks` or `omgw` on those registries later.
+That costs this project nothing, because it never intended to publish there. Recorded as a
+conscious trade rather than an oversight.
+
+### New requirement: distribution channels
+
+The brand should be registered and installable on Homebrew, winget, Scoop, pacman (AUR), and
+apt. Verified 2026-09-15 — both names are free on every one:
+
+| Channel | `omgitworks` | `omgw` |
+| --- | --- | --- |
+| homebrew-core | available | available |
+| winget | available | available |
+| Scoop (Main, Extras) | available | available |
+| chocolatey | available | available |
+| AUR (pacman) | available | available |
+| Debian source package name | available | available |
+
+**This belongs in its own spec.** Publishing to these channels is packaging work with its own
+submission processes and review latency: winget and Scoop take PRs against manifest
+repositories, AUR needs a `PKGBUILD` and maintainer account, and Debian proper requires a
+sponsoring maintainer — which in practice means shipping a `.deb` from releases or maintaining
+a PPA. Folding that into a six-stage rename would make it much larger and slower.
+
+What spec 24 owes it is the names, and those are confirmed free. P5's re-check now covers this
+full channel list rather than just the registries, since these are the channels that matter.
