@@ -106,8 +106,8 @@ func TestVersionVariablesAreDefined(t *testing.T) {
 }
 
 func TestRootCommand(t *testing.T) {
-	if rootCmd.Use != "git-workspace" {
-		t.Errorf("Expected root command Use to be 'git-workspace', got '%s'", rootCmd.Use)
+	if rootCmd.Use != "omgitworks" {
+		t.Errorf("Expected root command Use to be 'omgitworks', got '%s'", rootCmd.Use)
 	}
 	if rootCmd.Short == "" {
 		t.Error("Root command Short description should not be empty")

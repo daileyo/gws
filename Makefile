@@ -1,7 +1,7 @@
 # Makefile for gws - Git Workspace CLI
 
 # Binary name
-BINARY_NAME=git-workspace
+BINARY_NAME=omgitworks
 
 # Build directory
 BUILD_DIR=./build
@@ -38,7 +38,7 @@ setup-hooks:
 build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/git-workspace
+	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/omgitworks
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
 ## test: Run tests
@@ -146,11 +146,11 @@ install: build
 	@echo ""
 	@echo "  zsh (~/.zshrc):"
 	@echo "    export PATH=\"$(INSTALL_BIN):\$$PATH\""
-	@echo "    eval \"\$$(git-workspace shell-init zsh)\""
+	@echo "    eval \"\$$(omgitworks shell-init zsh)\""
 	@echo ""
 	@echo "  bash (~/.bashrc):"
 	@echo "    export PATH=\"$(INSTALL_BIN):\$$PATH\""
-	@echo "    eval \"\$$(git-workspace shell-init bash)\""
+	@echo "    eval \"\$$(omgitworks shell-init bash)\""
 
 ## use-dev: Switch to dev build (build and install to ~/.local/bin)
 use-dev: install
