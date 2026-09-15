@@ -55,7 +55,7 @@ brews:
   - name: omgitworks
     repository:
       owner: daileyo
-      name: homebrew-gws
+      name: homebrew-omgitworks
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     commit_author:
       name: goreleaserbot
@@ -64,6 +64,11 @@ brews:
     homepage: "https://github.com/daileyo/omgitworks"
     description: "A lightweight CLI tool for discovering, organizing, and navigating git repositories"
     license: "Apache-2.0"
+    install: |
+      bin.install "omgitworks"
+      generate_completions_from_executable(bin/"omgitworks", "completion")
+    test: |
+      system "#{bin}/omgitworks", "--version"
 
 checksum:
   name_template: 'checksums.txt'
