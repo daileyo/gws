@@ -45,7 +45,7 @@ func runWorktreeAdd(repoName, branch string) error {
 	}
 
 	// Find matching repo
-	var repoIdx int = -1
+	var repoIdx = -1
 	for i, repo := range cfg.Repositories {
 		if filter.MatchesPattern(repo.Name, repoName) {
 			if repoIdx >= 0 {

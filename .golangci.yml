@@ -1,55 +1,63 @@
-# golangci-lint configuration
-# https://golangci-lint.run/usage/configuration/
-
+version: "2"
 run:
-  timeout: 5m
   modules-download-mode: readonly
-
 linters:
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    - gofmt
-    - goimports
+    - bodyclose
+    - copyloopvar
+    - gosec
     - misspell
+    - noctx
     - unconvert
     - unparam
-    - gosec
-    - bodyclose
-    - noctx
-    - copyloopvar  # Replaces deprecated exportloopref
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-    check-blank: false  # Allow blank identifier for intentionally ignored errors
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment  # Micro-optimization, not critical
-  goimports:
-    local-prefixes: github.com/daileyo/gws
-  misspell:
-    locale: US
-  gosec:
-    severity: medium
-    confidence: medium
-
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
+    gosec:
+      severity: medium
+      confidence: medium
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    misspell:
+      locale: US
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+          - govet
+          - noctx
+          - unparam
+        path: _test\.go
+      - linters:
+          - govet
+        text: 'shadow: declaration of "err"'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
-      linters:
-        - gosec
-        - unparam
-        - govet
-    # Allow shadowing of err variable (common Go pattern)
-    - linters:
-        - govet
-      text: 'shadow: declaration of "err"'
   max-issues-per-linter: 50
   max-same-issues: 10
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/daileyo/gws
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

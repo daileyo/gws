@@ -95,6 +95,8 @@ func moveFile(src, dst string, perm os.FileMode) error {
 	if err != nil {
 		return fmt.Errorf("failed to read legacy config: %w", err)
 	}
+	// #nosec G703 -- dst is derived from the user's own XDG config location,
+	// not from external input; there is no privilege boundary to cross here.
 	if err := os.WriteFile(dst, data, perm); err != nil {
 		return fmt.Errorf("failed to write config to new location: %w", err)
 	}

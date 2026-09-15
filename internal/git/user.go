@@ -169,6 +169,8 @@ func parseGitConfigWithIncludes(configPath, home string) (*GlobalUserConfig, err
 			includePath = filepath.Join(home, includePath[2:])
 		}
 
+		// #nosec G703 -- includePath comes from the user's own gitconfig
+		// include directives; unreadable paths are skipped below.
 		includeData, err := os.ReadFile(includePath)
 		if err != nil {
 			continue // Skip includes that can't be read

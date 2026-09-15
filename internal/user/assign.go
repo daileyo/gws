@@ -316,11 +316,11 @@ func CreateProfileGitconfig(path string, profile config.Profile) error {
 	var content strings.Builder
 
 	content.WriteString("[user]\n")
-	content.WriteString(fmt.Sprintf("\tname = %s\n", profile.GitName))
-	content.WriteString(fmt.Sprintf("\temail = %s\n", profile.Email))
+	fmt.Fprintf(&content, "\tname = %s\n", profile.GitName)
+	fmt.Fprintf(&content, "\temail = %s\n", profile.Email)
 
 	if profile.SigningKey != "" {
-		content.WriteString(fmt.Sprintf("\tsigningkey = %s\n", profile.SigningKey))
+		fmt.Fprintf(&content, "\tsigningkey = %s\n", profile.SigningKey)
 	}
 
 	if profile.SignCommits {
@@ -375,8 +375,8 @@ func AddIncludeIf(gitconfigPath, subdirPath, profileGitconfigPath string) error 
 	if !strings.HasSuffix(content, "\n") && content != "" {
 		newContent.WriteString("\n")
 	}
-	newContent.WriteString(fmt.Sprintf("\n[includeIf \"gitdir:%s/\"]\n", displaySubdir))
-	newContent.WriteString(fmt.Sprintf("\tpath = %s\n", displayPath))
+	fmt.Fprintf(&newContent, "\n[includeIf \"gitdir:%s/\"]\n", displaySubdir)
+	fmt.Fprintf(&newContent, "\tpath = %s\n", displayPath)
 
 	if err := os.WriteFile(gitconfigPath, []byte(newContent.String()), 0600); err != nil {
 		return fmt.Errorf("failed to write gitconfig: %w", err)
