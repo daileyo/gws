@@ -243,7 +243,7 @@ template, the goreleaser project and archive names, the brew formula, and the br
 | Binary | `git-workspace` | `omgitworks` | **firm** | Matches the brand; `shell-init` means users rarely type it |
 | Repository | `daileyo/gws` | `daileyo/omgitworks` | provisional | GitHub redirects the old path, but see the namespace-reuse risk below |
 | Module path | `github.com/daileyo/gws` | `github.com/daileyo/omgitworks` | provisional | Follows the repo; 105 import sites, mechanical but wide |
-| Brew tap | `daileyo/homebrew-gws` | undecided | **open** | Renaming changes what users type in `brew tap`; see open question 4 |
+| Brew tap | `daileyo/homebrew-gws` | new tap under the new name | deferred | Wanted, but as a follow-up project; the existing tap keeps serving users until then |
 
 **PATH collision check for `omgw` (task 2.4), 2026-09-14.** The registry checks in the
 decision record do not cover whether something already ships a binary by that name:
@@ -365,14 +365,14 @@ error, it just does nothing, which is the hardest kind of breakage to notice.
 | P2 | `omgw` free on PATH, not just in registries | **met** — task 2.4 |
 | P3 | `daileyo/omgitworks` available as a repo name | **met** — GitHub API returns 404 |
 | P4 | Specs 22 and 23 landed | **met** — both merged; 22 released in v2.21.0, 23 in v2.22.0 |
-| P5 | Availability re-verified immediately before execution | **met today, decays** — see below |
+| P5 | Availability re-verified across all target channels before execution | **met 2026-09-15, decays** — see below |
 | P6 | Trademark sanity check recorded | **met, with caveats** — see below |
-| P7 | Decision on the dormant `OMGItworks` GitHub username | **open — needs the maintainer** |
-| P8 | Decision on registering `omgitworks.dev` | **open — needs the maintainer** |
-| P9 | Decision on defensive registry registration | **open — needs the maintainer** |
-| P10 | Decision on renaming the brew tap | **open — needs the maintainer** |
-| P11 | Decision on placeholder repo at the old path | **open — needs the maintainer** |
-| P12 | Decision on major vs minor release | **open — needs the maintainer** |
+| P7 | Decision on the dormant `OMGItworks` GitHub username | **met** — not pursued |
+| P8 | Decision on registering `omgitworks.dev` | **met** — registered 2026-09-15 |
+| P9 | Decision on defensive registry registration | **met** — declined; not a Go channel |
+| P10 | Decision on renaming the brew tap | **met** — deferred to a follow-up project |
+| P11 | Decision on placeholder repo at the old path | **met** — no placeholder, path left empty |
+| P12 | Decision on major vs minor release | **met** — major version |
 
 **P5 — availability re-check, 2026-09-14** (previous check 2026-09-04; both names still clear):
 
@@ -413,23 +413,41 @@ search of the UK IPO register and USPTO is warranted first.
 5. Project priorities shift such that nobody is available to shepherd a six-stage migration —
    a half-finished rename is worse than either endpoint.
 
-**Recommendations on the open items**, for the maintainer to accept or reject:
+**Decisions recorded 2026-09-15.** All previously open preconditions are now settled.
 
-- **P7 (GitHub username):** skip it. The repo lives under `daileyo`; an org named `omgitworks`
-  buys nothing, and prying a dormant username out of GitHub support is slow and uncertain.
-- **P8 (domain):** **register `omgitworks.dev`.** This is no longer just branding — GitHub
-  Pages URLs do not survive a repo rename, so a custom domain is what keeps the docs site
-  reachable across stage 4. It is the highest-value item on this list.
-- **P9 (defensive registration):** claim both names on npm at minimum. Publishing the brand
-  publicly before claiming the obvious namespaces is what invites a squatter, and npm is where
-  that happens most.
-- **P10 (brew tap):** leave `daileyo/homebrew-gws` alone initially. Renaming it changes what
-  users type in `brew tap` for no functional gain; revisit once the rename has settled.
-- **P11 (placeholder repo):** **yes.** Creating an empty archived `daileyo/gws` after the
-  rename would *break* redirects, so the correct action is the opposite — leave the old path
-  empty and never reuse it. Recorded here because the intuition runs the wrong way.
-- **P12 (release):** ship as a major version. No user-facing command changes, but the binary
-  name and module path do, and a major version is the conventional signal for that.
+| # | Decision | Outcome |
+| --- | --- | --- |
+| P7 | Dormant `OMGItworks` GitHub username | **Not pursued.** The repo lives at `daileyo/omgitworks`, which does not need the org-level name. GitHub does not release usernames on request outside trademark disputes, so chasing it is slow and unlikely to succeed. |
+| P8 | Register `omgitworks.dev` | **Done.** The domain is registered and on Cloudflare nameservers as of 2026-09-15. This is what protects the docs site across the repository rename, since GitHub Pages URLs do not redirect. |
+| P9 | Defensive registration on npm / PyPI / crates.io | **Declined.** This is a Go project; Go has no central package registry, so modules resolve directly from the VCS path. npm (JavaScript), PyPI (Python), and crates.io (Rust) are not distribution channels for it, and registering placeholder packages there is noise. Accepted risk: a squatter could take those names later. It costs the project nothing, because it never intended to publish there. |
+| P10 | Rename the brew tap | **Deferred to a follow-up project.** A tap under the new name is wanted, but creating it is separate work from the rename itself. `daileyo/homebrew-gws` keeps serving users until then. |
+| P11 | Placeholder repo at the old path | **No placeholder.** Creating anything at `daileyo/gws` after the rename destroys GitHub's redirects. The correct action is to leave the path empty and never reuse it. |
+| P12 | Major or minor release | **Major version.** No user-facing command changes, but the binary name and module path do. |
+
+**Distribution channels (new requirement, 2026-09-15).** The brand should be registered and
+installable on Homebrew, winget, Scoop, pacman (AUR), and apt, plus other channels as they
+make sense. Availability verified for both names on 2026-09-15:
+
+| Channel | `omgitworks` | `omgw` |
+| --- | --- | --- |
+| homebrew-core | available | available |
+| winget (`microsoft/winget-pkgs`) | available — no `omg*` publisher | available |
+| Scoop (Main, Extras) | available | available |
+| chocolatey | available | available |
+| AUR (pacman) | available | available |
+| Debian source package name | available | available |
+
+**This expands beyond the rebrand and belongs in its own spec.** Publishing to these channels
+is packaging work, not renaming work, and each has its own submission process and review
+latency — winget and Scoop take pull requests against their manifest repositories, AUR needs a
+`PKGBUILD` and a maintainer account, and Debian or Ubuntu proper requires a sponsoring
+maintainer, which in practice means shipping a `.deb` from releases or maintaining a PPA
+instead. Attaching that to the rename would make a six-stage migration into something much
+larger and slower.
+
+What the rebrand spec owes it is the names: both are confirmed free everywhere above, and the
+re-check in P5 should cover this full list rather than just the registries, since these are now
+the channels that matter.
 
 **Proof Artifacts:**
 
