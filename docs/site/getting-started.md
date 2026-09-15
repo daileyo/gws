@@ -8,6 +8,16 @@
 brew install daileyo/tap/omgitworks
 ```
 
+!!! note "Homebrew 7.0 and untrusted taps"
+    The command above works as-is. If you instead tap first and install by bare name,
+    Homebrew 7.0 will refuse to load the formula until the tap is trusted:
+
+    ```bash
+    brew tap daileyo/tap
+    brew trust daileyo/tap
+    brew install omgitworks
+    ```
+
 ### Install on Windows (PowerShell)
 
 Download the latest release and extract to `$HOME\.local\bin`:

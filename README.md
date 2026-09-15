@@ -46,6 +46,10 @@ Full documentation is available at **https://omgitworks.dev**
 brew install daileyo/tap/omgitworks
 ```
 
+> Homebrew 7.0 refuses to load formulae from untrusted third-party taps. The command above is
+> unaffected — naming the tap explicitly trusts that formula. If you tap first and install by
+> bare name, run `brew trust daileyo/tap` in between.
+
 See the [Getting Started](https://omgitworks.dev/getting-started/) guide for additional installation options.
 
 ## Development
