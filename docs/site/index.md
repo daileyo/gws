@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/images/gws-logo-hero.png" alt="gws logo" width="250"></p>
+<p align="center"><img src="assets/images/omgitworks-logo-hero.png" alt="omgitworks logo" width="400"></p>
 
 # git-workspace
 
