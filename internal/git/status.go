@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -93,7 +94,13 @@ func getAheadBehind(repoPath, branch string) (ahead int, behind int) {
 
 // gitCommand runs a git command in the given directory and returns trimmed stdout
 func gitCommand(repoPath string, args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
+	return gitCommandContext(context.Background(), repoPath, args...)
+}
+
+// gitCommandContext is gitCommand with cancellation. Callers that can supply a
+// context should use it; gitCommand exists for the many that currently cannot.
+func gitCommandContext(ctx context.Context, repoPath string, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = repoPath
 	out, err := cmd.Output()
 	if err != nil {
