@@ -61,7 +61,7 @@ brews:
       name: goreleaserbot
       email: bot@goreleaser.com
     directory: Formula
-    homepage: "https://github.com/daileyo/gws"
+    homepage: "https://github.com/daileyo/omgitworks"
     description: "A lightweight CLI tool for discovering, organizing, and navigating git repositories"
     license: "Apache-2.0"
 
@@ -110,7 +110,7 @@ release:
   footer: |
     ---
 
-    **Full Changelog**: https://github.com/daileyo/gws/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/daileyo/omgitworks/compare/{{ .PreviousTag }}...{{ .Tag }}
 
     ### Installation
 
@@ -128,7 +128,7 @@ release:
     **Windows (PowerShell):**
 
     ```powershell
-    Invoke-WebRequest -Uri "https://github.com/daileyo/gws/releases/download/{{ .Tag }}/git-workspace_{{ .Version }}_windows_amd64.zip" -OutFile "$env:TEMP\git-workspace.zip"
+    Invoke-WebRequest -Uri "https://github.com/daileyo/omgitworks/releases/download/{{ .Tag }}/git-workspace_{{ .Version }}_windows_amd64.zip" -OutFile "$env:TEMP\git-workspace.zip"
     New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
     Expand-Archive -Path "$env:TEMP\git-workspace.zip" -DestinationPath "$HOME\.local\bin" -Force
     Remove-Item "$env:TEMP\git-workspace.zip"

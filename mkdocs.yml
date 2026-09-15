@@ -1,8 +1,8 @@
 site_name: omgitworks
 site_url: https://omgitworks.dev
 docs_dir: docs/site
-repo_url: https://github.com/daileyo/gws
-repo_name: gws
+repo_url: https://github.com/daileyo/omgitworks
+repo_name: omgitworks
 
 theme:
   name: material
