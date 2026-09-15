@@ -55,7 +55,7 @@ brews:
   - name: omgitworks
     repository:
       owner: daileyo
-      name: homebrew-omgitworks
+      name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     commit_author:
       name: goreleaserbot
