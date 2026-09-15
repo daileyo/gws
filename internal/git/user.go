@@ -2,6 +2,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -270,7 +271,7 @@ func neutralDir() string {
 // parses the NUL-delimited output. No matching keys is not an error.
 func readConfigEntries(dir string, args ...string) ([]configEntry, error) {
 	fullArgs := append([]string{"config", "--null", "--show-scope", "--show-origin"}, args...)
-	cmd := exec.Command("git", fullArgs...)
+	cmd := exec.CommandContext(context.Background(), "git", fullArgs...)
 	cmd.Dir = dir
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
