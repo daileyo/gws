@@ -2,9 +2,9 @@
 
 # git-workspace
 
-[![CI](https://github.com/daileyo/gws/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/gws/actions/workflows/ci.yml)
-[![Snyk Security](https://snyk.io/test/github/daileyo/gws/badge.svg)](https://snyk.io/test/github/daileyo/gws)
-[![Release](https://img.shields.io/github/v/release/daileyo/gws)](https://github.com/daileyo/gws/releases/latest)
+[![CI](https://github.com/daileyo/omgitworks/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/omgitworks/actions/workflows/ci.yml)
+[![Snyk Security](https://snyk.io/test/github/daileyo/omgitworks/badge.svg)](https://snyk.io/test/github/daileyo/omgitworks)
+[![Release](https://img.shields.io/github/v/release/daileyo/omgitworks)](https://github.com/daileyo/omgitworks/releases/latest)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A lightweight, cross-platform CLI tool for discovering, organizing, and navigating git repositories on your local system.

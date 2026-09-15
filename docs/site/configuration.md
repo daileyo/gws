@@ -32,7 +32,7 @@ git-workspace stores its configuration in `~/.config/gws/config.json`. The confi
     {
       "name": "gws",
       "path": "/home/user/projects/gws",
-      "remote_url": "https://github.com/daileyo/gws.git",
+      "remote_url": "https://github.com/daileyo/omgitworks.git",
       "type": "github",
       "visibility": "unknown",
       "tags": ["personal", "go"],

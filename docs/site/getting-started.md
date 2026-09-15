@@ -19,7 +19,7 @@ Download the latest release and extract to `$HOME\.local\bin`:
 $VERSION = "2.19.1"
 
 # Download and extract
-$url = "https://github.com/daileyo/gws/releases/download/v$VERSION/git-workspace_${VERSION}_windows_amd64.zip"
+$url = "https://github.com/daileyo/omgitworks/releases/download/v$VERSION/git-workspace_${VERSION}_windows_amd64.zip"
 $zip = "$env:TEMP\git-workspace.zip"
 Invoke-WebRequest -Uri $url -OutFile $zip
 New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
@@ -34,7 +34,7 @@ Remove-Item $zip
 $VERSION = "2.19.1"
 
 # Download and extract
-curl.exe -Lo "$env:TEMP\git-workspace.zip" "https://github.com/daileyo/gws/releases/download/v$VERSION/git-workspace_${VERSION}_windows_amd64.zip"
+curl.exe -Lo "$env:TEMP\git-workspace.zip" "https://github.com/daileyo/omgitworks/releases/download/v$VERSION/git-workspace_${VERSION}_windows_amd64.zip"
 New-Item -ItemType Directory -Force -Path "$HOME\.local\bin" | Out-Null
 Expand-Archive -Path "$env:TEMP\git-workspace.zip" -DestinationPath "$HOME\.local\bin" -Force
 Remove-Item "$env:TEMP\git-workspace.zip"
@@ -43,7 +43,7 @@ Remove-Item "$env:TEMP\git-workspace.zip"
 **Verify checksum (optional):**
 
 ```powershell
-curl.exe -Lo "$env:TEMP\checksums.txt" "https://github.com/daileyo/gws/releases/download/v$VERSION/checksums.txt"
+curl.exe -Lo "$env:TEMP\checksums.txt" "https://github.com/daileyo/omgitworks/releases/download/v$VERSION/checksums.txt"
 (Get-FileHash "$HOME\.local\bin\git-workspace.exe" -Algorithm SHA256).Hash
 Get-Content "$env:TEMP\checksums.txt" | Select-String "windows_amd64"
 ```
@@ -59,7 +59,7 @@ Get-Content "$env:TEMP\checksums.txt" | Select-String "windows_amd64"
 **Linux / macOS:**
 
 ```bash
-git clone https://github.com/daileyo/gws.git
+git clone https://github.com/daileyo/omgitworks.git
 cd gws
 make build
 # The binary will be in ./build/git-workspace
@@ -70,7 +70,7 @@ make install
 **Windows (PowerShell):**
 
 ```powershell
-git clone https://github.com/daileyo/gws.git
+git clone https://github.com/daileyo/omgitworks.git
 cd gws
 
 # Build and install to ~/.local/bin in one step
