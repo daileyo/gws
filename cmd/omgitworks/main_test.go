@@ -3,8 +3,12 @@ package main
 import (
 	"bytes"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/daileyo/omgitworks/internal/config"
 	"github.com/daileyo/omgitworks/internal/xdg"
@@ -126,6 +130,117 @@ func TestRootCommandHasVersionSet(t *testing.T) {
 
 	if rootCmd.Version != "v1.0.0-test" {
 		t.Errorf("Expected rootCmd.Version to be 'v1.0.0-test', got '%s'", rootCmd.Version)
+	}
+}
+
+func TestRootVersionFlagOutput(t *testing.T) {
+	origVersion := rootCmd.Version
+	var out bytes.Buffer
+	rootCmd.Version = "v1.2.3\n  commit: abc1234\n  built:  2026-01-01T00:00:00Z"
+	rootCmd.SetOut(&out)
+	rootCmd.SetArgs([]string{"--version"})
+	defer func() {
+		rootCmd.Version = origVersion
+		rootCmd.SetOut(nil)
+		rootCmd.SetArgs(nil)
+		if f := rootCmd.Flags().Lookup("version"); f != nil {
+			_ = f.Value.Set("false")
+			f.Changed = false
+		}
+	}()
+
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("omgitworks --version: %v", err)
+	}
+	want := "omgitworks version v1.2.3\n  commit: abc1234\n  built:  2026-01-01T00:00:00Z\n"
+	if out.String() != want {
+		t.Errorf("omgitworks --version output:\ngot:  %q\nwant: %q", out.String(), want)
+	}
+}
+
+// helpFlagLine matches a flag entry in rendered help and captures its long name.
+var helpFlagLine = regexp.MustCompile(`^\s+(?:-\S, )?--([\w-]+)`)
+
+// helpListedFlags renders cmd's help as `<cmd> --help` would and returns the
+// long names of the flags listed under its Flags and Global Flags sections.
+// It also fails the test if a sentinel NoOptDefVal leaks into the output.
+func helpListedFlags(t *testing.T, cmd *cobra.Command) map[string]bool {
+	t.Helper()
+	// Cobra adds these flags at execution time, just before rendering help.
+	cmd.InitDefaultHelpFlag()
+	cmd.InitDefaultVersionFlag()
+
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	defer cmd.SetOut(nil)
+	cmd.HelpFunc()(cmd, nil)
+
+	if strings.Contains(buf.String(), "\x00") {
+		t.Errorf("help for %q leaks a sentinel NoOptDefVal:\n%s", cmd.CommandPath(), buf.String())
+	}
+
+	listed := map[string]bool{}
+	inFlags := false
+	for _, line := range strings.Split(buf.String(), "\n") {
+		switch {
+		case line == "Flags:" || line == "Global Flags:":
+			inFlags = true
+		case strings.TrimSpace(line) == "" || !strings.HasPrefix(line, " "):
+			inFlags = false
+		case inFlags:
+			if m := helpFlagLine.FindStringSubmatch(line); m != nil {
+				listed[m[1]] = true
+			}
+		}
+	}
+	return listed
+}
+
+func TestHelpListsExactlyTheFlagsEachCommandAccepts(t *testing.T) {
+	origVersion := rootCmd.Version
+	rootCmd.Version = "v1.2.3"
+	defer func() { rootCmd.Version = origVersion }()
+
+	var walk func(cmd *cobra.Command)
+	walk = func(cmd *cobra.Command) {
+		t.Run(cmd.CommandPath(), func(t *testing.T) {
+			listed := helpListedFlags(t, cmd)
+
+			for name := range listed {
+				if cmd.LocalFlags().Lookup(name) == nil && cmd.InheritedFlags().Lookup(name) == nil {
+					t.Errorf("help lists --%s, which %q does not accept", name, cmd.CommandPath())
+				}
+			}
+
+			for _, fs := range []*pflag.FlagSet{cmd.LocalFlags(), cmd.InheritedFlags()} {
+				fs.VisitAll(func(f *pflag.Flag) {
+					if !f.Hidden && !listed[f.Name] {
+						t.Errorf("help omits --%s, which %q accepts", f.Name, cmd.CommandPath())
+					}
+				})
+			}
+		})
+		for _, sub := range cmd.Commands() {
+			walk(sub)
+		}
+	}
+	walk(rootCmd)
+}
+
+func TestNavigationHelpOnlyOnRoot(t *testing.T) {
+	usage := func(cmd *cobra.Command) string {
+		var buf bytes.Buffer
+		cmd.SetOut(&buf)
+		defer cmd.SetOut(nil)
+		_ = cmd.Usage()
+		return buf.String()
+	}
+
+	if !strings.Contains(usage(rootCmd), "Navigation:") {
+		t.Error("root help should include the Navigation section")
+	}
+	if strings.Contains(usage(worktreeAlignCmd), "Navigation:") {
+		t.Error("subcommand help should not include the root Navigation section")
 	}
 }
 

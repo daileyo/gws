@@ -208,25 +208,10 @@ func init() {
 	listCmd.Flags().IntVar(&flagWorkers, "workers", 0, "Number of concurrent workers for status fetching (default: 8)")
 	listCmd.Flags().StringVar(&flagColor, "color", "auto", "Color output: auto, always, never")
 
-	// Custom help function to clean up NoOptDefVal display artifacts.
-	// Cobra renders string flags with NoOptDefVal as: --flag string[="sentinel"]
-	// We strip the string[="..."] part for cleaner help output.
-	defaultUsages := listCmd.Flags().FlagUsages
+	// Custom help function that hides the showColumnSentinel NoOptDefVals.
 	listCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		raw := defaultUsages()
-		// Remove all string[="..."] artifacts from NoOptDefVal flags
-		cleaned := raw
-		for strings.Contains(cleaned, "string[=\"") {
-			start := strings.Index(cleaned, "string[=\"")
-			end := strings.Index(cleaned[start:], "\"]")
-			if end < 0 {
-				break
-			}
-			cleaned = cleaned[:start] + cleaned[start+end+2:]
-		}
-
 		fmt.Fprint(cmd.OutOrStdout(), cmd.Long+"\n\n")
-		fmt.Fprintf(cmd.OutOrStdout(), "Usage:\n  %s\n\nFlags:\n%s", cmd.UseLine(), cleaned)
+		fmt.Fprintf(cmd.OutOrStdout(), "Usage:\n  %s\n\nFlags:\n%s", cmd.UseLine(), flagUsages(cmd.Flags()))
 	})
 }
 

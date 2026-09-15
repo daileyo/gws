@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/daileyo/omgitworks/internal/config"
 )
@@ -161,11 +162,21 @@ func init() {
 		return nil, cobra.ShellCompDirectiveFilterDirs
 	})
 
-	rootCmd.SetUsageTemplate(`Usage:
-  {{.UseLine}}
+	// Subcommands inherit this template, so flags are rendered from each
+	// command's own flag set and the navigation examples appear on the root only.
+	cobra.AddTemplateFunc("flagUsages", flagUsages)
+	rootCmd.SetUsageTemplate(`Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
 
 Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .HasParent}}
 
 Navigation:
   gws cd                                            # Navigate to the workspace root
@@ -174,13 +185,36 @@ Navigation:
   gws <repo> -wt <branch>                           # Navigate to repo's worktree
   gws <repo> -wt                                    # List repo's worktrees for selection
   gws worktree <branch>                             # Navigate to worktree (any repo)
-  gws worktree navigate <branch>                    # Same (canonical form)
+  gws worktree navigate <branch>                    # Same (canonical form){{end}}{{if .HasAvailableLocalFlags}}
 
 Flags:
-  -q, --quiet     Suppress verbose output, print only the path (navigation only)
-  -h, --help      help for {{.Name}}
-      --version   version for {{.Name}}
+{{flagUsages .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{flagUsages .InheritedFlags | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `)
+}
+
+// flagUsages renders a flag set's help lines like pflag's FlagUsages, but
+// leaves out sentinel NoOptDefVals (worktreeSentinel, showColumnSentinel).
+// They are internal markers, and pflag would print them verbatim as
+// string[="\x00..."], breaking the column alignment.
+func flagUsages(fs *pflag.FlagSet) string {
+	display := pflag.NewFlagSet("", pflag.ContinueOnError)
+	fs.VisitAll(func(f *pflag.Flag) {
+		if strings.HasPrefix(f.NoOptDefVal, "\x00") {
+			clean := *f
+			clean.NoOptDefVal = ""
+			f = &clean
+		}
+		display.AddFlag(f)
+	})
+	return display.FlagUsages()
 }
 
 // printWorkspaceCmd is the Cobra subcommand for printing the workspace path.
