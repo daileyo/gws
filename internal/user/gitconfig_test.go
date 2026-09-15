@@ -6,160 +6,6 @@ import (
 	"testing"
 )
 
-func TestParseGitconfig_BasicKeyValuePairs(t *testing.T) {
-	// Create a temporary gitconfig file
-	tmpDir := t.TempDir()
-	gitconfigPath := filepath.Join(tmpDir, ".gitconfig")
-
-	content := `[user]
-	name = John Doe
-	email = john@example.com
-[core]
-	editor = vim
-`
-	if err := os.WriteFile(gitconfigPath, []byte(content), 0644); err != nil {
-		t.Fatalf("Failed to write test gitconfig: %v", err)
-	}
-
-	cfg, err := ParseGitconfig(gitconfigPath)
-	if err != nil {
-		t.Fatalf("ParseGitconfig failed: %v", err)
-	}
-
-	// Check user section
-	userSection, ok := cfg.Sections["user"]
-	if !ok {
-		t.Fatal("Expected user section not found")
-	}
-
-	if userSection.Values["name"] != "John Doe" {
-		t.Errorf("Expected name 'John Doe', got '%s'", userSection.Values["name"])
-	}
-
-	if userSection.Values["email"] != "john@example.com" {
-		t.Errorf("Expected email 'john@example.com', got '%s'", userSection.Values["email"])
-	}
-
-	// Check core section
-	coreSection, ok := cfg.Sections["core"]
-	if !ok {
-		t.Fatal("Expected core section not found")
-	}
-
-	if coreSection.Values["editor"] != "vim" {
-		t.Errorf("Expected editor 'vim', got '%s'", coreSection.Values["editor"])
-	}
-}
-
-func TestParseGitconfig_QuotedValues(t *testing.T) {
-	tmpDir := t.TempDir()
-	gitconfigPath := filepath.Join(tmpDir, ".gitconfig")
-
-	content := `[user]
-	name = "John Doe"
-	email = 'john@example.com'
-`
-	if err := os.WriteFile(gitconfigPath, []byte(content), 0644); err != nil {
-		t.Fatalf("Failed to write test gitconfig: %v", err)
-	}
-
-	cfg, err := ParseGitconfig(gitconfigPath)
-	if err != nil {
-		t.Fatalf("ParseGitconfig failed: %v", err)
-	}
-
-	userSection := cfg.Sections["user"]
-	if userSection.Values["name"] != "John Doe" {
-		t.Errorf("Expected name 'John Doe', got '%s'", userSection.Values["name"])
-	}
-
-	if userSection.Values["email"] != "john@example.com" {
-		t.Errorf("Expected email 'john@example.com', got '%s'", userSection.Values["email"])
-	}
-}
-
-func TestParseGitconfig_Comments(t *testing.T) {
-	tmpDir := t.TempDir()
-	gitconfigPath := filepath.Join(tmpDir, ".gitconfig")
-
-	content := `# This is a comment
-[user]
-	; Another comment
-	name = John Doe
-	# Comment in section
-	email = john@example.com
-`
-	if err := os.WriteFile(gitconfigPath, []byte(content), 0644); err != nil {
-		t.Fatalf("Failed to write test gitconfig: %v", err)
-	}
-
-	cfg, err := ParseGitconfig(gitconfigPath)
-	if err != nil {
-		t.Fatalf("ParseGitconfig failed: %v", err)
-	}
-
-	userSection := cfg.Sections["user"]
-	if userSection.Values["name"] != "John Doe" {
-		t.Errorf("Expected name 'John Doe', got '%s'", userSection.Values["name"])
-	}
-
-	if userSection.Values["email"] != "john@example.com" {
-		t.Errorf("Expected email 'john@example.com', got '%s'", userSection.Values["email"])
-	}
-}
-
-func TestExtractIncludeIfs_GitdirPatterns(t *testing.T) {
-	tmpDir := t.TempDir()
-	gitconfigPath := filepath.Join(tmpDir, ".gitconfig")
-
-	// Create included config files
-	workConfigPath := filepath.Join(tmpDir, ".gitconfig-work")
-	personalConfigPath := filepath.Join(tmpDir, ".gitconfig-personal")
-
-	if err := os.WriteFile(workConfigPath, []byte("[user]\n\tname = Work User\n"), 0644); err != nil {
-		t.Fatalf("Failed to write work config: %v", err)
-	}
-	if err := os.WriteFile(personalConfigPath, []byte("[user]\n\tname = Personal User\n"), 0644); err != nil {
-		t.Fatalf("Failed to write personal config: %v", err)
-	}
-
-	content := `[user]
-	name = Default User
-	email = default@example.com
-
-[includeIf "gitdir:~/work/"]
-	path = ` + workConfigPath + `
-
-[includeIf "gitdir:~/personal/"]
-	path = ` + personalConfigPath + `
-`
-	if err := os.WriteFile(gitconfigPath, []byte(content), 0644); err != nil {
-		t.Fatalf("Failed to write test gitconfig: %v", err)
-	}
-
-	cfg, err := ParseGitconfig(gitconfigPath)
-	if err != nil {
-		t.Fatalf("ParseGitconfig failed: %v", err)
-	}
-
-	includeIfs := ExtractIncludeIfs(cfg)
-	if len(includeIfs) != 2 {
-		t.Fatalf("Expected 2 includeIf directives, got %d", len(includeIfs))
-	}
-
-	if includeIfs[0].Condition != "gitdir:~/work/" {
-		t.Errorf("Expected condition 'gitdir:~/work/', got '%s'", includeIfs[0].Condition)
-	}
-
-	if includeIfs[0].Path != workConfigPath {
-		t.Errorf("Expected path '%s', got '%s'", workConfigPath, includeIfs[0].Path)
-	}
-
-	if includeIfs[1].Condition != "gitdir:~/personal/" {
-		t.Errorf("Expected condition 'gitdir:~/personal/', got '%s'", includeIfs[1].Condition)
-	}
-}
-
 func TestParseIncludedConfig_UserInfo(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, ".gitconfig-work")
@@ -302,22 +148,27 @@ func TestExtractNameFromConfigPath(t *testing.T) {
 	}
 }
 
+// isolateGitConfig points git at an empty home directory so a test sees only
+// the config it writes, never the developer's own. Returns the home directory.
+func isolateGitConfig(t *testing.T) string {
+	t.Helper()
+
+	home, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to resolve temp home: %v", err)
+	}
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	// An empty GIT_CONFIG_GLOBAL disables global config entirely, so unset it.
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
+	os.Unsetenv("GIT_CONFIG_GLOBAL")
+	return home
+}
+
 func TestDetectProfiles_Integration(t *testing.T) {
-	// Create a temporary directory structure that mimics a real setup
-	tmpDir := t.TempDir()
-
-	// Create included config files
-	workDir := filepath.Join(tmpDir, "work")
-	personalDir := filepath.Join(tmpDir, "personal")
-	if err := os.MkdirAll(workDir, 0755); err != nil {
-		t.Fatalf("Failed to create work dir: %v", err)
-	}
-	if err := os.MkdirAll(personalDir, 0755); err != nil {
-		t.Fatalf("Failed to create personal dir: %v", err)
-	}
-
-	workConfigPath := filepath.Join(tmpDir, ".gitconfig-work")
-	personalConfigPath := filepath.Join(tmpDir, ".gitconfig-personal")
+	home := isolateGitConfig(t)
 
 	workConfig := `[user]
 	name = Work User
@@ -331,104 +182,77 @@ func TestDetectProfiles_Integration(t *testing.T) {
 [commit]
 	gpgsign = true
 `
-	if err := os.WriteFile(workConfigPath, []byte(workConfig), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig-work"), []byte(workConfig), 0644); err != nil {
 		t.Fatalf("Failed to write work config: %v", err)
 	}
-	if err := os.WriteFile(personalConfigPath, []byte(personalConfig), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig-personal"), []byte(personalConfig), 0644); err != nil {
 		t.Fatalf("Failed to write personal config: %v", err)
 	}
 
-	// Create main gitconfig with absolute paths
+	// A relative path resolves against the including file, as git does
 	mainConfig := `[user]
 	name = Default User
 	email = default@example.com
 
-[includeIf "gitdir:` + workDir + `/"]
-	path = ` + workConfigPath + `
+[includeIf "gitdir:~/work/"]
+	path = .gitconfig-work
 
-[includeIf "gitdir:` + personalDir + `/"]
-	path = ` + personalConfigPath + `
+[includeIf "gitdir:~/personal/"]
+	path = ~/.gitconfig-personal
 `
-	mainConfigPath := filepath.Join(tmpDir, ".gitconfig")
-	if err := os.WriteFile(mainConfigPath, []byte(mainConfig), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig"), []byte(mainConfig), 0644); err != nil {
 		t.Fatalf("Failed to write main config: %v", err)
 	}
 
-	// Test ParseGitconfig directly with our test file
-	cfg, err := ParseGitconfig(mainConfigPath)
+	profiles, err := DetectProfiles()
 	if err != nil {
-		t.Fatalf("ParseGitconfig failed: %v", err)
+		t.Fatalf("DetectProfiles failed: %v", err)
 	}
-
-	// Check that we have 2 includeIf directives
-	includeIfs := ExtractIncludeIfs(cfg)
-	if len(includeIfs) != 2 {
-		t.Fatalf("Expected 2 includeIf directives, got %d", len(includeIfs))
-	}
-
-	// Parse each included config
-	var profiles []ProfileInfo
-	for _, includeIf := range includeIfs {
-		profile, err := ParseIncludedConfig(includeIf)
-		if err != nil {
-			t.Errorf("Failed to parse included config: %v", err)
-			continue
-		}
-		profiles = append(profiles, ProfileInfo{
-			Name:        profile.Name,
-			Email:       profile.Email,
-			SignCommits: profile.SignCommits,
-		})
-	}
-
 	if len(profiles) != 2 {
-		t.Fatalf("Expected 2 profiles, got %d", len(profiles))
+		t.Fatalf("Expected 2 profiles, got %d: %+v", len(profiles), profiles)
 	}
 
-	// Verify profiles
-	workFound := false
-	personalFound := false
-	for _, p := range profiles {
-		if p.Email == "work@company.com" {
-			workFound = true
-			if p.SignCommits {
-				t.Error("Work profile should not have signing enabled")
-			}
-		}
-		if p.Email == "personal@gmail.com" {
-			personalFound = true
-			if !p.SignCommits {
-				t.Error("Personal profile should have signing enabled")
-			}
-		}
+	if profiles[0].Name != "work" || profiles[0].Email != "work@company.com" || profiles[0].SignCommits {
+		t.Errorf("Unexpected work profile: %+v", profiles[0])
 	}
-
-	if !workFound {
-		t.Error("Work profile not found")
-	}
-	if !personalFound {
-		t.Error("Personal profile not found")
+	if profiles[1].Name != "personal" || profiles[1].Email != "personal@gmail.com" ||
+		profiles[1].SigningKey != "PERSONAL123" || !profiles[1].SignCommits {
+		t.Errorf("Unexpected personal profile: %+v", profiles[1])
 	}
 }
 
-// ProfileInfo is a helper struct for tests
-type ProfileInfo struct {
-	Name        string
-	Email       string
-	SignCommits bool
-}
+// Regression: includeIf directives in git's XDG config were never detected.
+func TestDetectProfiles_XDGConfig(t *testing.T) {
+	home := isolateGitConfig(t)
+	gitDir := filepath.Join(home, ".config", "git")
+	if err := os.MkdirAll(gitDir, 0755); err != nil {
+		t.Fatalf("Failed to create git config dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(gitDir, "gitconfig-work"), []byte("[user]\n\tname = Work User\n\temail = work@company.com\n"), 0644); err != nil {
+		t.Fatalf("Failed to write work config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(gitDir, "config"), []byte("[includeIf \"gitdir:~/work/\"]\n\tpath = gitconfig-work\n"), 0644); err != nil {
+		t.Fatalf("Failed to write XDG config: %v", err)
+	}
 
-func TestParseGitconfig_FileNotFound(t *testing.T) {
-	_, err := ParseGitconfig("/nonexistent/path/.gitconfig")
-	if err == nil {
-		t.Error("Expected error for nonexistent file")
+	profiles, err := DetectProfiles()
+	if err != nil {
+		t.Fatalf("DetectProfiles failed: %v", err)
+	}
+	if len(profiles) != 1 || profiles[0].Email != "work@company.com" || profiles[0].Name != "work" {
+		t.Errorf("Expected work profile from XDG config, got %+v", profiles)
 	}
 }
 
-func TestExtractIncludeIfs_NilConfig(t *testing.T) {
-	result := ExtractIncludeIfs(nil)
-	if result != nil {
-		t.Error("Expected nil for nil config")
+func TestDetectProfiles_NoConfig(t *testing.T) {
+	isolateGitConfig(t)
+
+	profiles, err := DetectProfiles()
+	if err != nil {
+		t.Fatalf("DetectProfiles failed: %v", err)
+	}
+	if len(profiles) != 0 {
+		t.Errorf("Expected no profiles, got %+v", profiles)
 	}
 }
 

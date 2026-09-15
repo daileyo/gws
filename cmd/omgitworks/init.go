@@ -107,11 +107,12 @@ func runInit(dir string) error {
 	if userDetectedCount > 0 {
 		fmt.Printf("Repositories with user configuration: %d\n", userDetectedCount)
 	}
+	warnMissingEmail(os.Stderr, cfg.Repositories)
 
 	return nil
 }
 
-func pluralize(count int, singular, plural string) string { //nolint:unparam // singular is always "repository" but kept for readability
+func pluralize(count int, singular, plural string) string {
 	if count == 1 {
 		return singular
 	}

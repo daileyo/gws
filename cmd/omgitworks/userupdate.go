@@ -39,7 +39,7 @@ func runListUsers(_ *cobra.Command, _ []string) error {
 		}
 		fmt.Printf("Auto-Detected Profiles (%d):\n\n", len(detected))
 		displayProfileTable(detected)
-		fmt.Println("\n(Auto-detected from ~/.gitconfig includeIf directives)")
+		fmt.Println("\n(Auto-detected from git config includeIf directives)")
 	}
 
 	return nil

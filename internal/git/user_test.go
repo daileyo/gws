@@ -1,7 +1,6 @@
 package git
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -224,237 +223,376 @@ func TestGetUserConfig_InvalidPath(t *testing.T) {
 	}
 }
 
-func TestParseGitConfig(t *testing.T) {
+// isolateGitConfig points git at an empty home directory so a test sees only
+// the config it writes, never the developer's own. Returns the home directory.
+func isolateGitConfig(t *testing.T) string {
+	t.Helper()
+
+	home, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatalf("Failed to resolve temp home: %v", err)
+	}
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	// An empty GIT_CONFIG_GLOBAL disables global config entirely, so unset it.
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
+	os.Unsetenv("GIT_CONFIG_GLOBAL")
+	return home
+}
+
+// writeConfigFile writes a config file, creating parent directories.
+func writeConfigFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+}
+
+// initBareTestRepo creates a repository with no commits and no user config.
+func initBareTestRepo(t *testing.T, path string) {
+	t.Helper()
+	if _, err := git.PlainInit(path, false); err != nil {
+		t.Fatalf("Failed to init test repo: %v", err)
+	}
+}
+
+func TestParseConfigEntries(t *testing.T) {
+	out := []byte("global\x00file:/h/.gitconfig\x00user.name\nJane Doe\x00" +
+		"global\x00file:/h/.gitconfig\x00commit.gpgsign\x00" +
+		"local\x00file:.git/config\x00user.email\njane@example.com\x00")
+
+	entries := parseConfigEntries(out)
+	if len(entries) != 3 {
+		t.Fatalf("Expected 3 entries, got %d: %+v", len(entries), entries)
+	}
+
+	want := []configEntry{
+		{scope: "global", origin: "file:/h/.gitconfig", key: "user.name", value: "Jane Doe"},
+		{scope: "global", origin: "file:/h/.gitconfig", key: "commit.gpgsign", bare: true},
+		{scope: "local", origin: "file:.git/config", key: "user.email", value: "jane@example.com"},
+	}
+	for i, w := range want {
+		if entries[i] != w {
+			t.Errorf("Entry %d: expected %+v, got %+v", i, w, entries[i])
+		}
+	}
+
+	if got := parseConfigEntries(nil); len(got) != 0 {
+		t.Errorf("Expected no entries for empty output, got %+v", got)
+	}
+}
+
+func TestEntryBool(t *testing.T) {
 	tests := []struct {
-		name        string
-		content     string
-		wantName    string
-		wantEmail   string
-		wantSignKey string
-		wantSign    bool
+		entry configEntry
+		want  bool
 	}{
-		{
-			name: "basic user config",
-			content: `[user]
-	name = John Doe
-	email = john@example.com`,
-			wantName:  "John Doe",
-			wantEmail: "john@example.com",
-		},
-		{
-			name: "user config with signing",
-			content: `[user]
-	name = Jane Doe
-	email = jane@example.com
-	signingkey = ABC123
-[commit]
-	gpgsign = true`,
-			wantName:    "Jane Doe",
-			wantEmail:   "jane@example.com",
-			wantSignKey: "ABC123",
-			wantSign:    true,
-		},
-		{
-			name: "config with equals in value",
-			content: `[user]
-	name = John = Doe
-	email = john@example.com`,
-			wantName:  "John = Doe",
-			wantEmail: "john@example.com",
-		},
-		{
-			name: "config with quotes",
-			content: `[user]
-	name = "Quoted Name"
-	email = 'quoted@example.com'`,
-			wantName:  "Quoted Name",
-			wantEmail: "quoted@example.com",
-		},
-		{
-			name: "config with comments",
-			content: `# This is a comment
-[user]
-	name = Test User
-	; Another comment
-	email = test@example.com`,
-			wantName:  "Test User",
-			wantEmail: "test@example.com",
-		},
-		{
-			name:      "empty config",
-			content:   "",
-			wantName:  "",
-			wantEmail: "",
-		},
+		{configEntry{bare: true}, true},
+		{configEntry{value: "true"}, true},
+		{configEntry{value: "Yes"}, true},
+		{configEntry{value: "on"}, true},
+		{configEntry{value: "1"}, true},
+		{configEntry{value: "false"}, false},
+		{configEntry{value: "0"}, false},
+		{configEntry{}, false},
+	}
+
+	for _, tt := range tests {
+		if got := entryBool(tt.entry); got != tt.want {
+			t.Errorf("entryBool(%+v) = %v, want %v", tt.entry, got, tt.want)
+		}
+	}
+}
+
+func TestResolveIncludePath(t *testing.T) {
+	home := isolateGitConfig(t)
+
+	tests := []struct {
+		name   string
+		path   string
+		origin string
+		want   string
+	}{
+		{"tilde", "~/.gitconfig-work", "file:/etc/gitconfig", filepath.Join(home, ".gitconfig-work")},
+		{"absolute", "/opt/git/work.inc", "file:/etc/gitconfig", "/opt/git/work.inc"},
+		{"relative to including file", "ids/work.inc", "file:/home/me/.config/git/config", "/home/me/.config/git/ids/work.inc"},
+		{"relative without file origin", "ids/work.inc", "command line:", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := parseGitConfig(tt.content)
-
-			if cfg.Name != tt.wantName {
-				t.Errorf("Name: expected '%s', got '%s'", tt.wantName, cfg.Name)
-			}
-			if cfg.Email != tt.wantEmail {
-				t.Errorf("Email: expected '%s', got '%s'", tt.wantEmail, cfg.Email)
-			}
-			if cfg.SigningKey != tt.wantSignKey {
-				t.Errorf("SigningKey: expected '%s', got '%s'", tt.wantSignKey, cfg.SigningKey)
-			}
-			if cfg.SignCommits != tt.wantSign {
-				t.Errorf("SignCommits: expected %v, got %v", tt.wantSign, cfg.SignCommits)
+			if got := resolveIncludePath(tt.path, tt.origin); got != tt.want {
+				t.Errorf("resolveIncludePath(%q, %q) = %q, want %q", tt.path, tt.origin, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestExtractValue(t *testing.T) {
-	tests := []struct {
-		line     string
-		expected string
-	}{
-		{"name = John Doe", "John Doe"},
-		{"email=test@example.com", "test@example.com"},
-		{"  name  =  Spaced Value  ", "Spaced Value"},
-		{`name = "Quoted"`, "Quoted"},
-		{"name = 'Single Quoted'", "Single Quoted"},
-		{"key = value = with = equals", "value = with = equals"},
-		{"noequals", ""},
-	}
+func TestGetUserConfig_HomeGitconfig(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".gitconfig"), "[user]\n\tname = \"Home User\"\n\temail = home@example.com\n")
 
-	for _, tt := range tests {
-		t.Run(tt.line, func(t *testing.T) {
-			result := extractValue(tt.line)
-			if result != tt.expected {
-				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
-			}
-		})
+	repoPath := filepath.Join(home, "repo")
+	initBareTestRepo(t, repoPath)
+
+	userCfg, err := GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
+	}
+	if userCfg.Name != "Home User" || userCfg.Email != "home@example.com" {
+		t.Errorf("Expected Home User <home@example.com>, got %s <%s>", userCfg.Name, userCfg.Email)
+	}
+	if userCfg.Source != config.UserSourceGlobal {
+		t.Errorf("Expected source 'global', got '%s'", userCfg.Source)
 	}
 }
 
-func TestMatchesGitdirCondition(t *testing.T) {
-	home, _ := os.UserHomeDir()
+// Regression: identity kept in git's XDG config was invisible to omgw.
+func TestGetUserConfig_XDGGlobalConfig(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".config", "git", "config"), "[user]\n\tname = XDG User\n\temail = xdg@example.com\n")
 
-	tests := []struct {
-		name      string
-		repoPath  string
-		condition string
-		expected  bool
-	}{
-		{
-			name:      "exact directory match with trailing slash",
-			repoPath:  "/home/user/work/my-project",
-			condition: "gitdir:/home/user/work/",
-			expected:  true,
-		},
-		{
-			name:      "nested repo under matching directory",
-			repoPath:  "/home/user/work/team/my-project",
-			condition: "gitdir:/home/user/work/",
-			expected:  true,
-		},
-		{
-			name:      "trailing ** glob",
-			repoPath:  "/home/user/work/deep/nested/repo",
-			condition: "gitdir:/home/user/work/**",
-			expected:  true,
-		},
-		{
-			name:      "non-matching path",
-			repoPath:  "/home/user/personal/my-project",
-			condition: "gitdir:/home/user/work/",
-			expected:  false,
-		},
-		{
-			name:      "tilde expansion",
-			repoPath:  filepath.Join(home, "work", "my-project"),
-			condition: "gitdir:~/work/",
-			expected:  true,
-		},
-		{
-			name:      "tilde expansion non-match",
-			repoPath:  filepath.Join(home, "personal", "my-project"),
-			condition: "gitdir:~/work/",
-			expected:  false,
-		},
-		{
-			name:      "case-insensitive gitdir/i match",
-			repoPath:  "/home/user/Work/my-project",
-			condition: "gitdir/i:/home/user/work/",
-			expected:  true,
-		},
-		{
-			name:      "case-sensitive gitdir does not match different case",
-			repoPath:  "/home/user/Work/my-project",
-			condition: "gitdir:/home/user/work/",
-			expected:  false,
-		},
-		{
-			name:      "not a gitdir condition",
-			repoPath:  "/home/user/work/repo",
-			condition: "onbranch:main",
-			expected:  false,
-		},
-		{
-			name:      "directory without trailing slash",
-			repoPath:  "/home/user/work/my-project",
-			condition: "gitdir:/home/user/work",
-			expected:  true,
-		},
+	repoPath := filepath.Join(home, "repo")
+	initBareTestRepo(t, repoPath)
+
+	userCfg, err := GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := MatchesGitdirCondition(tt.repoPath, tt.condition)
-			if result != tt.expected {
-				t.Errorf("MatchesGitdirCondition(%q, %q) = %v, want %v",
-					tt.repoPath, tt.condition, result, tt.expected)
-			}
-		})
+	if userCfg.Name != "XDG User" || userCfg.Email != "xdg@example.com" {
+		t.Errorf("Expected XDG User <xdg@example.com>, got %s <%s>", userCfg.Name, userCfg.Email)
+	}
+	if userCfg.Source != config.UserSourceGlobal {
+		t.Errorf("Expected source 'global', got '%s'", userCfg.Source)
 	}
 }
 
-func TestParseIncludeIfs(t *testing.T) {
-	home, _ := os.UserHomeDir()
+// Regression: a relative [include] path resolved against the working directory
+// instead of the including file.
+func TestGetUserConfig_RelativeInclude(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".gitconfig-id"), "[user]\n\tname = Included User\n\temail = included@example.com\n")
+	writeConfigFile(t, filepath.Join(home, ".gitconfig"), "[include]\n\tpath = .gitconfig-id\n")
 
-	content := `[user]
+	repoPath := filepath.Join(home, "repo")
+	initBareTestRepo(t, repoPath)
+
+	userCfg, err := GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
+	}
+	if userCfg.Email != "included@example.com" {
+		t.Errorf("Expected email 'included@example.com', got '%s'", userCfg.Email)
+	}
+	if userCfg.Source != config.UserSourceGlobal {
+		t.Errorf("Expected unconditional include to be 'global', got '%s'", userCfg.Source)
+	}
+}
+
+func TestGetUserConfig_IncludeIf(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".config", "git", "work.inc"), "[user]\n\temail = work@company.com\n\tsigningkey = WORK123\n")
+	writeConfigFile(t, filepath.Join(home, ".config", "git", "config"), `[user]
 	name = Default User
 	email = default@example.com
 [includeIf "gitdir:~/work/"]
-	path = ~/.gitconfig-work
-[includeIf "gitdir:~/personal/"]
-	path = ~/.gitconfig-personal
-[core]
-	editor = vim
-`
-	entries := parseIncludeIfs(content, home)
+	path = work.inc
+`)
 
-	if len(entries) != 2 {
-		t.Fatalf("Expected 2 includeIf entries, got %d", len(entries))
+	workRepo := filepath.Join(home, "work", "repo")
+	otherRepo := filepath.Join(home, "other", "repo")
+	initBareTestRepo(t, workRepo)
+	initBareTestRepo(t, otherRepo)
+
+	workCfg, err := GetUserConfig(workRepo)
+	if err != nil {
+		t.Fatalf("Failed to get work user config: %v", err)
+	}
+	if workCfg.Name != "Default User" || workCfg.Email != "work@company.com" || workCfg.SigningKey != "WORK123" {
+		t.Errorf("Unexpected work identity: %+v", workCfg)
+	}
+	if workCfg.Source != config.UserSourceIncludeIf {
+		t.Errorf("Expected source 'includeif', got '%s'", workCfg.Source)
 	}
 
-	if entries[0].condition != "gitdir:~/work/" {
-		t.Errorf("Expected condition 'gitdir:~/work/', got '%s'", entries[0].condition)
+	otherCfg, err := GetUserConfig(otherRepo)
+	if err != nil {
+		t.Fatalf("Failed to get other user config: %v", err)
 	}
-	expectedPath := filepath.Clean(filepath.Join(home, ".gitconfig-work"))
-	if entries[0].path != expectedPath {
-		t.Errorf("Expected path '%s', got '%s'", expectedPath, entries[0].path)
+	if otherCfg.Email != "default@example.com" {
+		t.Errorf("Expected email 'default@example.com', got '%s'", otherCfg.Email)
 	}
-
-	if entries[1].condition != "gitdir:~/personal/" {
-		t.Errorf("Expected condition 'gitdir:~/personal/', got '%s'", entries[1].condition)
+	if otherCfg.Source != config.UserSourceGlobal {
+		t.Errorf("Expected source 'global', got '%s'", otherCfg.Source)
 	}
 }
 
-func TestParseIncludeIfs_Empty(t *testing.T) {
-	content := `[user]
-	name = Default User
-	email = default@example.com
-`
-	entries := parseIncludeIfs(content, "/home/test")
+func TestGetUserConfig_LocalSigningOverridesGlobal(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".gitconfig"), "[user]\n\tname = Global User\n\temail = global@example.com\n[commit]\n\tgpgsign\n")
 
-	if len(entries) != 0 {
-		t.Errorf("Expected 0 includeIf entries, got %d", len(entries))
+	repoPath := filepath.Join(home, "repo")
+	initBareTestRepo(t, repoPath)
+
+	userCfg, err := GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
+	}
+	if !userCfg.SignCommits {
+		t.Error("Expected bare commit.gpgsign to enable signing")
+	}
+
+	writeConfigFile(t, filepath.Join(repoPath, ".git", "config"), "[commit]\n\tgpgsign = false\n")
+
+	userCfg, err = GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
+	}
+	if userCfg.SignCommits {
+		t.Error("Expected local commit.gpgsign=false to disable signing")
+	}
+	if userCfg.Source != config.UserSourceGlobal {
+		t.Errorf("Expected identity source 'global', got '%s'", userCfg.Source)
+	}
+}
+
+func TestGetUserConfig_NameWithoutEmail(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".gitconfig"), "[user]\n\tname = Name Only\n")
+
+	repoPath := filepath.Join(home, "repo")
+	initBareTestRepo(t, repoPath)
+
+	userCfg, err := GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
+	}
+	if userCfg.Name != "Name Only" || userCfg.Email != "" {
+		t.Errorf("Expected name-only identity, got %s <%s>", userCfg.Name, userCfg.Email)
+	}
+}
+
+func TestGetUserConfig_NoIdentity(t *testing.T) {
+	home := isolateGitConfig(t)
+
+	repoPath := filepath.Join(home, "repo")
+	initBareTestRepo(t, repoPath)
+
+	userCfg, err := GetUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get user config: %v", err)
+	}
+	if userCfg.Source != config.UserSourceUnknown {
+		t.Errorf("Expected source 'unknown', got '%s'", userCfg.Source)
+	}
+}
+
+func TestGetNonLocalUserConfig_ReturnsUnderlyingGlobal(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".config", "git", "config"), "[user]\n\tname = Global User\n\temail = global@example.com\n")
+
+	repoPath := filepath.Join(home, "repo")
+	createTestRepoWithUser(t, repoPath, "Local User", "local@example.com", true)
+
+	userCfg, err := GetNonLocalUserConfig(repoPath)
+	if err != nil {
+		t.Fatalf("Failed to get non-local user config: %v", err)
+	}
+	if userCfg.Name != "Global User" || userCfg.Email != "global@example.com" {
+		t.Errorf("Expected Global User <global@example.com>, got %s <%s>", userCfg.Name, userCfg.Email)
+	}
+	if userCfg.Source != config.UserSourceGlobal {
+		t.Errorf("Expected source 'global', got '%s'", userCfg.Source)
+	}
+}
+
+func TestGetGlobalDefaultUser_IgnoresIncludeIf(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".gitconfig-work"), "[user]\n\temail = work@company.com\n")
+	writeConfigFile(t, filepath.Join(home, ".gitconfig-default"), "[user]\n\tname = Default User\n\temail = default@example.com\n")
+	writeConfigFile(t, filepath.Join(home, ".gitconfig"), `[include]
+	path = ~/.gitconfig-default
+[includeIf "gitdir:/"]
+	path = ~/.gitconfig-work
+`)
+
+	cfg, err := GetGlobalDefaultUser()
+	if err != nil {
+		t.Fatalf("GetGlobalDefaultUser failed: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("Expected a global default user")
+	}
+	if cfg.Name != "Default User" || cfg.Email != "default@example.com" {
+		t.Errorf("Expected Default User <default@example.com>, got %s <%s>", cfg.Name, cfg.Email)
+	}
+}
+
+func TestGetGlobalDefaultUser_NoIdentity(t *testing.T) {
+	home := isolateGitConfig(t)
+	writeConfigFile(t, filepath.Join(home, ".gitconfig"), "[core]\n\teditor = vim\n")
+
+	cfg, err := GetGlobalDefaultUser()
+	if err != nil {
+		t.Fatalf("GetGlobalDefaultUser failed: %v", err)
+	}
+	if cfg != nil {
+		t.Errorf("Expected nil config without an identity, got %+v", cfg)
+	}
+}
+
+func TestListIncludeIfDirectives(t *testing.T) {
+	home := isolateGitConfig(t)
+	xdgConfig := filepath.Join(home, ".config", "git", "config")
+	writeConfigFile(t, xdgConfig, `[includeIf "gitdir:~/Work/"]
+	path = ids/work.inc
+[includeIf "gitdir/i:~/personal/"]
+	path = ~/.gitconfig-personal
+`)
+
+	directives, err := ListIncludeIfDirectives()
+	if err != nil {
+		t.Fatalf("ListIncludeIfDirectives failed: %v", err)
+	}
+
+	want := []IncludeIfDirective{
+		{Condition: "gitdir:~/Work/", Path: filepath.Join(home, ".config", "git", "ids", "work.inc")},
+		{Condition: "gitdir/i:~/personal/", Path: filepath.Join(home, ".gitconfig-personal")},
+	}
+	if len(directives) != len(want) {
+		t.Fatalf("Expected %d directives, got %d: %+v", len(want), len(directives), directives)
+	}
+	for i, w := range want {
+		if directives[i] != w {
+			t.Errorf("Directive %d: expected %+v, got %+v", i, w, directives[i])
+		}
+	}
+}
+
+func TestReadUserConfigFile(t *testing.T) {
+	home := isolateGitConfig(t)
+	path := filepath.Join(home, "ids", "work.inc")
+	writeConfigFile(t, filepath.Join(home, "ids", "signing.inc"), "[user]\n\tsigningkey = KEY123\n[commit]\n\tgpgsign\n")
+	writeConfigFile(t, path, "[user]\n\tname = \"Work User\"\n\temail = work@company.com\n[include]\n\tpath = signing.inc\n")
+
+	cfg, err := ReadUserConfigFile(path)
+	if err != nil {
+		t.Fatalf("ReadUserConfigFile failed: %v", err)
+	}
+	if cfg.Name != "Work User" || cfg.Email != "work@company.com" {
+		t.Errorf("Expected Work User <work@company.com>, got %s <%s>", cfg.Name, cfg.Email)
+	}
+	if cfg.SigningKey != "KEY123" || !cfg.SignCommits {
+		t.Errorf("Expected signing from nested include, got key=%q sign=%v", cfg.SigningKey, cfg.SignCommits)
+	}
+
+	if _, err := ReadUserConfigFile(filepath.Join(home, "missing.inc")); err == nil {
+		t.Error("Expected error for missing file")
 	}
 }
 
@@ -504,77 +642,6 @@ func TestGetGlobalDefaultUser(t *testing.T) {
 	}
 	if cfg != nil {
 		t.Logf("Global default user: name=%q email=%q", cfg.Name, cfg.Email)
-	}
-}
-
-func TestGetGlobalDefaultUser_ParsesGitconfig(t *testing.T) {
-	// Test that loadGlobalConfig properly parses a gitconfig with [include]
-	// by testing the underlying parseGitConfigWithIncludes
-	tmpDir := t.TempDir()
-
-	// Create a gitconfig with include directive
-	includedConfig := filepath.Join(tmpDir, ".gitconfig-default")
-	if err := os.WriteFile(includedConfig, []byte(`[user]
-	name = Included User
-	email = included@example.com
-`), 0644); err != nil {
-		t.Fatalf("Failed to write included config: %v", err)
-	}
-
-	mainConfig := filepath.Join(tmpDir, ".gitconfig")
-	mainContent := fmt.Sprintf(`[include]
-	path = %s
-`, includedConfig)
-	if err := os.WriteFile(mainConfig, []byte(mainContent), 0644); err != nil {
-		t.Fatalf("Failed to write main config: %v", err)
-	}
-
-	cfg, err := parseGitConfigWithIncludes(mainConfig, tmpDir)
-	if err != nil {
-		t.Fatalf("Failed to parse gitconfig: %v", err)
-	}
-
-	if cfg.Name != "Included User" {
-		t.Errorf("Expected name 'Included User', got '%s'", cfg.Name)
-	}
-	if cfg.Email != "included@example.com" {
-		t.Errorf("Expected email 'included@example.com', got '%s'", cfg.Email)
-	}
-}
-
-func TestGetGlobalDefaultUser_NoUserSection(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	// Create a gitconfig with no [user] section
-	configPath := filepath.Join(tmpDir, ".gitconfig")
-	if err := os.WriteFile(configPath, []byte(`[core]
-	editor = vim
-`), 0644); err != nil {
-		t.Fatalf("Failed to write config: %v", err)
-	}
-
-	cfg, err := parseGitConfigWithIncludes(configPath, tmpDir)
-	if err != nil {
-		t.Fatalf("Failed to parse gitconfig: %v", err)
-	}
-
-	if cfg.Name != "" {
-		t.Errorf("Expected empty name, got '%s'", cfg.Name)
-	}
-	if cfg.Email != "" {
-		t.Errorf("Expected empty email, got '%s'", cfg.Email)
-	}
-}
-
-func TestGetGlobalDefaultUser_MissingFile(t *testing.T) {
-	cfg, err := parseGitConfigWithIncludes("/nonexistent/.gitconfig", "/nonexistent")
-
-	// Should return nil config without error for missing file
-	if err != nil {
-		t.Errorf("Expected no error for missing file, got: %v", err)
-	}
-	if cfg != nil {
-		t.Errorf("Expected nil config for missing file, got: %+v", cfg)
 	}
 }
 

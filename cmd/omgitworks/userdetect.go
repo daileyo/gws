@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/daileyo/omgitworks/internal/config"
@@ -130,6 +131,22 @@ func syncProfilesFromRepos(cfg *config.Config) {
 			Email:   id.email,
 		})
 	}
+}
+
+// warnMissingEmail reports repositories whose git identity has a name but no
+// email. Profiles are keyed by email, so no profile can be created for them.
+func warnMissingEmail(w io.Writer, repos []config.Repository) {
+	count := 0
+	for _, repo := range repos {
+		if repo.User != "" && repo.Email == "" {
+			count++
+		}
+	}
+	if count == 0 {
+		return
+	}
+	fmt.Fprintf(w, "Warning: %d %s user.name but no user.email; no profile can be created until user.email is set.\n",
+		count, pluralize(count, "repository has", "repositories have"))
 }
 
 // profileNameExists checks if a profile with the given name already exists
