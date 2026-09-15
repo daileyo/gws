@@ -19,8 +19,8 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to dark mode
-  logo: assets/images/omgitworks-logo-nav.png
-  favicon: assets/images/omgitworks-logo-favicon.png
+  logo: assets/images/omgw-mark-nav.png
+  favicon: assets/images/favicon.ico
   font:
     text: Nunito
     code: JetBrains Mono
