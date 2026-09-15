@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.2](https://github.com/daileyo/omgitworks/compare/v3.0.1...v3.0.2) (2026-09-15)
+
+
+### Bug Fixes
+
+* **shell:** route worktree help flags to the binary ([03203eb](https://github.com/daileyo/omgitworks/commit/03203eb545e190a825108045278d18c5d6b0ee0e))
+
 ## [3.0.1](https://github.com/daileyo/omgitworks/compare/v3.0.0...v3.0.1) (2026-09-15)
 
 
