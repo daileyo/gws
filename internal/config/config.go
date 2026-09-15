@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/daileyo/gws/internal/xdg"
+	"github.com/daileyo/omgitworks/internal/xdg"
 )
 
 // Version of the config format for future migrations

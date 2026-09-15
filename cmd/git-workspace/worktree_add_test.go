@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/xdg"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/xdg"
 )
 
 // setupWorktreeTestRepo creates a workspace with a git repo that has an initial commit.

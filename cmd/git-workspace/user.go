@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/user"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/user"
 )
 
 // User subcommand flags for short-flag invocation (user -a / -d / -l / -s).

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/xdg"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/xdg"
 )
 
 // captureStdoutStr captures stdout output from a function and returns it as a string.

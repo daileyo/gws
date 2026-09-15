@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/filter"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/filter"
 )
 
 const maxSelectionAttempts = 3

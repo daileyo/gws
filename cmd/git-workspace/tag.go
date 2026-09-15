@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // Tag subcommand flags for short-flag invocation (tag -a / tag -d).

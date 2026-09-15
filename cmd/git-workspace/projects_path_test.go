@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/daileyo/gws/internal/xdg"
+	"github.com/daileyo/omgitworks/internal/xdg"
 )
 
 // projectsPath returns the expected worktree location for a repo, resolving

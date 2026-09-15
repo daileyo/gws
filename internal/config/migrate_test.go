@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/daileyo/gws/internal/xdg"
+	"github.com/daileyo/omgitworks/internal/xdg"
 )
 
 // withMigrationEnv isolates a test from the real home directory and resets the

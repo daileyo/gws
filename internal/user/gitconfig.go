@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // GitConfig represents a parsed gitconfig file

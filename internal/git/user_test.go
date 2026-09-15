@@ -10,7 +10,7 @@ import (
 	gitconfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // createTestRepoWithUser creates a test git repository with specific user config

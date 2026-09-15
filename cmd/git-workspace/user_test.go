@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 func TestUserShortFlagsRegistered(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // Deprecated flag variables — these back the hidden root flags that provide

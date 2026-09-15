@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // UserConfig represents the git user configuration for a repository

@@ -3,7 +3,7 @@ package classifier
 import (
 	"strings"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // DetectType determines the repository type based on the remote URL
