@@ -1,5 +1,5 @@
-site_name: git-workspace
-site_url: https://daileyo.github.io/gws
+site_name: omgitworks
+site_url: https://omgitworks.dev
 docs_dir: docs/site
 repo_url: https://github.com/daileyo/gws
 repo_name: gws
@@ -19,8 +19,8 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to dark mode
-  logo: assets/images/gws-logo-nav.png
-  favicon: assets/images/gws-logo-favicon.png
+  logo: assets/images/omgitworks-logo-nav.png
+  favicon: assets/images/omgitworks-logo-favicon.png
   font:
     text: Nunito
     code: JetBrains Mono

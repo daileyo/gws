@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/site/assets/images/gws-logo-hero.png" alt="gws logo" width="300">
+  <img src="docs/site/assets/images/omgitworks-logo-hero.png" alt="omgitworks logo" width="400">
 </p>
 <h1 align="center">git-workspace</h1>
 <p align="center"><em>Your Git workspace, simplified</em></p>
@@ -36,7 +36,7 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 
 ## Documentation
 
-Full documentation is available at **https://daileyo.github.io/gws**
+Full documentation is available at **https://omgitworks.dev**
 
 ## Installation
 
@@ -46,7 +46,7 @@ Full documentation is available at **https://daileyo.github.io/gws**
 brew install daileyo/gws/git-workspace
 ```
 
-See the [Getting Started](https://daileyo.github.io/gws/getting-started/) guide for additional installation options.
+See the [Getting Started](https://omgitworks.dev/getting-started/) guide for additional installation options.
 
 ## Development
 
