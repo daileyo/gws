@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/daileyo/omgitworks/compare/v2.22.0...v3.0.0) (2026-09-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* the binary is now omgitworks and the command is omgw. The gws function is still defined by shell-init, and a git-workspace symlink is documented, so existing shell configs keep working.
+
+### Code Refactoring
+
+* rename the binary and command to omgitworks and omgw ([8b79dd4](https://github.com/daileyo/omgitworks/commit/8b79dd414e1b19be5fd0da91a6518a4761b26eb0))
+
 ## [2.22.0](https://github.com/daileyo/gws/compare/v2.21.0...v2.22.0) (2026-09-14)
 
 
