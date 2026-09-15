@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/daileyo/omgitworks/internal/config"
@@ -288,5 +290,73 @@ func TestRunRefresh_CorrectSymlinkNoDuplicate(t *testing.T) {
 	}
 	if target != repoDir {
 		t.Errorf("symlink target: expected %s, got %s", repoDir, target)
+	}
+}
+
+// TestRunRefresh_PicksUpGlobalUserAddedAfterInit verifies that an identity set
+// only after init, in git's XDG config rather than ~/.gitconfig, is stored on
+// the repo and becomes a profile when the workspace is refreshed.
+func TestRunRefresh_PicksUpGlobalUserAddedAfterInit(t *testing.T) {
+	withTempHome(t)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	// An empty GIT_CONFIG_GLOBAL disables global config entirely, so unset it.
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
+	os.Unsetenv("GIT_CONFIG_GLOBAL")
+
+	workspaceDir := t.TempDir()
+	createInitTestRepo(t, filepath.Join(workspaceDir, "my-repo"))
+	withTempWorkdir(t, workspaceDir)
+
+	if err := runInit(""); err != nil {
+		t.Fatalf("runInit returned error: %v", err)
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+	if len(cfg.Profiles) != 0 {
+		t.Fatalf("expected no profiles before an identity exists, got %+v", cfg.Profiles)
+	}
+
+	gitDir := filepath.Join(os.Getenv("HOME"), ".config", "git")
+	if err := os.MkdirAll(gitDir, 0755); err != nil {
+		t.Fatalf("failed to create git config dir: %v", err)
+	}
+	identity := "[user]\n\tname = Jane Doe\n\temail = jane@example.com\n"
+	if err := os.WriteFile(filepath.Join(gitDir, "config"), []byte(identity), 0644); err != nil {
+		t.Fatalf("failed to write git config: %v", err)
+	}
+
+	if err := runRefresh(); err != nil {
+		t.Fatalf("runRefresh returned error: %v", err)
+	}
+
+	cfg, err = config.Load()
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+	if len(cfg.Repositories) != 1 || cfg.Repositories[0].Email != "jane@example.com" {
+		t.Errorf("expected repo identity jane@example.com, got %+v", cfg.Repositories)
+	}
+	if len(cfg.Profiles) != 1 || cfg.Profiles[0].Email != "jane@example.com" || cfg.Profiles[0].Name != "jane-doe" {
+		t.Errorf("expected profile jane-doe <jane@example.com>, got %+v", cfg.Profiles)
+	}
+}
+
+func TestWarnMissingEmail(t *testing.T) {
+	var buf bytes.Buffer
+	warnMissingEmail(&buf, []config.Repository{
+		{Name: "a", User: "Jane Doe", Email: "jane@example.com"},
+		{Name: "b", User: "Jane Doe"},
+		{Name: "c"},
+	})
+	if !strings.Contains(buf.String(), "1 repository has user.name but no user.email") {
+		t.Errorf("unexpected warning: %q", buf.String())
+	}
+
+	buf.Reset()
+	warnMissingEmail(&buf, []config.Repository{{Name: "a", User: "Jane Doe", Email: "jane@example.com"}})
+	if buf.Len() != 0 {
+		t.Errorf("expected no warning, got %q", buf.String())
 	}
 }

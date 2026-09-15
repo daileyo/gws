@@ -95,6 +95,7 @@ func runRefresh() error {
 	if userDetectedCount > 0 {
 		fmt.Printf("Repositories with user configuration: %d\n", userDetectedCount)
 	}
+	warnMissingEmail(os.Stderr, allRepos)
 	if worktreeRepoCount > 0 {
 		fmt.Printf("Repositories with worktrees: %d\n", worktreeRepoCount)
 	}

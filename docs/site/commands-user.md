@@ -2,7 +2,7 @@
 
 Manage git user profiles across your workspace. Profiles store identity information (name, email, signing key) that can be assigned to repositories to configure their local git `user.*` settings.
 
-Profiles can be created manually or auto-detected from `~/.gitconfig` `includeIf` directives.
+Profiles can be created manually or auto-detected from `includeIf` directives in your git config. Identity is read through `git config` itself, so `~/.gitconfig`, `~/.config/git/config`, `$GIT_CONFIG_GLOBAL`, the system config and relative `include` paths are all honored.
 
 ---
 
@@ -49,7 +49,7 @@ Auto-Detected Profiles:
   ----        --------     -----                    ----
   oss         Jane Doe     jane@opensource.org       —
 
-(Auto-detected from ~/.gitconfig includeIf directives)
+(Auto-detected from git config includeIf directives)
 ```
 
 ---
@@ -152,10 +152,10 @@ omgw user assign my-api work --dry-run
 omgw user sync
 ```
 
-Synchronize stored user information with the effective git configuration for all tracked repositories. This re-reads each repository's `.git/config` and updates the cached `user`, `email`, `signing_enabled`, and `user_source` fields in the workspace configuration.
+Synchronize stored user information with the effective git configuration for all tracked repositories. This re-reads each repository's effective git configuration and updates the cached `user`, `email`, `signing_enabled`, and `user_source` fields in the workspace configuration.
 
 **When to use:**
 
 - After manually editing a repository's `.git/config`
-- After changing `~/.gitconfig` `includeIf` rules
+- After changing your global git identity or `includeIf` rules
 - To ensure the workspace config reflects the current state

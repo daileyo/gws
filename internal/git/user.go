@@ -1,8 +1,10 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -20,116 +22,7 @@ type UserConfig struct {
 	Source      config.UserSource // Where the config comes from
 }
 
-// GetUserConfig reads the effective git user configuration for a repository.
-// It checks the local .git/config first, then falls back to global config.
-func GetUserConfig(repoPath string) (*UserConfig, error) {
-	// Open the repository
-	repo, err := git.PlainOpen(repoPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open repository: %w", err)
-	}
-
-	userConfig := &UserConfig{
-		Source: config.UserSourceUnknown,
-	}
-
-	// Try to get local repository config first
-	localCfg, err := repo.Config()
-	if err == nil && localCfg != nil {
-		// Check if user is configured locally
-		if localCfg.User.Name != "" || localCfg.User.Email != "" {
-			userConfig.Name = localCfg.User.Name
-			userConfig.Email = localCfg.User.Email
-			userConfig.Source = config.UserSourceLocal
-		}
-	}
-
-	// If no local user config, try global config
-	if userConfig.Source == config.UserSourceUnknown {
-		globalCfg, err := loadGlobalConfig()
-		if err == nil && globalCfg != nil {
-			userConfig.Name = globalCfg.Name
-			userConfig.Email = globalCfg.Email
-			userConfig.SigningKey = globalCfg.SigningKey
-			userConfig.SignCommits = globalCfg.SignCommits
-			userConfig.Source = config.UserSourceGlobal
-		}
-	}
-
-	// Check for signing configuration in local config
-	// (may override global signing settings)
-	if localCfg != nil {
-		signingKey, signCommits := getSigningFromRawConfig(repoPath)
-		if signingKey != "" {
-			userConfig.SigningKey = signingKey
-		}
-		if signCommits {
-			userConfig.SignCommits = signCommits
-		}
-	}
-
-	// If using global config, check if an includeIf directive applies to this repo
-	if userConfig.Source == config.UserSourceGlobal {
-		if includeIfCfg, matched := checkIncludeIfMatch(repoPath); matched && includeIfCfg != nil {
-			userConfig.Name = includeIfCfg.Name
-			userConfig.Email = includeIfCfg.Email
-			if includeIfCfg.SigningKey != "" {
-				userConfig.SigningKey = includeIfCfg.SigningKey
-			}
-			if includeIfCfg.SignCommits {
-				userConfig.SignCommits = includeIfCfg.SignCommits
-			}
-			userConfig.Source = config.UserSourceIncludeIf
-		}
-	}
-
-	return userConfig, nil
-}
-
-// GetNonLocalUserConfig reads the git user configuration for a repository,
-// skipping the local .git/config. This returns the underlying global or
-// includeIf configuration, which is used when local config should not be persisted.
-func GetNonLocalUserConfig(repoPath string) (*UserConfig, error) {
-	userConfig := &UserConfig{
-		Source: config.UserSourceUnknown,
-	}
-
-	// Try global config
-	globalCfg, err := loadGlobalConfig()
-	if err == nil && globalCfg != nil {
-		userConfig.Name = globalCfg.Name
-		userConfig.Email = globalCfg.Email
-		userConfig.SigningKey = globalCfg.SigningKey
-		userConfig.SignCommits = globalCfg.SignCommits
-		userConfig.Source = config.UserSourceGlobal
-	}
-
-	// Check if an includeIf directive applies
-	if userConfig.Source == config.UserSourceGlobal {
-		if includeIfCfg, matched := checkIncludeIfMatch(repoPath); matched && includeIfCfg != nil {
-			userConfig.Name = includeIfCfg.Name
-			userConfig.Email = includeIfCfg.Email
-			if includeIfCfg.SigningKey != "" {
-				userConfig.SigningKey = includeIfCfg.SigningKey
-			}
-			if includeIfCfg.SignCommits {
-				userConfig.SignCommits = includeIfCfg.SignCommits
-			}
-			userConfig.Source = config.UserSourceIncludeIf
-		}
-	}
-
-	return userConfig, nil
-}
-
-// GetGlobalDefaultUser reads the global default user identity from ~/.gitconfig.
-// This reads the [user] section and follows [include] directives but NOT [includeIf],
-// returning the "default" user identity used when no local or includeIf override applies.
-func GetGlobalDefaultUser() (*GlobalUserConfig, error) {
-	return loadGlobalConfig()
-}
-
-// GlobalUserConfig represents user config from global gitconfig
+// GlobalUserConfig represents the user identity git uses outside any repository
 type GlobalUserConfig struct {
 	Name        string
 	Email       string
@@ -137,324 +30,279 @@ type GlobalUserConfig struct {
 	SignCommits bool
 }
 
-// loadGlobalConfig reads the global git configuration
-func loadGlobalConfig() (*GlobalUserConfig, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get home directory: %w", err)
-	}
-
-	gitconfigPath := filepath.Join(home, ".gitconfig")
-
-	// Read and parse the gitconfig file, following includes
-	return parseGitConfigWithIncludes(gitconfigPath, home)
+// IncludeIfDirective is an [includeIf "<condition>"] path entry, with the path
+// resolved the way git resolves it.
+type IncludeIfDirective struct {
+	Condition string // e.g. "gitdir:~/work/"
+	Path      string // absolute path of the included file
 }
 
-// parseGitConfigWithIncludes parses a gitconfig file and follows [include] directives
-func parseGitConfigWithIncludes(configPath, home string) (*GlobalUserConfig, error) {
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil // No global config
-		}
-		return nil, fmt.Errorf("failed to read gitconfig: %w", err)
-	}
+// userKeysPattern matches every key that contributes to a user identity.
+const userKeysPattern = `^(user\.(name|email|signingkey)|commit\.gpgsign)$`
 
-	cfg, includes := parseGitConfigAndIncludes(string(data))
-
-	// Follow include directives to find user info
-	for _, includePath := range includes {
-		// Expand ~ to home directory
-		if strings.HasPrefix(includePath, "~/") {
-			includePath = filepath.Join(home, includePath[2:])
-		}
-
-		// #nosec G703 -- includePath comes from the user's own gitconfig
-		// include directives; unreadable paths are skipped below.
-		includeData, err := os.ReadFile(includePath)
-		if err != nil {
-			continue // Skip includes that can't be read
-		}
-
-		includeCfg, _ := parseGitConfigAndIncludes(string(includeData))
-
-		// Merge: included config values take precedence if not already set
-		if cfg.Name == "" && includeCfg.Name != "" {
-			cfg.Name = includeCfg.Name
-		}
-		if cfg.Email == "" && includeCfg.Email != "" {
-			cfg.Email = includeCfg.Email
-		}
-		if cfg.SigningKey == "" && includeCfg.SigningKey != "" {
-			cfg.SigningKey = includeCfg.SigningKey
-		}
-		if !cfg.SignCommits && includeCfg.SignCommits {
-			cfg.SignCommits = includeCfg.SignCommits
-		}
-	}
-
-	return cfg, nil
+// configEntry is one value reported by git config, with where it came from.
+type configEntry struct {
+	scope  string // system, global, local, worktree or command
+	origin string // e.g. "file:/home/me/.gitconfig"
+	key    string // lowercased by git, e.g. "user.email"
+	value  string
+	bare   bool // key present with no "= value", which git reads as boolean true
 }
 
-// parseGitConfigAndIncludes parses a gitconfig file content and extracts user info and include paths
-func parseGitConfigAndIncludes(content string) (*GlobalUserConfig, []string) {
-	cfg := &GlobalUserConfig{}
-	var includes []string
+// Reading identity through git itself, rather than parsing config files, means
+// every location git honors is respected: ~/.gitconfig, $XDG_CONFIG_HOME/git/config,
+// $GIT_CONFIG_GLOBAL, the system config, relative [include] paths and every
+// [includeIf] condition type.
 
-	lines := strings.Split(content, "\n")
-	inUserSection := false
-	inCommitSection := false
-	inIncludeSection := false
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-
-		// Skip empty lines and comments
-		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
-			continue
-		}
-
-		// Check for section headers
-		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
-			section := strings.ToLower(strings.Trim(line, "[]"))
-			inUserSection = section == "user"
-			inCommitSection = section == "commit"
-			inIncludeSection = section == "include"
-			continue
-		}
-
-		// Parse key-value pairs
-		if inUserSection {
-			if strings.HasPrefix(strings.ToLower(line), "name") {
-				cfg.Name = extractValue(line)
-			} else if strings.HasPrefix(strings.ToLower(line), "email") {
-				cfg.Email = extractValue(line)
-			} else if strings.HasPrefix(strings.ToLower(line), "signingkey") {
-				cfg.SigningKey = extractValue(line)
-			}
-		}
-
-		if inCommitSection {
-			if strings.HasPrefix(strings.ToLower(line), "gpgsign") {
-				value := strings.ToLower(extractValue(line))
-				cfg.SignCommits = value == "true" || value == "1" || value == "yes"
-			}
-		}
-
-		if inIncludeSection {
-			if strings.HasPrefix(strings.ToLower(line), "path") {
-				includes = append(includes, extractValue(line))
-			}
-		}
+// GetUserConfig reads the effective git user configuration for a repository.
+// Source is local when the repository's own config supplies the name or email,
+// includeIf when a conditional include does, and global otherwise.
+func GetUserConfig(repoPath string) (*UserConfig, error) {
+	if _, err := git.PlainOpen(repoPath); err != nil {
+		return nil, fmt.Errorf("failed to open repository: %w", err)
 	}
 
-	return cfg, includes
-}
-
-// parseGitConfig parses a gitconfig file content and extracts user info (for backward compatibility)
-func parseGitConfig(content string) *GlobalUserConfig {
-	cfg, _ := parseGitConfigAndIncludes(content)
-	return cfg
-}
-
-// extractValue extracts the value from a "key = value" line
-func extractValue(line string) string {
-	parts := strings.SplitN(line, "=", 2)
-	if len(parts) != 2 {
-		return ""
-	}
-	value := strings.TrimSpace(parts[1])
-	// Remove quotes if present
-	value = strings.Trim(value, "\"'")
-	return value
-}
-
-// getSigningFromRawConfig reads signing configuration from repo's .git/config
-func getSigningFromRawConfig(repoPath string) (signingKey string, signCommits bool) {
-	configPath := filepath.Join(repoPath, ".git", "config")
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return "", false
-	}
-
-	cfg := parseGitConfig(string(data))
-	return cfg.SigningKey, cfg.SignCommits
-}
-
-// MatchesGitdirCondition evaluates whether a repo path matches a gitdir includeIf
-// condition string (e.g., "gitdir:~/work/" matches "/home/user/work/my-repo").
-// Supports gitdir: and gitdir/i: (case-insensitive) prefixes, trailing ** globs,
-// and ~/ home directory expansion.
-func MatchesGitdirCondition(repoPath string, condition string) bool {
-	// Extract the prefix and pattern
-	var pattern string
-	caseInsensitive := false
-
-	lower := strings.ToLower(condition)
-	if strings.HasPrefix(lower, "gitdir/i:") {
-		pattern = condition[len("gitdir/i:"):]
-		caseInsensitive = true
-	} else if strings.HasPrefix(lower, "gitdir:") {
-		pattern = condition[len("gitdir:"):]
-	} else {
-		return false // Not a gitdir condition
-	}
-
-	// Expand ~ in pattern
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return false
-	}
-	if strings.HasPrefix(pattern, "~/") {
-		pattern = filepath.Join(home, pattern[2:])
-	}
-
-	// Clean and normalize
-	pattern = filepath.Clean(pattern)
-	repoPathClean := filepath.Clean(repoPath)
-
-	if caseInsensitive {
-		pattern = strings.ToLower(pattern)
-		repoPathClean = strings.ToLower(repoPathClean)
-	}
-
-	// Remove trailing ** if present (means "match anything below this dir")
-	pattern = strings.TrimSuffix(pattern, "/**")
-	pattern = strings.TrimSuffix(pattern, "**")
-
-	// Ensure pattern ends with separator for directory matching
-	if !strings.HasSuffix(pattern, string(filepath.Separator)) {
-		pattern += string(filepath.Separator)
-	}
-
-	// Check if repo path starts with the pattern directory
-	if !strings.HasSuffix(repoPathClean, string(filepath.Separator)) {
-		repoPathClean += string(filepath.Separator)
-	}
-
-	return strings.HasPrefix(repoPathClean, pattern)
-}
-
-// includeIfEntry represents a parsed includeIf directive from gitconfig
-type includeIfEntry struct {
-	condition string
-	path      string
-}
-
-// checkIncludeIfMatch checks if any includeIf directive in ~/.gitconfig matches
-// the given repo path. Returns the user config from the matched included config
-// and whether a match was found.
-func checkIncludeIfMatch(repoPath string) (*UserConfig, bool) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, false
-	}
-
-	gitconfigPath := filepath.Join(home, ".gitconfig")
-	data, err := os.ReadFile(gitconfigPath)
-	if err != nil {
-		return nil, false
-	}
-
-	entries := parseIncludeIfs(string(data), home)
-	for _, entry := range entries {
-		if !MatchesGitdirCondition(repoPath, entry.condition) {
-			continue
-		}
-
-		// Read and parse the included config file
-		includedData, err := os.ReadFile(entry.path)
-		if err != nil {
-			continue
-		}
-
-		includedCfg := parseGitConfig(string(includedData))
-		if includedCfg.Name == "" && includedCfg.Email == "" {
-			continue
-		}
-
-		return &UserConfig{
-			Name:        includedCfg.Name,
-			Email:       includedCfg.Email,
-			SigningKey:  includedCfg.SigningKey,
-			SignCommits: includedCfg.SignCommits,
-			Source:      config.UserSourceIncludeIf,
-		}, true
-	}
-
-	return nil, false
-}
-
-// parseIncludeIfs extracts includeIf directives from gitconfig content
-func parseIncludeIfs(content string, home string) []includeIfEntry {
-	var entries []includeIfEntry
-	lines := strings.Split(content, "\n")
-	var currentCondition string
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
-			continue
-		}
-
-		// Check for [includeIf "condition"] section
-		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
-			sectionLine := strings.Trim(line, "[]")
-			lower := strings.ToLower(sectionLine)
-			if strings.HasPrefix(lower, "includeif ") {
-				// Extract quoted condition
-				quoted := sectionLine[10:] // Skip "includeIf "
-				currentCondition = strings.Trim(strings.TrimSpace(quoted), "\"'")
-			} else {
-				currentCondition = ""
-			}
-			continue
-		}
-
-		// If we're in an includeIf section, look for path =
-		if currentCondition != "" {
-			key, value := parseIncludeIfKeyValue(line)
-			if strings.ToLower(key) == "path" {
-				// Expand ~ in path
-				if strings.HasPrefix(value, "~/") {
-					value = filepath.Join(home, value[2:])
-				}
-				entries = append(entries, includeIfEntry{
-					condition: currentCondition,
-					path:      filepath.Clean(value),
-				})
-			}
-		}
-	}
-
-	return entries
-}
-
-// parseIncludeIfKeyValue parses a "key = value" line for includeIf sections
-func parseIncludeIfKeyValue(line string) (string, string) {
-	parts := strings.SplitN(line, "=", 2)
-	if len(parts) != 2 {
-		return "", ""
-	}
-	return strings.TrimSpace(parts[0]), strings.Trim(strings.TrimSpace(parts[1]), "\"'")
-}
-
-// GetEffectiveUserConfig reads the effective git user for a repo by running git config
-// This is a more accurate method that respects all includeIf directives
-func GetEffectiveUserConfig(repoPath string) (*UserConfig, error) {
-	// First try the standard method
-	cfg, err := GetUserConfig(repoPath)
+	entries, err := readConfigEntries(repoPath, "--get-regexp", userKeysPattern)
 	if err != nil {
 		return nil, err
 	}
 
-	// If we detected a user, return it
-	if cfg.Name != "" || cfg.Email != "" {
-		return cfg, nil
+	return resolveUserConfig(entries)
+}
+
+// GetNonLocalUserConfig reads the git user configuration for a repository,
+// skipping the repository's own config. This returns the underlying global or
+// includeIf configuration, which is used when local config should not be persisted.
+func GetNonLocalUserConfig(repoPath string) (*UserConfig, error) {
+	entries, err := readConfigEntries(repoPath, "--get-regexp", userKeysPattern)
+	if err != nil {
+		return nil, err
 	}
 
-	// Fallback: return empty config with unknown source
-	return &UserConfig{
-		Source: config.UserSourceUnknown,
+	var nonLocal []configEntry
+	for _, e := range entries {
+		if !isRepoScope(e.scope) {
+			nonLocal = append(nonLocal, e)
+		}
+	}
+
+	return resolveUserConfig(nonLocal)
+}
+
+// GetGlobalDefaultUser reads the user identity git uses outside any repository:
+// the system and global config plus their unconditional includes. Returns nil
+// when no identity is configured.
+func GetGlobalDefaultUser() (*GlobalUserConfig, error) {
+	entries, err := readConfigEntries(neutralDir(), "--get-regexp", userKeysPattern)
+	if err != nil {
+		return nil, err
+	}
+	if len(entries) == 0 {
+		return nil, nil
+	}
+
+	eff := effectiveEntries(entries)
+	return &GlobalUserConfig{
+		Name:        eff["user.name"].value,
+		Email:       eff["user.email"].value,
+		SigningKey:  eff["user.signingkey"].value,
+		SignCommits: entryBool(eff["commit.gpgsign"]),
 	}, nil
+}
+
+// ListIncludeIfDirectives returns every includeIf path directive git sees
+// outside a repository, in the order git reads them.
+func ListIncludeIfDirectives() ([]IncludeIfDirective, error) {
+	entries, err := readConfigEntries(neutralDir(), "--get-regexp", `^includeif\..*\.path$`)
+	if err != nil {
+		return nil, err
+	}
+
+	var directives []IncludeIfDirective
+	for _, e := range entries {
+		// git lowercases the section and variable but preserves the condition
+		condition := strings.TrimSuffix(strings.TrimPrefix(e.key, "includeif."), ".path")
+		path := resolveIncludePath(e.value, e.origin)
+		if condition == "" || path == "" {
+			continue
+		}
+		directives = append(directives, IncludeIfDirective{Condition: condition, Path: path})
+	}
+	return directives, nil
+}
+
+// ReadUserConfigFile reads the user identity defined in a single config file,
+// following any includes inside it.
+func ReadUserConfigFile(path string) (*GlobalUserConfig, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	entries, err := readConfigEntries(neutralDir(), "--file", path, "--includes", "--get-regexp", userKeysPattern)
+	if err != nil {
+		return nil, err
+	}
+
+	eff := effectiveEntries(entries)
+	return &GlobalUserConfig{
+		Name:        eff["user.name"].value,
+		Email:       eff["user.email"].value,
+		SigningKey:  eff["user.signingkey"].value,
+		SignCommits: entryBool(eff["commit.gpgsign"]),
+	}, nil
+}
+
+// resolveUserConfig collapses config entries into the effective identity and
+// classifies where the name and email came from.
+func resolveUserConfig(entries []configEntry) (*UserConfig, error) {
+	eff := effectiveEntries(entries)
+	userConfig := &UserConfig{
+		Name:        eff["user.name"].value,
+		Email:       eff["user.email"].value,
+		SigningKey:  eff["user.signingkey"].value,
+		SignCommits: entryBool(eff["commit.gpgsign"]),
+		Source:      config.UserSourceUnknown,
+	}
+
+	identity := make([]configEntry, 0, 2)
+	for _, key := range []string{"user.name", "user.email"} {
+		if e, ok := eff[key]; ok {
+			identity = append(identity, e)
+		}
+	}
+	if len(identity) == 0 {
+		return userConfig, nil
+	}
+
+	for _, e := range identity {
+		if isRepoScope(e.scope) {
+			userConfig.Source = config.UserSourceLocal
+			return userConfig, nil
+		}
+	}
+
+	// A value whose origin is not read outside the repository can only have
+	// arrived through a conditional include that matched this repository.
+	unconditional, err := neutralOrigins()
+	if err != nil {
+		return nil, err
+	}
+	userConfig.Source = config.UserSourceGlobal
+	for _, e := range identity {
+		if !unconditional[e.origin] {
+			userConfig.Source = config.UserSourceIncludeIf
+			break
+		}
+	}
+
+	return userConfig, nil
+}
+
+// neutralOrigins returns the set of config origins git reads outside any repository.
+func neutralOrigins() (map[string]bool, error) {
+	entries, err := readConfigEntries(neutralDir(), "--get-regexp", userKeysPattern)
+	if err != nil {
+		return nil, err
+	}
+	origins := make(map[string]bool, len(entries))
+	for _, e := range entries {
+		origins[e.origin] = true
+	}
+	return origins, nil
+}
+
+// effectiveEntries returns the last value git reports for each key, which is
+// the one that takes effect.
+func effectiveEntries(entries []configEntry) map[string]configEntry {
+	eff := make(map[string]configEntry, len(entries))
+	for _, e := range entries {
+		eff[e.key] = e
+	}
+	return eff
+}
+
+// isRepoScope reports whether a scope belongs to the repository itself.
+func isRepoScope(scope string) bool {
+	return scope == "local" || scope == "worktree"
+}
+
+// entryBool interprets a config value the way git reads booleans.
+func entryBool(e configEntry) bool {
+	if e.bare {
+		return true
+	}
+	switch strings.ToLower(strings.TrimSpace(e.value)) {
+	case "true", "yes", "on", "1":
+		return true
+	}
+	return false
+}
+
+// resolveIncludePath resolves an include path the way git does: ~/ expands to
+// the home directory and relative paths are relative to the including file.
+func resolveIncludePath(path, origin string) string {
+	if strings.HasPrefix(path, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return ""
+		}
+		return filepath.Join(home, path[2:])
+	}
+	if filepath.IsAbs(path) {
+		return filepath.Clean(path)
+	}
+
+	originFile, ok := strings.CutPrefix(origin, "file:")
+	if !ok || !filepath.IsAbs(originFile) {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(originFile), path)
+}
+
+// neutralDir returns a directory that is not inside any repository, so git
+// evaluates config without repository context and no gitdir condition matches.
+func neutralDir() string {
+	tmp := os.TempDir()
+	return filepath.VolumeName(tmp) + string(filepath.Separator)
+}
+
+// readConfigEntries runs git config with scope and origin reporting in dir and
+// parses the NUL-delimited output. No matching keys is not an error.
+func readConfigEntries(dir string, args ...string) ([]configEntry, error) {
+	fullArgs := append([]string{"config", "--null", "--show-scope", "--show-origin"}, args...)
+	cmd := exec.Command("git", fullArgs...)
+	cmd.Dir = dir
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		// git config exits 1 when no key matches
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 && stderr.Len() == 0 {
+			return nil, nil
+		}
+		if msg := strings.TrimSpace(stderr.String()); msg != "" {
+			return nil, fmt.Errorf("git config failed: %s", msg)
+		}
+		return nil, fmt.Errorf("git config failed: %w", err)
+	}
+
+	return parseConfigEntries(out), nil
+}
+
+// parseConfigEntries parses `git config --null --show-scope --show-origin`
+// output: each entry is scope NUL origin NUL key [LF value] NUL.
+func parseConfigEntries(out []byte) []configEntry {
+	fields := strings.Split(string(out), "\x00")
+
+	var entries []configEntry
+	for i := 0; i+2 < len(fields); i += 3 {
+		e := configEntry{scope: fields[i], origin: fields[i+1]}
+		key, value, hasValue := strings.Cut(fields[i+2], "\n")
+		e.key = key
+		e.value = value
+		e.bare = !hasValue
+		entries = append(entries, e)
+	}
+	return entries
 }

@@ -27,7 +27,7 @@ var userCmd = &cobra.Command{
 	Long: `Manage git user profiles for different contexts (work, personal, etc).
 
 Profiles define git user.name, user.email, and optional signing configuration.
-They can be manually created or auto-detected from your ~/.gitconfig includeIf directives.
+They can be manually created or auto-detected from the includeIf directives in your git config.
 
 Commands:
   gws user list                                    # List all profiles
@@ -101,7 +101,8 @@ var userListCmd = &cobra.Command{
 	Long: `List all stored and auto-detected user profiles.
 
 Stored profiles are ones you've added via 'gws user add'.
-Auto-detected profiles are discovered from ~/.gitconfig includeIf directives.`,
+Auto-detected profiles are discovered from the includeIf directives in your git config
+(~/.gitconfig, ~/.config/git/config and anything they include).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
@@ -129,7 +130,7 @@ Auto-detected profiles are discovered from ~/.gitconfig includeIf directives.`,
 			}
 			fmt.Printf("Auto-Detected Profiles (%d):\n\n", len(detected))
 			displayProfileTable(detected)
-			fmt.Println("\n(Auto-detected from ~/.gitconfig includeIf directives)")
+			fmt.Println("\n(Auto-detected from git config includeIf directives)")
 		}
 
 		return nil
