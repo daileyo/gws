@@ -1,6 +1,6 @@
 # Configuration
 
-git-workspace stores its configuration in `~/.config/gws/config.json`. The configuration includes:
+omgitworks stores its configuration in `~/.config/gws/config.json`. The configuration includes:
 
 - **version**: Config file format version
 - **workspace**: Root directory of the workspace
@@ -30,8 +30,8 @@ git-workspace stores its configuration in `~/.config/gws/config.json`. The confi
   ],
   "repositories": [
     {
-      "name": "gws",
-      "path": "/home/user/projects/gws",
+      "name": "omgw",
+      "path": "/home/user/projects/omgw",
       "remote_url": "https://github.com/daileyo/omgitworks.git",
       "type": "github",
       "visibility": "unknown",
@@ -80,7 +80,7 @@ git-workspace stores its configuration in `~/.config/gws/config.json`. The confi
 
 ### Profile Fields
 
-Profiles are managed via `gws user add`, `gws user remove`, and related commands. See [User Management](commands-user.md) for details.
+Profiles are managed via `omgw user add`, `omgw user remove`, and related commands. See [User Management](commands-user.md) for details.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -99,7 +99,7 @@ Profiles are managed via `gws user add`, `gws user remove`, and related commands
 | `remote_url` | string | Git remote URL (empty string if no remote is configured) |
 | `type` | string | Detected hosting provider: `github`, `gitlab`, `ado`, `bitbucket`, or `unknown` |
 | `visibility` | string | Inferred visibility: `private` (SSH URL) or `unknown` (HTTPS URL) |
-| `tags` | array | List of custom tag strings managed via `gws tag add` / `gws tag remove` |
+| `tags` | array | List of custom tag strings managed via `omgw tag add` / `omgw tag remove` |
 | `user` | string | Git `user.name` configured for this repository |
 | `email` | string | Git `user.email` configured for this repository |
 | `signing_enabled` | boolean | Whether commit signing is configured for this repository |
@@ -108,7 +108,7 @@ Profiles are managed via `gws user add`, `gws user remove`, and related commands
 
 ### Worktree Fields
 
-Each entry in the `worktrees` array represents a git worktree associated with a repository. Worktree data is populated during `gws refresh` and updated by `gws worktree add` and `gws worktree align`.
+Each entry in the `worktrees` array represents a git worktree associated with a repository. Worktree data is populated during `omgw refresh` and updated by `omgw worktree add` and `omgw worktree align`.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -120,7 +120,7 @@ Each entry in the `worktrees` array represents a git worktree associated with a 
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `status_workers` | integer | `8` | Number of concurrent workers for fetching git status. Also configurable per-invocation with `gws list --workers`. |
+| `status_workers` | integer | `8` | Number of concurrent workers for fetching git status. Also configurable per-invocation with `omgw list --workers`. |
 
 ## What is a "project"?
 
@@ -130,7 +130,7 @@ described below.
 
 ## File Locations
 
-git-workspace follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/).
+omgitworks follows the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/).
 
 | What | Location | Default |
 |------|----------|---------|
@@ -156,23 +156,23 @@ would depend on your current working directory.
 The layout is identical on Linux, macOS, and Windows. On Windows, `<home>` is `%USERPROFILE%`:
 
 ```
-C:\Users\<user>\.config\gws\config.json
-C:\Users\<user>\.local\share\gws\projects\<repo>\<branch>
+C:\Users\<user>\.config\omgw\config.json
+C:\Users\<user>\.local\share\omgw\projects\<repo>\<branch>
 ```
 
 Windows has no XDG specification, but this is not an invention — **git does the same thing**.
 Per `git-config(1)`, when `XDG_CONFIG_HOME` is unset git uses `$HOME/.config`, and Git for
 Windows sets `$HOME` to `%USERPROFILE%`. So `C:\Users\<user>\.config\git\config` is
-already a real, supported path there. gws keeps its config beside git's own.
+already a real, supported path there. omgw keeps its config beside git's own.
 
 The benefit is that one set of instructions works everywhere, and a dotfile manager or backup
-rule that knows `~/.config` knows where gws lives too.
+rule that knows `~/.config` knows where omgw lives too.
 
 `XDG_CONFIG_HOME` and `XDG_DATA_HOME` are honored on Windows as well, so if you prefer the
 native `%AppData%` location you can point them there explicitly.
 
 !!! note "Windows path length"
-    `C:\Users\<user>\.local\share\gws\projects\<repo>\<branch>` plus a deep branch name
+    `C:\Users\<user>\.local\share\omgw\projects\<repo>\<branch>` plus a deep branch name
     can approach the 260-character `MAX_PATH` limit. If you hit it, enable long-path support:
     `Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name LongPathsEnabled -Value 1`
     (run as Administrator, then reboot), or set `XDG_DATA_HOME` to a shorter path such as `C:\gws`.
@@ -188,7 +188,7 @@ cat "${XDG_CONFIG_HOME:-$HOME/.config}/gws/config.json"
 Earlier versions kept the config at `~/.gws/config.json` and worktrees in a `<repo>.wt/`
 directory beside each repository. Both have moved.
 
-**Your config migrates automatically.** The first time you run any command, gws moves
+**Your config migrates automatically.** The first time you run any command, omgw moves
 `~/.gws/config.json` to its new location and says so:
 
 ```
@@ -199,12 +199,12 @@ note: removed empty /home/user/.gws
 The old directory is removed only if the config was all it contained. If you kept anything
 else there, it is left alone and named in the output.
 
-**Your worktrees do not move on their own.** A worktree can hold uncommitted work, so gws will
+**Your worktrees do not move on their own.** A worktree can hold uncommitted work, so omgw will
 never relocate one without being asked. Until you ask, existing worktrees report as
 `(unaligned)`:
 
 ```bash
-gws worktree list
+omgw worktree list
 # my-repo   feat-auth   /home/user/projects/my-repo.wt/feat-auth   (unaligned)
 ```
 
@@ -212,8 +212,8 @@ gws worktree list
 worktrees in the old location no longer qualify. To move them:
 
 ```bash
-gws worktree align --dry-run   # preview
-gws worktree align             # move them
+omgw worktree align --dry-run   # preview
+omgw worktree align             # move them
 ```
 
 `align` relocates each worktree with `git worktree move`, updates the config, and removes the

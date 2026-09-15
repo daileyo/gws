@@ -1,7 +1,7 @@
 <p align="center">
   <img src="docs/site/assets/images/omgitworks-logo-hero.png" alt="omgitworks logo" width="400">
 </p>
-<h1 align="center">git-workspace</h1>
+<h1 align="center">omgitworks</h1>
 <p align="center"><em>Your Git workspace, simplified</em></p>
 
 [![CI](https://github.com/daileyo/omgitworks/actions/workflows/ci.yml/badge.svg)](https://github.com/daileyo/omgitworks/actions/workflows/ci.yml)
@@ -20,13 +20,13 @@ A lightweight, cross-platform CLI tool for discovering, organizing, and navigati
 - **Dual-Purpose Filtering**: Lowercase flags filter results; uppercase flags show columns with optional filtering
 - **Git Status Integration**: View branch, clean/dirty state, and ahead/behind indicators with color output
 - **Smart Caching**: Fast status display with configurable cache and concurrent workers (`--workers`)
-- **Custom Tagging**: Organize repositories with `gws tag add` / `gws tag remove`
+- **Custom Tagging**: Organize repositories with `omgw tag add` / `omgw tag remove`
 - **Advanced Filtering**: Search and filter repositories by type, tags, name, path, status, user, or remote URL
-- **User Profile Management**: Manage git user profiles across repositories with `gws user`
-- **Repository Navigation**: Jump to any repository instantly with `gws <repo-name>`
-- **Workspace Navigation**: Jump to the workspace root with `gws cd`
-- **Parent Navigation**: Navigate to a repository's parent directory with `gws parent` or `gws -p`
-- **Worktree Management**: Discover, navigate, create, and organize git worktrees with `gws worktree`
+- **User Profile Management**: Manage git user profiles across repositories with `omgw user`
+- **Repository Navigation**: Jump to any repository instantly with `omgw <repo-name>`
+- **Workspace Navigation**: Jump to the workspace root with `omgw cd`
+- **Parent Navigation**: Navigate to a repository's parent directory with `omgw parent` or `omgw -p`
+- **Worktree Management**: Discover, navigate, create, and organize git worktrees with `omgw worktree`
 - **XDG Layout**: Config in `~/.config/gws/`, worktrees in `~/.local/share/gws/projects/` — the same paths on Linux, macOS, and Windows
 - **Remote URL Display**: View formatted or raw remote URLs with `--show-remote` / `--show-remote-raw`
 - **External Repo Symlinks**: Automatically creates workspace symlinks for repositories outside the workspace root
@@ -43,7 +43,7 @@ Full documentation is available at **https://omgitworks.dev**
 ### Install via Homebrew
 
 ```bash
-brew install daileyo/gws/git-workspace
+brew install daileyo/gws/omgitworks
 ```
 
 See the [Getting Started](https://omgitworks.dev/getting-started/) guide for additional installation options.
@@ -108,7 +108,7 @@ python -m mkdocs build
 ```
 .
 ├── cmd/
-│   └── git-workspace/    # Main application entry point
+│   └── omgitworks/    # Main application entry point
 ├── internal/
 │   ├── classifier/       # Repository classification
 │   ├── config/           # Configuration management

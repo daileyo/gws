@@ -2,7 +2,7 @@
 
 Organize repositories with custom tags. Tags can be anything meaningful to your workflow — `personal`, `work`, `archived`, `backend`, `frontend`, etc.
 
-Tags are used for filtering with `gws list --tag`.
+Tags are used for filtering with `omgw list --tag`.
 
 ---
 
@@ -21,10 +21,10 @@ The `tag` parent command supports short-flag aliases for common operations:
 
 ```bash
 # Add a tag using short flag
-gws tag -a my-repo work
+omgw tag -a my-repo work
 
 # Remove a tag using short flag
-gws tag -d my-repo work
+omgw tag -d my-repo work
 ```
 
 ---
@@ -32,7 +32,7 @@ gws tag -d my-repo work
 ## Add a Tag
 
 ```
-gws tag add <repo> <tag>
+omgw tag add <repo> <tag>
 ```
 
 Add a tag to all repositories matching the given identifier.
@@ -56,23 +56,23 @@ Add a tag to all repositories matching the given identifier.
 
 ```bash
 # Tag a specific repo
-gws tag add my-project personal
+omgw tag add my-project personal
 
 # Tag all API services as backend
-gws tag add api backend
+omgw tag add api backend
 # Output: Added tag 'backend' to 3 repositories
 
 # Tag by path
-gws tag add --path /home/user/work backend
+omgw tag add --path /home/user/work backend
 
 # Tag by repo name
-gws tag add --repo api backend
+omgw tag add --repo api backend
 
 # Tag matching both path and name
-gws tag add --repo api --path /work backend
+omgw tag add --repo api --path /work backend
 
 # Tags can be anything
-gws tag add old-service archived
+omgw tag add old-service archived
 ```
 
 ---
@@ -80,7 +80,7 @@ gws tag add old-service archived
 ## Remove a Tag
 
 ```
-gws tag remove <repo> <tag>
+omgw tag remove <repo> <tag>
 ```
 
 Remove a tag from all repositories matching the given identifier.
@@ -96,17 +96,17 @@ Remove a tag from all repositories matching the given identifier.
 
 ```bash
 # Remove a tag from a specific repo
-gws tag remove my-project personal
+omgw tag remove my-project personal
 
 # Remove a tag from all matching repos
-gws tag remove api backend
+omgw tag remove api backend
 # Output: Removed tag 'backend' from 3 repositories
 
 # Remove by path
-gws tag remove --path /home/user/work backend
+omgw tag remove --path /home/user/work backend
 
 # Remove by repo name
-gws tag remove --repo api backend
+omgw tag remove --repo api backend
 ```
 
 ---
@@ -122,17 +122,17 @@ Tab completion is available for tag operations when shell integration is set up 
 
 ## Using Tags for Filtering
 
-Once tagged, use `gws list --tag` to filter:
+Once tagged, use `omgw list --tag` to filter:
 
 ```bash
 # Show all personal repos
-gws list --tag personal
+omgw list --tag personal
 
 # Filter by tag and show the tags column
-gws list -T personal
+omgw list -T personal
 
 # Combine with other filters
-gws list --tag work --type github -S
+omgw list --tag work --type github -S
 ```
 
 !!! note
