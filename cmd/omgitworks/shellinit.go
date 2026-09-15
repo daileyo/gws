@@ -39,7 +39,7 @@ if ! type compdef &>/dev/null; then
   autoload -U compinit && compinit
 fi
 function omgw() {
-  local _dest
+  local _dest _arg
   if [[ $# -eq 0 ]]; then
     {BIN}
     return
@@ -48,8 +48,14 @@ function omgw() {
     list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@" ;;
     worktree)
       case "$2" in
-        list|align|add|"") {BIN} "$@" ;;
+        list|align|add|""|-*) {BIN} "$@" ;;
         *)
+          # Help output goes to stdout; never capture it as a destination.
+          for _arg in "${@:3}"; do
+            case "$_arg" in
+              -h|--help) {BIN} "$@"; return ;;
+            esac
+          done
           _dest="$({BIN} "$@" -q 2>/dev/tty </dev/tty)"
           [[ -n "$_dest" ]] && cd "$_dest"
           ;;
@@ -113,7 +119,7 @@ if ! type _get_comp_words_by_ref &>/dev/null; then
 fi
 
 function omgw() {
-  local dest
+  local dest arg
   if [[ $# -eq 0 ]]; then
     {BIN}
     return
@@ -122,8 +128,14 @@ function omgw() {
     list|init|add|refresh|print-workspace|tag|user|completion|shell-init|help|__*) {BIN} "$@"; return ;;
     worktree)
       case "$2" in
-        list|align|add|"") {BIN} "$@" ;;
+        list|align|add|""|-*) {BIN} "$@" ;;
         *)
+          # Help output goes to stdout; never capture it as a destination.
+          for arg in "${@:3}"; do
+            case "$arg" in
+              -h|--help) {BIN} "$@"; return ;;
+            esac
+          done
           dest="$({BIN} "$@" -q 2>/dev/tty </dev/tty)"
           [[ -n "$dest" ]] && cd "$dest"
           ;;
@@ -194,7 +206,12 @@ function omgw {
             }
             $second = $rest[0]
             switch ($second) {
-                { $_ -in 'list', 'align', 'add' } {
+                { $_ -in 'list', 'align', 'add' -or $_ -like '-*' } {
+                    & {BIN} @args
+                    return
+                }
+                # Help output goes to stdout; never capture it as a destination.
+                { $rest -contains '-h' -or $rest -contains '--help' } {
                     & {BIN} @args
                     return
                 }
@@ -258,8 +275,18 @@ function gws { omgw @args }
 `
 
 func runShellInit(_ *cobra.Command, args []string) error {
+	script, err := renderShellInit(args[0], "omgitworks")
+	if err != nil {
+		return err
+	}
+	fmt.Print(script)
+	return nil
+}
+
+// renderShellInit returns the shell integration for shell, invoking bin as the binary.
+func renderShellInit(shell, bin string) (string, error) {
 	var tmpl string
-	switch args[0] {
+	switch shell {
 	case "zsh":
 		tmpl = zshInitTemplate
 	case "bash":
@@ -267,8 +294,7 @@ func runShellInit(_ *cobra.Command, args []string) error {
 	case "powershell", "pwsh":
 		tmpl = powershellInitTemplate
 	default:
-		return fmt.Errorf("unsupported shell %q (supported: zsh, bash, powershell)", args[0])
+		return "", fmt.Errorf("unsupported shell %q (supported: zsh, bash, powershell)", shell)
 	}
-	fmt.Print(strings.ReplaceAll(tmpl, "{BIN}", "omgitworks"))
-	return nil
+	return strings.ReplaceAll(tmpl, "{BIN}", bin), nil
 }
