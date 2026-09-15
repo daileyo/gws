@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/daileyo/omgitworks/compare/v3.0.0...v3.0.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **release:** correct the repo name and add a retry path ([0e10e2c](https://github.com/daileyo/omgitworks/commit/0e10e2cfa6cb39fd5305a782a6ff4eebc9abee75))
+
 ## [3.0.0](https://github.com/daileyo/omgitworks/compare/v2.22.0...v3.0.0) (2026-09-15)
 
 
