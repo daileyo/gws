@@ -54,7 +54,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/daileyo/gws
+        - github.com/daileyo/omgitworks
   exclusions:
     generated: lax
     paths:

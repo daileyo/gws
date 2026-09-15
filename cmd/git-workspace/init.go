@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/discovery"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/discovery"
 )
 
 // initCmd is the Cobra subcommand for initializing a workspace.

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/xdg"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/xdg"
 )
 
 func saveConfigForWorktreeTests(t *testing.T, repos []config.Repository) {

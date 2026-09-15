@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/git"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/git"
 )
 
 // AssignLocal sets user.name and user.email in a repository's local .git/config

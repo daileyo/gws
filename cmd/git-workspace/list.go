@@ -12,9 +12,9 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/filter"
-	"github.com/daileyo/gws/internal/git"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/filter"
+	"github.com/daileyo/omgitworks/internal/git"
 )
 
 // showColumnSentinel is the NoOptDefVal used to distinguish "flag present

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/git"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/git"
 )
 
 // --- Flag Registration Tests ---

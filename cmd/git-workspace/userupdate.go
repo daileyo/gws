@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/filter"
-	"github.com/daileyo/gws/internal/git"
-	"github.com/daileyo/gws/internal/user"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/filter"
+	"github.com/daileyo/omgitworks/internal/git"
+	"github.com/daileyo/omgitworks/internal/user"
 )
 
 // runListUsers handles --user (alone) and --list-users: displays available profiles

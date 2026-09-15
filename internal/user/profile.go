@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // AddProfile adds a new profile to the configuration with duplicate name validation

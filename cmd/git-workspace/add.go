@@ -9,9 +9,9 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
 
-	"github.com/daileyo/gws/internal/classifier"
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/discovery"
+	"github.com/daileyo/omgitworks/internal/classifier"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/discovery"
 )
 
 // addRecursive is the --recursive flag for the add subcommand.

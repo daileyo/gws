@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/daileyo/gws/internal/config"
-	"github.com/daileyo/gws/internal/git"
-	"github.com/daileyo/gws/internal/user"
+	"github.com/daileyo/omgitworks/internal/config"
+	"github.com/daileyo/omgitworks/internal/git"
+	"github.com/daileyo/omgitworks/internal/user"
 )
 
 // detectUserForRepos iterates over repos, calls git.GetUserConfig() for each,

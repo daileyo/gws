@@ -8,7 +8,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/daileyo/gws/internal/xdg"
+	"github.com/daileyo/omgitworks/internal/xdg"
 )
 
 // WorktreeEntry represents a single git worktree discovered via git worktree list.

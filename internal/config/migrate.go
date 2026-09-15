@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/daileyo/gws/internal/xdg"
+	"github.com/daileyo/omgitworks/internal/xdg"
 )
 
 // migrateOnce ensures the legacy config is migrated at most once per process.

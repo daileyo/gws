@@ -3,7 +3,7 @@ package user
 import (
 	"testing"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 func TestAddProfile(t *testing.T) {

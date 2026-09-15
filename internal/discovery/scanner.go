@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-git/go-git/v5"
 
-	"github.com/daileyo/gws/internal/classifier"
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/classifier"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // ScanResult contains the results of a repository scan

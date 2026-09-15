@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 // runRemoveTagWithFilters removes a tag from all repositories matching the given filters.

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/daileyo/gws/internal/config"
+	"github.com/daileyo/omgitworks/internal/config"
 )
 
 func createTestGitRepo(t *testing.T) string {

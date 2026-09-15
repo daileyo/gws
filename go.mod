@@ -1,4 +1,4 @@
-module github.com/daileyo/gws
+module github.com/daileyo/omgitworks
 
 go 1.24.0
 
