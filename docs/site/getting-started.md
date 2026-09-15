@@ -5,7 +5,7 @@
 ### Install via Homebrew
 
 ```bash
-brew install daileyo/gws/omgitworks
+brew install daileyo/tap/omgitworks
 ```
 
 ### Install on Windows (PowerShell)

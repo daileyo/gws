@@ -43,7 +43,7 @@ Full documentation is available at **https://omgitworks.dev**
 ### Install via Homebrew
 
 ```bash
-brew install daileyo/gws/omgitworks
+brew install daileyo/tap/omgitworks
 ```
 
 See the [Getting Started](https://omgitworks.dev/getting-started/) guide for additional installation options.
