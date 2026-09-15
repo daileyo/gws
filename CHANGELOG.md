@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.4](https://github.com/daileyo/omgitworks/compare/v3.0.3...v3.0.4) (2026-09-15)
+
+
+### Bug Fixes
+
+* **user:** read git identity through git config ([d9777a7](https://github.com/daileyo/omgitworks/commit/d9777a742793f4b9533177d0be68502d97d538df))
+* **user:** run git config with a context ([4503799](https://github.com/daileyo/omgitworks/commit/4503799b5e129d257ba1a80f4bf78b79b9268386))
+
 ## [3.0.3](https://github.com/daileyo/omgitworks/compare/v3.0.2...v3.0.3) (2026-09-15)
 
 
