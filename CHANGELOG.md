@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.3](https://github.com/daileyo/omgitworks/compare/v3.0.2...v3.0.3) (2026-09-15)
+
+
+### Bug Fixes
+
+* **cli:** render each command's real flags in help ([d2ac0a3](https://github.com/daileyo/omgitworks/commit/d2ac0a3aff99f167cead820263f4dbe749a85a48))
+
 ## [3.0.2](https://github.com/daileyo/omgitworks/compare/v3.0.1...v3.0.2) (2026-09-15)
 
 
